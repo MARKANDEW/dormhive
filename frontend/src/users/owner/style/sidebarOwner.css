@@ -1,0 +1,135 @@
+.owner-shell {
+  display: grid;
+  grid-template-columns: 18rem minmax(0, 1fr);
+  min-height: 100vh;
+  background: linear-gradient(180deg, #fff8e8 0%, #fff3d3 100%);
+  width: 100%;
+}
+
+.owner-shell > .owner-sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  padding: 1.3rem 1rem;
+  background: #3f2d16;
+  color: #f7dfaf;
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  box-sizing: border-box;
+}
+
+.owner-shell .owner-sidebar .nav-item {
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+  padding: .8rem .85rem;
+  border-radius: .8rem;
+  color: #f7dfaf;
+  text-decoration: none;
+  transition: background-color .2s ease;
+}
+
+.owner-shell .owner-sidebar .nav-item:hover,
+.owner-shell .owner-sidebar .nav-item.active {
+  background: #8a5f1b;
+}
+
+.owner-shell .owner-sidebar .nav-copy {
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+}
+
+.owner-shell .owner-sidebar .nav-copy strong {
+  font-size: .96rem;
+}
+
+.owner-shell .owner-sidebar .nav-copy small {
+  font-size: .72rem;
+  opacity: .78;
+}
+
+.owner-shell .owner-sidebar .nav-icon {
+  width: 1.5rem;
+  text-align: center;
+  font-size: 1.05rem;
+}
+
+.owner-shell .owner-sidebar .logout {
+  margin-top: auto;
+  padding: .8rem;
+  border: 1px solid #4f8476;
+  border-radius: .7rem;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+}
+
+@media (max-width: 860px) {
+  .owner-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .owner-shell > .owner-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 18rem;
+    transform: translateX(-105%);
+    transition: .2s;
+    z-index: 5;
+  }
+
+  .owner-shell.nav-open > .owner-sidebar {
+    transform: none;
+  }
+}
+
+/* High-specificity overrides to ensure this file is the single source of truth
+   for owner sidebar styles. These rules use !important and specific selectors
+   so duplicate sidebar CSS in other files won't visually conflict. */
+.owner-shell > .owner-sidebar,
+.owner-shell .owner-sidebar,
+.owner-shell .owner-sidebar * {
+  /* Keep cascade but ensure our values apply */
+}
+
+.owner-shell > .owner-sidebar {
+  position: sticky !important;
+  top: 0 !important;
+  height: 100vh !important;
+  padding: 1.3rem 1rem !important;
+  background: #3f2d16 !important;
+  color: #f7dfaf !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: .35rem !important;
+  box-sizing: border-box !important;
+}
+
+.owner-shell > .owner-sidebar .nav-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: .8rem !important;
+  padding: .8rem .85rem !important;
+  border-radius: .8rem !important;
+  color: #f7dfaf !important;
+  text-decoration: none !important;
+}
+
+.owner-shell > .owner-sidebar .nav-item:hover,
+.owner-shell > .owner-sidebar .nav-item.active {
+  background: #8a5f1b !important;
+}
+
+.owner-shell > .owner-sidebar .logout {
+  margin-top: auto !important;
+  padding: .8rem !important;
+  border: 1px solid #4f8476 !important;
+  border-radius: .7rem !important;
+  background: transparent !important;
+  color: #fff !important;
+  cursor: pointer !important;
+}

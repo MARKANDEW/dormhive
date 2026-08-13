@@ -1,0 +1,108 @@
+﻿.admin-shell {
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1fr);
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f7faf9 0%, #fff3d3 100%);
+  width: 100%;
+}
+
+.admin-shell > .admin-nav {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  padding: 1rem 1rem 1.2rem;
+  background: linear-gradient(180deg, #382b13 0%, #2e2212 100%);
+  color: #effaf6;
+  display: flex;
+  flex-direction: column;
+  gap: 0.38rem;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.05);
+  box-sizing: border-box;
+}
+
+.admin-shell > .admin-nav .admin-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.8rem 0.9rem;
+  margin-bottom: 0.5rem;
+  color: #fdfdfd;
+  text-decoration: none;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.admin-shell > .admin-nav .admin-logo small {
+  color: #9fd3c0;
+  font-size: 0.7rem;
+}
+
+.admin-shell > .admin-nav .nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.78rem 0.85rem;
+  border-radius: 0.8rem;
+  color: #e6f6ef;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+}
+
+.admin-shell > .admin-nav .nav-item:hover,
+.admin-shell > .admin-nav .nav-item.active {
+  background: #8d5f1d;
+  color: #fff;
+}
+
+.admin-shell > .admin-nav .nav-item .nav-icon {
+  width: 2.2rem;
+  height: 2.2rem;
+  display: grid;
+  place-items: center;
+  border-radius: 0.8rem;
+  background: rgba(255,255,255,0.16);
+  color: #fff;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.admin-shell > .admin-nav .nav-item:hover .nav-icon,
+.admin-shell > .admin-nav .nav-item.active .nav-icon {
+  background: rgba(255,255,255,0.28);
+}
+
+.admin-shell > .admin-nav .logout {
+  margin-top: auto;
+  border: 0;
+  border-radius: 0.8rem;
+  padding: 0.8rem 0.9rem;
+  background: #8a5f1b;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+}
+
+.admin-shell > .admin-main {
+  min-width: 0;
+}
+
+@media (max-width: 980px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-shell > .admin-nav {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 15rem;
+    transform: translateX(-105%);
+    transition: transform 0.2s ease;
+    z-index: 6;
+  }
+
+  .admin-shell.nav-open > .admin-nav {
+    transform: none;
+  }
+}

@@ -1,0 +1,3 @@
+function style(){if(document.querySelector('[data-component-style="loading"]'))return;const l=document.createElement('link');l.rel='stylesheet';l.href=new URL('./style/loading.css',import.meta.url);l.dataset.componentStyle='loading';document.head.append(l)}
+export function createLoading({label='Loading'}={}){style();const node=document.createElement('div');node.className='ui-loading';node.setAttribute('role','status');node.innerHTML=`<span class="ui-loading__spinner" aria-hidden="true"></span><span>${label}</span>`;return node}
+export function setLoading(container,visible,label='Loading'){if(visible){container.replaceChildren(createLoading({label}));}else{container.querySelector('.ui-loading')?.remove();}}

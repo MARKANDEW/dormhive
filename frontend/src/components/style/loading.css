@@ -1,0 +1,1 @@
+.ui-loading{display:inline-flex;align-items:center;gap:.5rem;color:#6b4b21}.ui-loading__spinner{width:1rem;height:1rem;border:2px solid #d1d5db;border-top-color:#c17e17;border-radius:50%;animation:ui-spin .7s linear infinite}@keyframes ui-spin{to{transform:rotate(360deg)}}

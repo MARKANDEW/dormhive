@@ -1,0 +1,249 @@
+﻿@charset "UTF-8";
+:root {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #1f2933;
+  background: #fef1d7;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+
+.owner-settings {
+  min-height: 100vh;
+  padding: 2rem 2rem 3rem;
+  background: linear-gradient(180deg, #fef1d7 0%, #f8faf8 100%);
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin: 0 auto 1.25rem;
+  max-width: 1040px;
+}
+
+.settings-header h1 {
+  margin: 0.2rem 0 0;
+  font-size: 2rem;
+  font-weight: 800;
+  color: #14212b;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #0f766e;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.back-link {
+  color: #34515b;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.settings-card {
+  width: min(92%, 1040px);
+  margin: 0 auto;
+  padding: 2rem 2.25rem 2.5rem;
+  border: 1px solid #dfe9e3;
+  border-radius: 1.1rem;
+  background: #ffffff;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.06);
+}
+
+.settings-tabs {
+  display: inline-flex;
+  gap: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e4ece8;
+  margin-bottom: 1.8rem;
+}
+
+.tab {
+  position: relative;
+  color: #58716b;
+  text-decoration: none;
+  font-size: 0.98rem;
+  font-weight: 700;
+  padding-bottom: 0.4rem;
+}
+
+.tab.active {
+  color: #0f766e;
+}
+
+.tab.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.05rem;
+  height: 2px;
+  background: #0f766e;
+  border-radius: 999px;
+}
+
+.settings-body {
+  padding-top: 0.35rem;
+}
+
+.tab-panel.hidden {
+  display: none;
+}
+
+.profile-panel {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.security-card {
+  max-width: 480px;
+}
+
+.security-card h2 {
+  margin: 0 0 1rem;
+  font-size: 1.2rem;
+  color: #14212b;
+}
+
+.profile-photo-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.avatar-shell {
+  position: relative;
+  width: 176px;
+  height: 176px;
+  border-radius: 50%;
+  padding: 0.35rem;
+  background: linear-gradient(145deg, #eef4f1, #e1ebe6);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.65), 0 10px 20px rgba(0, 0, 0, 0.08);
+}
+
+.avatar-shell img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #f4efe8;
+}
+
+.avatar-edit {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  border: 0;
+  width: 2.3rem;
+  height: 2.3rem;
+  border-radius: 50%;
+  background: #0f766e;
+  color: #ffffff;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(15, 118, 110, 0.25);
+}
+
+.profile-caption {
+  margin: 1rem 0 0;
+  color: #1f2a2f;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.settings-form {
+  display: grid;
+  gap: 1rem;
+  max-width: 460px;
+  width: 100%;
+}
+
+.field-group {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.field-group label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #39454d;
+}
+
+.field-group input {
+  width: 100%;
+  border: 1px solid #d1dfd8;
+  border-radius: 0.7rem;
+  padding: 0.9rem 1rem;
+  font: inherit;
+  color: #17212b;
+  background: #fcfefe;
+}
+
+.field-group input[readonly] {
+  background: #fff6df;
+  color: #59656c;
+}
+
+.save-profile {
+  justify-self: end;
+  margin-top: 0.35rem;
+  border: 0;
+  border-radius: 0.7rem;
+  padding: 0.9rem 1.25rem;
+  background: #0b5d4a;
+  color: #ffffff;
+  font-size: 0.96rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(11, 93, 74, 0.18);
+}
+
+.notice {
+  margin: 1.1rem 0 0;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.6rem;
+  color: #a61b1b;
+  background: #fff0f0;
+}
+
+.notice.success {
+  color: #0b5d4a;
+  background: #dff5ea;
+}
+
+.notice.error {
+  color: #a61b1b;
+  background: #fff0f0;
+}
+
+@media (max-width: 780px) {
+  .owner-settings {
+    padding: 1.25rem;
+  }
+
+  .settings-card {
+    padding: 1.25rem;
+  }
+
+  .profile-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-form {
+    max-width: none;
+  }
+
+  .save-profile {
+    justify-self: stretch;
+  }
+}

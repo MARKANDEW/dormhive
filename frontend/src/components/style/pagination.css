@@ -1,0 +1,1 @@
+.ui-pagination{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}.ui-pagination button{padding:.4rem .65rem;border:1px solid #d1d5db;background:#fff;border-radius:.35rem;cursor:pointer}.ui-pagination button[aria-current]{background:#c17e17;color:#fff}.ui-pagination button:disabled{opacity:.5;cursor:not-allowed}.ui-pagination span{color:#6b7280;font-size:.9rem}

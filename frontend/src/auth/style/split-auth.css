@@ -1,0 +1,4 @@
+@import url("./authSplit.css");
+
+/* shim file: some modules expect "split-auth.css" filename.
+   This imports the existing authSplit.css so pages pick up styles. */
