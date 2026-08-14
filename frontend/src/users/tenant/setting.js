@@ -17,14 +17,13 @@ const saveUser = (nextUser = {}) => {
   localStorage.setItem('dormhive.user', JSON.stringify(mergedUser));
   return mergedUser;
 };
-const refreshUserFromServer = async (userId, authToken) => {
-  const response = await fetch(`${API}/users/${encodeURIComponent(String(userId))}`, {
-    headers: { Authorization: `Bearer ${authToken}` }
-  });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.message || 'Unable to refresh your profile.');
-  return saveUser(body.data ?? {});
-};
+
+function displayNotice(element, text, state = 'error') {
+  if (!element) return;
+  element.hidden = false;
+  element.textContent = text;
+  element.className = `notice ${state}`;
+}
 
 function css() {
   if (!document.querySelector('[data-tenant-style="setting"]')) {
@@ -51,268 +50,267 @@ export function renderSetting(root = document.querySelector('#app')) {
     <div class="dh-app">
       ${renderTenantSidebar('setting')}
       <main class="tenant-page-main tenant-settings">
-          <header class="settings-header">
-            <div>
-              <p class="eyebrow">ACCOUNT SETTINGS</p>
-              <h1>Account Settings</h1>
-            </div>
-          </header>
+        <div class="settings-card">
+          <div class="settings-header">
+            <h1>Account Settings</h1>
+          </div>
 
-          <section class="settings-card">
-            <nav class="settings-tabs" aria-label="Settings tabs">
-              <a class="tab active" href="#" data-tab="profile">Profile</a>
-              <a class="tab" href="#" data-tab="security">Security</a>
-            </nav>
+          <div class="settings-body">
+            <aside class="profile-side">
+              <div class="segmented-tabs" aria-label="Profile settings tabs">
+                <button type="button" class="tab active" data-tab="profile" aria-selected="true">Profile</button>
+                <button type="button" class="tab" data-tab="security" aria-selected="false">Security</button>
+              </div>
 
-            <div class="settings-body">
-              <div class="tab-panel profile-panel" data-panel="profile">
-                <div class="profile-photo-card">
-                  <div class="avatar-shell">
-                    <img src="${getUserAvatarUrl(user, displayName)}" alt="Portrait of ${displayName}" />
-                    <button class="avatar-edit" type="button" aria-label="Change profile photo">✎</button>
-                  </div>
-                  <p class="profile-caption">${displayName}</p>
-                  <div class="avatar-actions">
-                    <input id="tenant-avatar-input" class="avatar-input" type="file" accept="image/*" hidden />
-                    <button class="save-profile avatar-action" type="button">Edit Profile</button>
-                    <button class="save-profile cancel-profile" type="button" hidden>Cancel</button>
-                  </div>
+              <div class="avatar-panel">
+                <div class="avatar-wrap" aria-label="User avatar">
+                  <img class="avatar-image" src="${getUserAvatarUrl(user, displayName)}" alt="User avatar" ${user.avatar_url ? '' : 'hidden'}>
+                  <svg class="avatar-svg" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${displayName} portrait" ${user.avatar_url ? 'style="display:none;"' : ''}>
+                    <rect width="240" height="240" rx="120" fill="#f2efe9"/>
+                    <circle cx="120" cy="94" r="46" fill="#223547"/>
+                    <path d="M67 198c8-37 32-57 53-57s45 20 53 57" fill="#2b4963"/>
+                    <path d="M85 106c9-27 24-43 36-43 26 0 40 20 40 44 0 18-7 29-20 37-13 7-29 8-42 2-13-6-20-17-24-40z" fill="#1d2d3c"/>
+                    <path d="M75 175c15-14 31-22 45-22 16 0 31 8 45 22" fill="#11212d"/>
+                    <rect x="72" y="164" width="96" height="24" rx="12" fill="#0f2b3f"/>
+                    <rect x="86" y="171" width="68" height="10" rx="5" fill="#4b6781"/>
+                  </svg>
+                  <button type="button" class="avatar-edit" aria-label="Upload profile picture">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm14.71-9.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/>
+                    </svg>
+                  </button>
+                  <input class="avatar-input" type="file" accept="image/*" hidden>
                 </div>
+                <div class="user-name">${displayName}</div>
+                <button type="button" class="edit-profile">Edit Profile</button>
+              </div>
+            </aside>
 
-                <form class="settings-form">
-                  <div class="field-group two-col">
-                    <label for="tenant-profile-first">First Name</label>
-                    <input id="tenant-profile-first" name="first_name" required value="${user.first_name ?? ''}" />
-                    <label for="tenant-profile-last">Last Name</label>
-                    <input id="tenant-profile-last" name="last_name" required value="${user.last_name ?? ''}" />
+            <section class="details-panel">
+              <div class="settings-view profile-view">
+                <form class="account-form" data-form="profile">
+                  <div class="field-row">
+                    <label>
+                      <span>First Name</span>
+                      <input id="tenant-profile-first" name="first_name" type="text" value="${user.first_name ?? ''}" required readonly>
+                    </label>
+                    <label>
+                      <span>Last Name</span>
+                      <input id="tenant-profile-last" name="last_name" type="text" value="${user.last_name ?? ''}" required readonly>
+                    </label>
                   </div>
-                  <div class="field-group">
-                    <label for="tenant-profile-email">Email Address</label>
-                    <input id="tenant-profile-email" name="email" readonly value="${displayEmail}" />
-                  </div>
-                  <div class="field-group">
-                    <label for="tenant-profile-phone">Phone Number</label>
-                    <input id="tenant-profile-phone" name="phone" type="tel" maxlength="20" pattern="\\+?[0-9\\s().-]{7,20}" value="${user.phone ?? ''}" />
-                  </div>
+
+                  <label>
+                    <span>Email Address</span>
+                    <input name="email" type="email" value="${displayEmail}" readonly>
+                  </label>
+
+                  <label>
+                    <span>Phone Number</span>
+                    <input id="tenant-profile-phone" name="phone" type="tel" value="${user.phone ?? ''}" maxlength="20" readonly>
+                  </label>
+
+                  <p class="notice" data-notice="profile" hidden role="alert"></p>
                 </form>
               </div>
 
-              <div class="tab-panel security-panel hidden" data-panel="security">
-                <div class="security-card">
-                  <h2>Password Management</h2>
-                  <form class="security-form">
-                    <div class="field-group">
-                      <label for="tenant-current-password">Current Password</label>
-                      <input id="tenant-current-password" name="currentPassword" type="password" required />
-                    </div>
-                    <div class="field-group">
-                      <label for="tenant-new-password">New Password</label>
-                      <input id="tenant-new-password" name="newPassword" type="password" required />
-                    </div>
-                    <div class="field-group">
-                      <label for="tenant-confirm-password">Confirm New Password</label>
-                      <input id="tenant-confirm-password" name="confirmPassword" type="password" required />
-                    </div>
-                    <button class="save-profile" type="submit">Update Password</button>
-                  </form>
-                </div>
-              </div>
-            </div>
+              <div class="settings-view security-view" hidden>
+                <form class="account-form security-form" data-form="security">
+                  <label>
+                    <span>Current Password</span>
+                    <input name="currentPassword" type="password" placeholder="Enter current password" required>
+                  </label>
 
-            <p class="notice" role="alert" hidden></p>
-          </section>
+                  <label>
+                    <span>New Password</span>
+                    <input name="newPassword" type="password" placeholder="Enter new password" required minlength="8">
+                  </label>
+
+                  <label>
+                    <span>Confirm New Password</span>
+                    <input name="confirmPassword" type="password" placeholder="Confirm new password" required minlength="8">
+                  </label>
+
+                  <button type="submit" class="save-btn">Save password</button>
+                  <p class="notice" data-notice="security" hidden role="alert"></p>
+                </form>
+              </div>
+            </section>
+          </div>
+        </div>
       </main>
     </div>`;
 
-  const form = root.querySelector('.settings-form');
-  const firstInput = root.querySelector('#tenant-profile-first');
-  const lastInput = root.querySelector('#tenant-profile-last');
-  const phoneInput = root.querySelector('#tenant-profile-phone');
-  const avatarInput = root.querySelector('#tenant-avatar-input');
-  const avatarImage = root.querySelector('.profile-photo-card img');
-  const avatarActionButton = root.querySelector('.avatar-action');
-  const cancelButton = root.querySelector('.cancel-profile');
+  const tabs = [...root.querySelectorAll('.tab')];
+  const profileView = root.querySelector('.profile-view');
+  const securityView = root.querySelector('.security-view');
+  const profileForm = root.querySelector('[data-form="profile"]');
+  const securityForm = root.querySelector('[data-form="security"]');
+  const firstInput = profileForm.querySelector('#tenant-profile-first');
+  const lastInput = profileForm.querySelector('#tenant-profile-last');
+  const phoneInput = profileForm.querySelector('#tenant-profile-phone');
+  const editProfileButton = root.querySelector('.edit-profile');
+  const profileNotice = root.querySelector('[data-notice="profile"]');
+  const securityNotice = root.querySelector('[data-notice="security"]');
+  const avatarInput = root.querySelector('.avatar-input');
   const avatarEditButton = root.querySelector('.avatar-edit');
-  const profileCaption = root.querySelector('.profile-caption');
-  let selectedAvatarFile = null;
-  let currentPreviewUrl = null;
-  let isEditing = false;
+  const avatarImage = root.querySelector('.avatar-image');
+  const avatarSvg = root.querySelector('.avatar-svg');
+  const profileCaption = root.querySelector('.user-name');
+  let isEditMode = false;
 
-  // If separate name parts are not yet set, attempt to split legacy `name` into parts
   const legacyParts = (user.name || '').trim().split(/\s+/).filter(Boolean);
-  form.querySelector('#tenant-profile-first').value = user.first_name ?? (legacyParts[0] ?? '');
-  form.querySelector('#tenant-profile-last').value = user.last_name ?? (legacyParts.slice(1).join(' ') || legacyParts[legacyParts.length - 1] || '');
-  form.querySelector('#tenant-profile-email').value = displayEmail;
-  form.querySelector('#tenant-profile-phone').value = user.phone ?? '';
+  firstInput.value = user.first_name ?? (legacyParts[0] ?? '');
+  lastInput.value = user.last_name ?? (legacyParts.slice(1).join(' ') || legacyParts[legacyParts.length - 1] || '');
+  phoneInput.value = user.phone ?? '';
 
-  const setEditMode = (active) => {
-    isEditing = active;
-    firstInput.readOnly = !active;
-    lastInput.readOnly = !active;
-    phoneInput.readOnly = !active;
-    avatarEditButton.hidden = !active;
-    avatarActionButton.textContent = active ? 'Save Changes' : 'Edit Profile';
-    cancelButton.hidden = !active;
-  };
+  function setProfileEditable(enabled) {
+    [firstInput, lastInput, phoneInput].forEach((input) => {
+      input.readOnly = !enabled;
+      input.disabled = !enabled;
+    });
+  }
 
-  const resetFormState = () => {
-    selectedAvatarFile = null;
-    if (currentPreviewUrl) {
-      URL.revokeObjectURL(currentPreviewUrl);
-      currentPreviewUrl = null;
+  function setEditState(enabled) {
+    isEditMode = enabled;
+    editProfileButton.textContent = enabled ? 'Save Profile' : 'Edit Profile';
+    avatarEditButton.hidden = !enabled;
+    setProfileEditable(enabled);
+    if (enabled) {
+      firstInput.focus();
     }
-    avatarInput.value = '';
-    firstInput.value = user.first_name ?? '';
-    lastInput.value = user.last_name ?? '';
-    phoneInput.value = user.phone ?? '';
-    avatarImage.src = getUserAvatarUrl(user, displayName);
-  };
+  }
 
-  const updateAvatarPreview = (file) => {
-    if (currentPreviewUrl) {
-      URL.revokeObjectURL(currentPreviewUrl);
-      currentPreviewUrl = null;
-    }
-    if (!file) {
-      avatarImage.src = getUserAvatarUrl(user, displayName);
-      return;
-    }
-    currentPreviewUrl = URL.createObjectURL(file);
-    avatarImage.src = currentPreviewUrl;
-  };
+  setEditState(false);
 
-  avatarEditButton.addEventListener('click', () => {
-    if (!isEditing) setEditMode(true);
-    avatarInput.click();
-  });
-
-  avatarInput.addEventListener('change', () => {
-    selectedAvatarFile = avatarInput.files?.[0] ?? null;
-    if (selectedAvatarFile && !isEditing) setEditMode(true);
-    updateAvatarPreview(selectedAvatarFile);
-  });
-
-  avatarActionButton.addEventListener('click', () => {
-    if (!isEditing) {
-      setEditMode(true);
-      return;
-    }
-    form.requestSubmit();
-  });
-
-  cancelButton.addEventListener('click', () => {
-    resetFormState();
-    setEditMode(false);
-    const notice = root.querySelector('.notice');
-    notice.hidden = true;
-  });
-
-  setEditMode(false);
-  updateAvatarPreview(null);
-
-  const tabs = root.querySelectorAll('.tab');
-  const panels = root.querySelectorAll('.tab-panel');
+  function setActiveTab(tabName) {
+    const isProfile = tabName === 'profile';
+    tabs.forEach((tab) => {
+      const active = tab.dataset.tab === tabName;
+      tab.classList.toggle('active', active);
+      tab.setAttribute('aria-selected', String(active));
+    });
+    profileView.hidden = !isProfile;
+    securityView.hidden = isProfile;
+    editProfileButton.hidden = !isProfile;
+  }
 
   tabs.forEach((tab) => {
-    tab.addEventListener('click', (event) => {
-      event.preventDefault();
-      const target = tab.dataset.tab;
-      tabs.forEach((item) => item.classList.toggle('active', item === tab));
-      panels.forEach((panel) => panel.classList.toggle('hidden', panel.dataset.panel !== target));
-      root.querySelector('.notice').hidden = true;
-    });
+    tab.addEventListener('click', () => setActiveTab(tab.dataset.tab));
   });
 
-  const securityForm = root.querySelector('.security-form');
-  securityForm.addEventListener('submit', (event) => {
-    event.preventDefault();
-    const notice = root.querySelector('.notice');
-    const currentPassword = securityForm.querySelector('#tenant-current-password').value.trim();
-    const newPassword = securityForm.querySelector('#tenant-new-password').value.trim();
-    const confirmPassword = securityForm.querySelector('#tenant-confirm-password').value.trim();
+  editProfileButton.addEventListener('click', async () => {
+    if (!isEditMode) {
+      setEditState(true);
+      return;
+    }
 
-    notice.hidden = false;
+    const payload = {
+      first_name: firstInput.value.trim(),
+      last_name: lastInput.value.trim(),
+      phone: phoneInput.value.trim(),
+      name: [firstInput.value.trim(), lastInput.value.trim()].filter(Boolean).join(' ')
+    };
+
+    if (!payload.first_name || !payload.last_name) {
+      displayNotice(profileNotice, 'First name and last name are required.', 'error');
+      return;
+    }
+
+    if (payload.phone && !/^\+?[0-9\s().-]{7,20}$/.test(payload.phone.trim())) {
+      displayNotice(profileNotice, 'Please provide a valid phone number.', 'error');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API}/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
+        body: JSON.stringify(payload)
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.message ?? 'Unable to update profile.');
+
+      const updatedUser = { ...(user || {}), ...payload, email: user.email ?? displayEmail };
+      localStorage.setItem('dormhive.user', JSON.stringify(updatedUser));
+      user = updatedUser;
+      displayNotice(profileNotice, 'Profile saved.', 'success');
+      setEditState(false);
+      profileCaption.textContent = payload.name || 'Tenant User';
+    } catch (error) {
+      displayNotice(profileNotice, error.message, 'error');
+    }
+  });
+
+  profileForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!isEditMode) return;
+    editProfileButton.click();
+  });
+
+  securityForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const formData = new FormData(securityForm);
+    const currentPassword = String(formData.get('currentPassword') ?? '').trim();
+    const newPassword = String(formData.get('newPassword') ?? '').trim();
+    const confirmPassword = String(formData.get('confirmPassword') ?? '').trim();
+
     if (!currentPassword || !newPassword || !confirmPassword) {
-      notice.textContent = 'Please complete all password fields.';
-      notice.className = 'notice error';
+      displayNotice(securityNotice, 'Please complete all password fields.', 'error');
       return;
     }
 
     if (newPassword.length < 8) {
-      notice.textContent = 'New password must be at least 8 characters.';
-      notice.className = 'notice error';
+      displayNotice(securityNotice, 'New password must be at least 8 characters long.', 'error');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      notice.textContent = 'New passwords do not match.';
-      notice.className = 'notice error';
+      displayNotice(securityNotice, 'New password and confirm password must match.', 'error');
       return;
     }
 
-    notice.textContent = 'Password updated.';
-    notice.className = 'notice success';
-    securityForm.reset();
+    try {
+      const response = await fetch(`${API}/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
+        body: JSON.stringify({ currentPassword, newPassword, confirmPassword })
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.message ?? 'Unable to update password.');
+
+      securityForm.reset();
+      displayNotice(securityNotice, 'Password updated successfully.', 'success');
+    } catch (error) {
+      displayNotice(securityNotice, error.message, 'error');
+    }
   });
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!form.reportValidity()) return;
-    const notice = root.querySelector('.notice');
-    notice.hidden = false;
-    notice.textContent = 'Saving changes...';
-    notice.className = 'notice';
+  avatarEditButton.addEventListener('click', () => avatarInput.click());
+  avatarInput.addEventListener('change', async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-    const authToken = localStorage.getItem('dormhive.accessToken') ?? '';
-    let updatedUser = user;
+    const formData = new FormData();
+    formData.append('avatar', file);
 
     try {
-      if (selectedAvatarFile) {
-        const avatarForm = new FormData();
-        avatarForm.append('avatar', selectedAvatarFile);
-        const avatarUrl = `${API}/users/${encodeURIComponent(String(user.id))}/avatar`;
-        const avatarResponse = await fetch(avatarUrl, {
-          method: 'PATCH',
-          headers: { Authorization: `Bearer ${authToken}` },
-          body: avatarForm
-        });
-        const avatarBody = await avatarResponse.json();
-        if (!avatarResponse.ok) {
-          throw new Error(avatarBody.message || 'Unable to upload avatar.');
-        }
-        updatedUser = await refreshUserFromServer(user.id, authToken);
-        user = updatedUser;
-        displayName = user.name || displayName;
-        profileCaption.textContent = displayName;
-        avatarImage.src = getUserAvatarUrl(user, displayName);
-      }
-
-      const profileResponse = await fetch(`${API}/users/${user.id}`, {
+      const response = await fetch(`${API}/users/${user.id}/avatar`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-        body: JSON.stringify({ first_name: form.querySelector('#tenant-profile-first').value.trim(), last_name: form.querySelector('#tenant-profile-last').value.trim(), name: [form.querySelector('#tenant-profile-first').value.trim(), form.querySelector('#tenant-profile-last').value.trim()].filter(Boolean).join(' '), phone: form.querySelector('#tenant-profile-phone').value.trim() })
+        headers: { Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
+        body: formData
       });
-      const profileBody = await profileResponse.json();
-      if (!profileResponse.ok) {
-        throw new Error(profileBody.message || 'Unable to update profile.');
-      }
-      updatedUser = await refreshUserFromServer(user.id, authToken);
-      user = updatedUser;
-      displayName = user.name || displayName;
-      notice.textContent = 'Profile updated.';
-      notice.className = 'notice success';
-      selectedAvatarFile = null;
-      if (currentPreviewUrl) {
-        URL.revokeObjectURL(currentPreviewUrl);
-        currentPreviewUrl = null;
-      }
-      avatarInput.value = '';
-      avatarImage.src = getUserAvatarUrl(user, displayName);
-      profileCaption.textContent = displayName;
-      setEditMode(false);
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.message ?? 'Unable to upload profile picture.');
+
+      const newSrc = body.data.avatar_url && !body.data.avatar_url.startsWith('http') ? `http://localhost:5000${body.data.avatar_url}` : body.data.avatar_url;
+      avatarImage.src = newSrc;
+      avatarImage.hidden = false;
+      avatarSvg.style.display = 'none';
+      user = { ...user, avatar_url: body.data.avatar_url };
+      localStorage.setItem('dormhive.user', JSON.stringify(user));
     } catch (error) {
-      notice.textContent = error.message;
-      notice.className = 'notice error';
+      displayNotice(profileNotice, error.message, 'error');
     }
   });
 }

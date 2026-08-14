@@ -13,13 +13,22 @@ function isValidPhone(value) {
 export async function register(request, response, next) {
   try {
     const { first_name, last_name, name, email, password, role = 'tenant', phone } = request.body;
+    const normalizedPhone = typeof phone === 'string' ? phone.trim() : phone;
     if (!['tenant', 'owner'].includes(role)) return response.status(422).json({ message: 'Role must be tenant or owner.' });
-    if (!/^\S+@\S+\.\S+$/.test(email) || password.length < 8 || !isValidPhone(phone)) {
-      return response.status(422).json({ message: 'Provide a valid email, phone number, and a password of at least 8 characters.' });
+    if (!/^\S+@\S+\.\S+$/.test(email) || password.length < 8 || (normalizedPhone && !isValidPhone(normalizedPhone))) {
+      return response.status(422).json({ message: 'Provide a valid email, a valid phone number if supplied, and a password of at least 8 characters.' });
     }
     if (await findByEmail(email.toLowerCase())) return response.status(409).json({ message: 'Email is already registered.' });
     const computedName = name ?? ([first_name, last_name].filter(Boolean).join(' ').trim() || null);
-    const user = await create({ name: computedName, first_name: first_name ?? null, last_name: last_name ?? null, email: email.toLowerCase(), passwordHash: await bcrypt.hash(password, 12), phone: phone.trim(), role });
+    const user = await create({
+      name: computedName,
+      first_name: first_name ?? null,
+      last_name: last_name ?? null,
+      email: email.toLowerCase(),
+      passwordHash: await bcrypt.hash(password, 12),
+      phone: normalizedPhone ? String(normalizedPhone).trim() : null,
+      role
+    });
     response.status(201).json({ user, accessToken: tokenFor(user) });
   } catch (error) { next(error); }
 }

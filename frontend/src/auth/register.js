@@ -118,19 +118,25 @@ export function renderRegister(root = document.querySelector('#app')) {
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!form.reportValidity()) return;
-    
+
     const formData = Object.fromEntries(new FormData(form));
-    const { terms, firstName, lastName, confirmPassword, ...payload } = formData;
-    
+    const { terms, firstName, lastName, confirmPassword, ...rest } = formData;
+
     // Validate password confirmation
     if (formData.password !== confirmPassword) {
       showMessage(message, 'Passwords do not match.');
       return;
     }
-    
-    // Combine first and last name
-    payload.name = `${firstName} ${lastName}`.trim();
-    
+
+    const payload = {
+      first_name: String(firstName ?? '').trim(),
+      last_name: String(lastName ?? '').trim(),
+      name: `${String(firstName ?? '').trim()} ${String(lastName ?? '').trim()}`.trim(),
+      email: String(rest.email ?? '').trim(),
+      password: String(rest.password ?? ''),
+      role: String(rest.role ?? 'tenant')
+    };
+
     submitButton.disabled = true;
     submitButton.textContent = 'Registering…';
     if (message) message.hidden = true;
@@ -148,5 +154,4 @@ export function renderRegister(root = document.querySelector('#app')) {
     }
   });
 }
-
 

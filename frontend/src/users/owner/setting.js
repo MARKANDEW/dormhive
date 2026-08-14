@@ -2,6 +2,12 @@ import { ensureOwnerSidebarStyles, renderOwnerSidebar } from './sidebarOwner.js'
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const getUser = () => JSON.parse(localStorage.getItem('dormhive.user') ?? '{}');
+const saveUser = (nextUser = {}) => {
+  const currentUser = getUser();
+  const mergedUser = { ...currentUser, ...nextUser };
+  localStorage.setItem('dormhive.user', JSON.stringify(mergedUser));
+  return mergedUser;
+};
 
 function css() {
   if (!document.querySelector('[data-owner-style="setting"]')) {
@@ -39,150 +45,231 @@ export function renderSetting(root = document.querySelector('#app')) {
   root.innerHTML = `
     <div class="owner-shell">
       ${renderOwnerSidebar('setting')}
-      <div class="owner-main">
-        <main class="owner-settings">
-          <header class="settings-header">
-            <div>
-              <p class="eyebrow">ACCOUNT SETTINGS</p>
-              <h1>Account Settings</h1>
-            </div>
-          </header>
+      <main class="owner-main owner-settings">
+        <div class="settings-card">
+          <div class="settings-header">
+            <h1>Account Settings</h1>
+          </div>
 
-          <section class="settings-card">
-            <nav class="settings-tabs" aria-label="Settings tabs">
-              <a class="tab active" href="#" data-tab="profile">Profile</a>
-              <a class="tab" href="#" data-tab="security">Security</a>
-            </nav>
+          <div class="settings-body">
+            <aside class="profile-side">
+              <div class="segmented-tabs" aria-label="Profile settings tabs">
+                <button type="button" class="tab active" data-tab="profile" aria-selected="true">Profile</button>
+                <button type="button" class="tab" data-tab="security" aria-selected="false">Security</button>
+              </div>
 
-            <div class="settings-body">
-              <div class="tab-panel profile-panel" data-panel="profile">
-                <div class="profile-photo-card">
-                  <div class="avatar-shell">
-                    <img src="${buildAvatarSvg()}" alt="Portrait of Alexander J. Reyes" />
-                    <button class="avatar-edit" type="button" aria-label="Edit profile photo">✎</button>
-                  </div>
-                  <p class="profile-caption">${displayName}</p>
+              <div class="avatar-panel">
+                <div class="avatar-wrap" aria-label="User avatar">
+                  <img src="${buildAvatarSvg()}" alt="Portrait of ${displayName}" />
+                  <button type="button" class="avatar-edit" aria-label="Edit profile photo">✎</button>
                 </div>
+                <div class="user-name">${displayName}</div>
+                <button type="button" class="edit-profile">Edit Profile</button>
+              </div>
+            </aside>
 
-                <form class="settings-form">
-                  <div class="field-group two-col">
-                    <label for="profile-first">First Name</label>
-                    <input id="profile-first" name="first_name" required value="${user.first_name ?? ''}" />
-                    <label for="profile-last">Last Name</label>
-                    <input id="profile-last" name="last_name" required value="${user.last_name ?? ''}" />
+            <section class="details-panel">
+              <div class="settings-view profile-view">
+                <form class="account-form" data-form="profile">
+                  <div class="field-row">
+                    <label>
+                      <span>First Name</span>
+                      <input id="owner-profile-first" name="first_name" type="text" value="${user.first_name ?? ''}" required readonly>
+                    </label>
+                    <label>
+                      <span>Last Name</span>
+                      <input id="owner-profile-last" name="last_name" type="text" value="${user.last_name ?? ''}" required readonly>
+                    </label>
                   </div>
-                  <div class="field-group">
-                    <label for="profile-email">Email Address</label>
-                    <input id="profile-email" name="email" readonly value="${displayEmail}" />
-                  </div>
-                  <div class="field-group">
-                    <label for="profile-phone">Phone Number</label>
-                    <input id="profile-phone" name="phone" type="tel" maxlength="20" pattern="\\+?[0-9\\s().-]{7,20}" value="${user.phone ?? ''}" />
-                  </div>
-                  <button class="save-profile" type="submit">Save Profile</button>
+                  <label>
+                    <span>Email Address</span>
+                    <input id="owner-profile-email" name="email" type="email" value="${displayEmail}" readonly>
+                  </label>
+                  <label>
+                    <span>Phone Number</span>
+                    <input id="owner-profile-phone" name="phone" type="tel" maxlength="20" value="${user.phone ?? ''}" readonly>
+                  </label>
                 </form>
               </div>
 
-              <div class="tab-panel security-panel hidden" data-panel="security">
-                <div class="security-card">
-                  <h2>Password Management</h2>
-                  <form class="security-form">
-                    <div class="field-group">
-                      <label for="current-password">Current Password</label>
-                      <input id="current-password" name="currentPassword" type="password" required />
-                    </div>
-                    <div class="field-group">
-                      <label for="new-password">New Password</label>
-                      <input id="new-password" name="newPassword" type="password" required />
-                    </div>
-                    <div class="field-group">
-                      <label for="confirm-password">Confirm New Password</label>
-                      <input id="confirm-password" name="confirmPassword" type="password" required />
-                    </div>
-                    <button class="save-profile" type="submit">Update Password</button>
-                  </form>
-                </div>
+              <div class="settings-view security-view" hidden>
+                <form class="security-form" data-form="security">
+                  <label>
+                    <span>Current Password</span>
+                    <input name="currentPassword" type="password" placeholder="Enter current password" required>
+                  </label>
+                  <label>
+                    <span>New Password</span>
+                    <input name="newPassword" type="password" placeholder="Enter new password" required minlength="8">
+                  </label>
+                  <label>
+                    <span>Confirm New Password</span>
+                    <input name="confirmPassword" type="password" placeholder="Confirm new password" required minlength="8">
+                  </label>
+                  <button type="submit" class="save-btn">Save password</button>
+                </form>
               </div>
-            </div>
+            </section>
+          </div>
 
-            <p class="notice" role="alert" hidden></p>
-          </section>
-        </main>
-      </div>
+          <p class="notice" role="alert" hidden></p>
+        </div>
+      </main>
     </div>`;
 
-  const form = root.querySelector('.settings-form');
-  const legacyParts = (user.name || '').trim().split(/\s+/).filter(Boolean);
-  form.querySelector('#profile-first').value = user.first_name ?? (legacyParts[0] ?? '');
-  form.querySelector('#profile-last').value = user.last_name ?? (legacyParts.slice(1).join(' ') || legacyParts[legacyParts.length - 1] || '');
-  form.email.value = displayEmail;
-  form.phone.value = user.phone ?? '';
-
+  const profileForm = root.querySelector('form[data-form="profile"]');
+  const securityForm = root.querySelector('form[data-form="security"]');
+  const profileView = root.querySelector('.profile-view');
+  const securityView = root.querySelector('.security-view');
   const tabs = root.querySelectorAll('.tab');
-  const panels = root.querySelectorAll('.tab-panel');
+  const editProfileButton = root.querySelector('.edit-profile');
+  const avatarEditButton = root.querySelector('.avatar-edit');
+  let avatarInput = root.querySelector('input[type="file"]');
+  const notice = root.querySelector('.notice');
+  
+  if (!avatarInput) {
+    avatarInput = document.createElement('input');
+    avatarInput.type = 'file';
+    avatarInput.accept = 'image/*';
+    avatarInput.hidden = true;
+    avatarInput.className = 'avatar-input';
+    root.querySelector('.avatar-wrap').appendChild(avatarInput);
+  }
+  const legacyParts = (user.name || '').trim().split(/\s+/).filter(Boolean);
+  profileForm.querySelector('#owner-profile-first').value = user.first_name ?? (legacyParts[0] ?? '');
+  profileForm.querySelector('#owner-profile-last').value = user.last_name ?? (legacyParts.slice(1).join(' ') || legacyParts[legacyParts.length - 1] || '');
+  profileForm.querySelector('#owner-profile-email').value = displayEmail;
+  profileForm.querySelector('#owner-profile-phone').value = user.phone ?? '';
+
+  function displayNotice(element, text, state = 'error') {
+    if (!element) return;
+    element.hidden = false;
+    element.textContent = text;
+    element.className = `notice ${state}`;
+  }
+
+  function setEditState(enabled) {
+    const inputs = profileForm.querySelectorAll('input');
+    inputs.forEach((el) => {
+      if (el.id !== 'owner-profile-email') el.readOnly = !enabled;
+    });
+    editProfileButton.textContent = enabled ? 'Save Profile' : 'Edit Profile';
+    avatarEditButton.hidden = !enabled;
+  }
+
+  function setActiveTab(tabName) {
+    const isProfile = tabName === 'profile';
+    tabs.forEach((t) => t.classList.toggle('active', t.dataset.tab === tabName));
+    profileView.hidden = !isProfile;
+    securityView.hidden = isProfile;
+    editProfileButton.hidden = !isProfile;
+    notice.hidden = true;
+  }
 
   tabs.forEach((tab) => {
-    tab.addEventListener('click', (event) => {
-      event.preventDefault();
-      const target = tab.dataset.tab;
-      tabs.forEach((item) => item.classList.toggle('active', item === tab));
-      panels.forEach((panel) => panel.classList.toggle('hidden', panel.dataset.panel !== target));
-      root.querySelector('.notice').hidden = true;
-    });
+    tab.addEventListener('click', () => setActiveTab(tab.dataset.tab));
   });
 
-  const securityForm = root.querySelector('.security-form');
-  securityForm.addEventListener('submit', (event) => {
-    event.preventDefault();
-    const notice = root.querySelector('.notice');
-    const currentPassword = securityForm.currentPassword.value.trim();
-    const newPassword = securityForm.newPassword.value.trim();
-    const confirmPassword = securityForm.confirmPassword.value.trim();
-
-    notice.hidden = false;
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      notice.textContent = 'Please complete all password fields.';
-      notice.className = 'notice error';
-      return;
-    }
-
-    if (newPassword.length < 8) {
-      notice.textContent = 'New password must be at least 8 characters.';
-      notice.className = 'notice error';
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      notice.textContent = 'New passwords do not match.';
-      notice.className = 'notice error';
-      return;
-    }
-
-    notice.textContent = 'Password updated.';
-    notice.className = 'notice success';
-    securityForm.reset();
+  editProfileButton.addEventListener('click', () => {
+    const isCurrentlyReadOnly = profileForm.querySelector('#owner-profile-first').readOnly;
+    setEditState(isCurrentlyReadOnly);
   });
 
-  form.addEventListener('submit', async (e) => {
+  avatarEditButton.addEventListener('click', () => avatarInput.click());
+
+  avatarInput.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('avatar', file);
+    try {
+      const res = await fetch(`${API}/users/${user.id}/avatar`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
+        body: formData
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Upload failed');
+      user = saveUser(data.data);
+      location.reload();
+    } catch (err) {
+      notice.textContent = err.message || 'Failed to upload avatar.';
+      notice.className = 'notice error';
+      notice.hidden = false;
+    }
+  });
+
+  securityForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!form.reportValidity()) return;
-    const r = await fetch(`${API}/users/${user.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
-      body: JSON.stringify({ first_name: form.querySelector('#profile-first').value.trim(), last_name: form.querySelector('#profile-last').value.trim(), name: [form.querySelector('#profile-first').value.trim(), form.querySelector('#profile-last').value.trim()].filter(Boolean).join(' '), phone: form.phone.value.trim() })
-    });
-    const b = await r.json();
-    const n = root.querySelector('.notice');
-    n.hidden = false;
-    if (!r.ok) {
-      n.textContent = b.message;
-      n.className = 'notice error';
+    const cp = securityForm.currentPassword.value.trim();
+    const np = securityForm.newPassword.value.trim();
+    const cnp = securityForm.confirmPassword.value.trim();
+    notice.hidden = false;
+    if (!cp || !np || !cnp) {
+      displayNotice(notice, 'Please complete all password fields.', 'error');
       return;
     }
-    localStorage.setItem('dormhive.user', JSON.stringify(b.data));
-    n.textContent = 'Profile updated.';
-    n.className = 'notice success';
+    if (np.length < 8) {
+      displayNotice(notice, 'New password must be at least 8 characters.', 'error');
+      return;
+    }
+    if (np !== cnp) {
+      displayNotice(notice, 'New passwords do not match.', 'error');
+      return;
+    }
+    try {
+      const res = await fetch(`${API}/users/${user.id}/password`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
+        body: JSON.stringify({ currentPassword: cp, newPassword: np })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Password update failed');
+      displayNotice(notice, 'Password updated successfully.', 'success');
+      securityForm.reset();
+    } catch (err) {
+      displayNotice(notice, err.message || 'Failed to update password.', 'error');
+    }
   });
+
+  profileForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!profileForm.reportValidity()) return;
+    const first = profileForm.querySelector('#owner-profile-first').value.trim();
+    const last = profileForm.querySelector('#owner-profile-last').value.trim();
+    const phone = profileForm.querySelector('#owner-profile-phone').value.trim();
+    try {
+      const res = await fetch(`${API}/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
+        body: JSON.stringify({ first_name: first, last_name: last, name: [first, last].filter(Boolean).join(' '), phone })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Profile update failed');
+      user = saveUser(data.data);
+      displayNotice(notice, 'Profile updated successfully.', 'success');
+      setEditState(false);
+    } catch (err) {
+      displayNotice(notice, err.message || 'Failed to update profile.', 'error');
+    }
+  });
+
+  function displayNotice(element, text, state = 'error') {
+    if (!element) return;
+    element.hidden = false;
+    element.textContent = text;
+    element.className = `notice ${state}`;
+  }
+
+  if (!avatarInput) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.hidden = true;
+    input.className = 'avatar-input';
+    root.querySelector('.avatar-wrap').appendChild(input);
+    avatarInput = input;
+  }
 }
 
 

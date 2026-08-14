@@ -37,6 +37,21 @@ export function renderAdminSidebar(active = 'dashboardAdmin') {
           <span>${label}</span>
         </a>
       `).join('')}
-      <button class="logout">Sign out</button>
+      <button type="button" class="logout">Sign out</button>
     </aside>`;
 }
+
+document.addEventListener('click', (event) => {
+  const menuButton = event.target.closest('.menu');
+  if (menuButton) {
+    const shell = menuButton.closest('.admin-shell');
+    if (shell) shell.classList.toggle('nav-open');
+    return;
+  }
+
+  const logoutButton = event.target.closest('.logout');
+  if (logoutButton) {
+    localStorage.clear();
+    location.assign('#/login');
+  }
+});

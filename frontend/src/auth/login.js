@@ -147,19 +147,24 @@ export function renderLogin(root = document.querySelector('#app')) {
   registerForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!registerForm.reportValidity()) return;
-    
+
     const formData = Object.fromEntries(new FormData(registerForm));
-    const { terms, firstName, lastName, confirmPassword, ...payload } = formData;
-    
-    // Validate password confirmation
+    const { terms, firstName, lastName, confirmPassword, ...rest } = formData;
+
     if (formData.password !== confirmPassword) {
       showMessage(registerMessage, 'Passwords do not match.');
       return;
     }
-    
-    // Combine first and last name
-    payload.name = `${firstName} ${lastName}`.trim();
-    
+
+    const payload = {
+      first_name: String(firstName ?? '').trim(),
+      last_name: String(lastName ?? '').trim(),
+      name: `${String(firstName ?? '').trim()} ${String(lastName ?? '').trim()}`.trim(),
+      email: String(rest.email ?? '').trim(),
+      password: String(rest.password ?? ''),
+      role: String(rest.role ?? 'tenant')
+    };
+
     registerSubmitButton.disabled = true;
     registerSubmitButton.textContent = 'Registering…';
     if (registerMessage) registerMessage.hidden = true;

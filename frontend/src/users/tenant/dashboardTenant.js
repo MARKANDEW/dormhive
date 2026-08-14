@@ -80,6 +80,19 @@ function normalizeRoomType(value = '') {
   return typeMap[roomType] ?? roomType.replaceAll('_', ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function normalizeGenderPreference(value = '') {
+  const gender = String(value ?? '').trim().toLowerCase();
+  if (!gender) return 'Co-ed';
+  const labels = {
+    male: 'Male',
+    female: 'Female',
+    'co-ed': 'Co-ed',
+    'coed': 'Co-ed',
+    coed: 'Co-ed'
+  };
+  return labels[gender] ?? gender.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 const AMENITY_LABELS = {
   wifi: 'Wi-Fi',
   laundry: 'Laundry',
@@ -187,13 +200,22 @@ export function renderDashboardTenant(root = document.querySelector('#app')) {
         </section>
 
         <section class="layout">
-          <div class="map-stack">
-            ${renderMapPanelShell({
-              title: 'Campus map overview',
-              buttonLabel: 'View nearby listings',
-              statusText: 'Loading real listings from the database...',
-              query: 'DLSU, Manila, Philippines'
-            })}
+          <div class="map-column">
+            <div class="map-stack">
+              ${renderMapPanelShell({
+                title: 'Campus map overview',
+                buttonLabel: 'View nearby listings',
+                statusText: 'Loading real listings from the database...',
+                query: 'DLSU, Manila, Philippines'
+              })}
+            </div>
+
+            <section class="featured">
+              <div class="section-title">
+                <h2>Featured Listings</h2>
+              </div>
+              <div class="cards" id="featured-cards"></div>
+            </section>
           </div>
 
           <aside class="filters">
@@ -248,13 +270,6 @@ export function renderDashboardTenant(root = document.querySelector('#app')) {
             <button class="apply" type="button" id="apply-filters">Apply Filters</button>
           </aside>
         </section>
-
-        <section class="featured">
-          <div class="section-title">
-            <h2>Featured Listings</h2>
-          </div>
-          <div class="cards" id="featured-cards"></div>
-        </section>
       </main>
     </div>
   `;
@@ -291,6 +306,45 @@ export function renderDashboardTenant(root = document.querySelector('#app')) {
   const selectedGenderFilters = () => Array.from(root.querySelectorAll('input[name="gender"]:checked')).map((input) => input.value.toLowerCase());
   const selectedAmenityFilters = () => Array.from(root.querySelectorAll('input[name="amenity"]:checked')).map((input) => input.value.toLowerCase());
 
+  const renderFeaturedCards = (items = []) => {
+    if (!cards) return;
+    if (!items.length) {
+      cards.innerHTML = '<div class="empty">No approved listings match the current filters.</div>';
+      return;
+    }
+
+    cards.innerHTML = items.map((item, index) => {
+      const location = locationText(item);
+      const roomType = normalizeRoomType(item.room_type);
+      const gender = normalizeGenderPreference(item.gender_preference);
+      const maxOccupants = Number(item.max_occupants || 1);
+      const image = normalizePropertyImage(item) || DEFAULT_IMAGE_PLACEHOLDER;
+      const walkDistance = (0.6 + index * 0.25).toFixed(1);
+      const amenitySummary = renderAmenitiesChips(item) || '<span class="empty-amenity">No amenities listed</span>';
+
+      return `
+        <article class="listing" data-id="${item.id}">
+          <div class="photo p${index % 4}">
+            <img src="${esc(image)}" alt="${esc(item.title || 'Listing photo')}" class="listing-photo" />
+            <em>${esc(item.status === 'approved' ? 'Verified' : (item.status || 'Approved'))}</em>
+            <button aria-label="Save listing">${icon('heart')}</button>
+          </div>
+          <div class="listing-body">
+            <p class="place">${icon('pin')}${esc(location)}</p>
+            <h3>${esc(item.title || 'Available dorm space')}</h3>
+            <p class="meta">${esc(roomType)} &bull; Up to ${maxOccupants} tenants</p>
+            <p class="meta"><strong>Gender:</strong> ${esc(gender)}</p>
+            <div class="amenity-summary">${amenitySummary}</div>
+            <div class="price"><strong>${money(item.monthly_rent)}</strong><small>/ month</small><span>${icon('walk')}${walkDistance} km</span></div>
+            <div class="listing-actions">
+              <a href="#/tenant/booking?propertyId=${item.id}" class="action-btn">View Details</a>
+            </div>
+          </div>
+        </article>
+      `;
+    }).join('');
+  };
+
   const renderCards = () => {
     const query = (search?.value ?? '').trim().toLowerCase();
     const maxValue = Number(range.value || 15000);
@@ -303,13 +357,14 @@ export function renderDashboardTenant(root = document.querySelector('#app')) {
       const matchesSearch = !query || text.includes(query);
       const matchesBudget = Number(item.monthly_rent ?? 0) <= maxValue;
       const matchesRoom = !rooms.length || rooms.includes(String(item.room_type ?? '').toLowerCase());
-      const matchesGender = !genders.length || genders.length === 0 || genders.includes('co-ed');
+      const matchesGender = !genders.length || genders.length === 0 || genders.includes(String(item.gender_preference ?? 'co-ed').toLowerCase());
       const itemAmenities = normalizeAmenities(item);
       const matchesAmenities = !amenities.length || amenities.every((amenity) => itemAmenities.includes(amenity));
       return matchesSearch && matchesBudget && matchesRoom && matchesGender && matchesAmenities;
     });
 
     syncMapLocation(filtered);
+    renderFeaturedCards(filtered);
 
     if (mapStatus) {
       mapStatus.textContent = filtered.length

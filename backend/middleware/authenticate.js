@@ -15,6 +15,18 @@ export async function authenticate(request, response, next) {
   }
 }
 
-export function optionalAuthenticate(request, response, next) {
-  return request.headers.authorization ? authenticate(request, response, next) : next();
+export async function optionalAuthenticate(request, response, next) {
+  if (!request.headers.authorization) return next();
+  const [scheme, token] = String(request.headers.authorization).split(' ');
+  if (scheme !== 'Bearer' || !token) return next();
+
+  try {
+    const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    const user = await findById(payload.sub);
+    if (!user || user.status !== 'active') return next();
+    request.user = user;
+    return next();
+  } catch {
+    return next();
+  }
 }

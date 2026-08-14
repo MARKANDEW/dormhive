@@ -87,6 +87,10 @@
   min-width: 0;
 }
 
+.menu {
+  display: none;
+}
+
 @media (max-width: 980px) {
   .admin-shell {
     grid-template-columns: 1fr;
@@ -104,5 +108,14 @@
 
   .admin-shell.nav-open > .admin-nav {
     transform: none;
+  }
+
+  .menu {
+    display: block;
+    border: 0;
+    background: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.1rem 0.4rem;
   }
 }

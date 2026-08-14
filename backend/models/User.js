@@ -13,6 +13,11 @@ export async function findById(id) {
   return rows[0] ?? null;
 }
 
+export async function findByIdWithPassword(id) {
+  const rows = await query('SELECT id, password_hash FROM users WHERE id = ? LIMIT 1', [id]);
+  return rows[0] ?? null;
+}
+
 export async function create({ name, first_name, last_name, email, passwordHash, phone, role }) {
   // store both legacy `name` and the individual name parts
   const result = await query("INSERT INTO users (name, first_name, last_name, email, password_hash, phone, role, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'active')", [name ?? (first_name || last_name ? `${first_name ?? ''} ${last_name ?? ''}`.trim() : null), first_name ?? null, last_name ?? null, email, passwordHash, phone, role]);
@@ -31,6 +36,11 @@ export async function update(id, { name, first_name, last_name, phone, avatar_ur
   // If first_name/last_name provided, compute a new `name` value for legacy consumers
   const computedName = (first_name || last_name) ? `${first_name ?? ''} ${last_name ?? ''}`.trim() : name ?? null;
   await query('UPDATE users SET name = COALESCE(?, name), first_name = COALESCE(?, first_name), last_name = COALESCE(?, last_name), phone = COALESCE(?, phone), avatar_url = COALESCE(?, avatar_url), status = COALESCE(?, status), role = COALESCE(?, role) WHERE id = ?', [computedName ?? null, first_name ?? null, last_name ?? null, phone ?? null, avatar_url ?? null, status ?? null, role ?? null, id]);
+  return findById(id);
+}
+
+export async function updatePassword(id, passwordHash) {
+  await query('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, id]);
   return findById(id);
 }
 

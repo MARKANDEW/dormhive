@@ -1,4 +1,21 @@
+import bcrypt from 'bcrypt';
 import * as users from '../models/User.js';
+
+export function validatePasswordChange({ currentPassword, newPassword, confirmPassword }) {
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    return { valid: false, message: 'Please complete all password fields.' };
+  }
+  if (newPassword.length < 8) {
+    return { valid: false, message: 'New password must be at least 8 characters long.' };
+  }
+  if (newPassword !== confirmPassword) {
+    return { valid: false, message: 'New password and confirm password must match.' };
+  }
+  if (currentPassword === newPassword) {
+    return { valid: false, message: 'New password must be different from your current password.' };
+  }
+  return { valid: true, message: '' };
+}
 
 export async function list(request, response, next) {
   try {
@@ -25,9 +42,23 @@ export async function update(request, response, next) {
   try {
     const isAdmin = request.user.role === 'admin';
     if (request.user.id !== Number(request.params.id) && !isAdmin) return response.status(403).json({ message: 'Permission denied.' });
+
+    const hasPasswordChange = ['currentPassword', 'newPassword', 'confirmPassword'].some((key) => Object.prototype.hasOwnProperty.call(request.body, key));
+    if (hasPasswordChange) {
+      const passwordCheck = validatePasswordChange(request.body);
+      if (!passwordCheck.valid) return response.status(422).json({ message: passwordCheck.message });
+      const currentUser = await users.findByIdWithPassword(request.params.id);
+      if (!currentUser) return response.status(404).json({ message: 'User not found.' });
+      const isCurrentPasswordValid = await bcrypt.compare(String(request.body.currentPassword), currentUser.password_hash);
+      if (!isCurrentPasswordValid) return response.status(401).json({ message: 'Current password is incorrect.' });
+      const passwordHash = await bcrypt.hash(String(request.body.newPassword), 12);
+      await users.updatePassword(request.params.id, passwordHash);
+    }
+
     if (request.body.phone !== undefined && request.body.phone !== null && !isValidPhone(request.body.phone)) {
       return response.status(422).json({ message: 'Provide a valid phone number.' });
     }
+
     const input = isAdmin
       ? { name: request.body.name, first_name: request.body.first_name, last_name: request.body.last_name, phone: request.body.phone, status: request.body.status, role: request.body.role }
       : { name: request.body.name, first_name: request.body.first_name, last_name: request.body.last_name, phone: request.body.phone };

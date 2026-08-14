@@ -1,12 +1,22 @@
-﻿@charset "UTF-8";
-:root {
+﻿:root {
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #1f2933;
+  color: #2d2d2d;
   background: #fef1d7;
 }
 
-* { box-sizing: border-box; }
-body { margin: 0; }
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #fef1d7 0%, #f8faf8 100%);
+}
+
+button,
+input {
+  font: inherit;
+}
 
 .tenant-page-main {
   min-height: 100vh;
@@ -19,269 +29,249 @@ body { margin: 0; }
   margin: 0 auto;
 }
 
-.settings-header {
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  gap: 1rem;
-  margin: 0 auto 1.75rem;
+.settings-card {
   max-width: 1040px;
+  margin: 2rem auto;
+  background: #fff;
+  box-shadow: 0 24px 50px rgba(15, 23, 42, 0.08);
+  border: 1px solid #e9dec8;
+  border-radius: 2rem;
+  padding: 2rem 2.2rem;
+  position: relative;
+}
+
+.settings-header {
+  margin-bottom: 1.5rem;
 }
 
 .settings-header h1 {
-  margin: 0.2rem 0 0;
+  margin: 0;
   font-size: 2rem;
   font-weight: 800;
   color: #14212b;
-}
-
-.eyebrow {
-  margin: 0;
-  color: #0f766e;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-
-.back-link {
-  color: #34515b;
-  font-size: 0.95rem;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.settings-card {
-  width: min(92%, 1040px);
-  margin: 0 auto;
-  padding: 2.5rem 2.5rem 3rem;
-  border: 1px solid #e9dec8;
-  border-radius: 2rem;
-  background: #ffffff;
-  box-shadow: 0 24px 55px rgba(15, 23, 42, 0.08);
-}
-
-.settings-tabs {
-  display: inline-flex;
-  gap: 0.85rem;
-  padding: 0.35rem;
-  border-radius: 999px;
-  background: #f1f3ef;
-  border: 1px solid #dfe5de;
-  margin-bottom: 2rem;
-}
-
-.tab {
-  position: relative;
-  color: #42514f;
-  text-decoration: none;
-  font-size: 0.98rem;
-  font-weight: 700;
-  padding: 0.95rem 1.35rem;
-  border-radius: 999px;
-  background: #ffffff;
-  border: 1px solid transparent;
-  transition: all 0.2s ease;
-}
-
-.tab:hover {
-  color: #213533;
-  background: #ecf0eb;
-}
-
-.tab.active {
-  color: #164335;
-  background: #d9b472;
-  border-color: #d9b472;
-  box-shadow: 0 6px 15px rgba(41, 61, 52, 0.12);
+  letter-spacing: -0.02em;
 }
 
 .settings-body {
-  padding-top: 0.35rem;
+  display: flex;
+  gap: 2.25rem;
+  align-items: flex-start;
 }
 
-.tab-panel.hidden {
-  display: none;
+.profile-side {
+  width: 290px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-top: 0.5rem;
 }
 
-.profile-panel {
-  display: grid;
-  grid-template-columns: minmax(240px, 320px) 1fr;
-  gap: 2.5rem;
-  align-items: start;
+.segmented-tabs {
+  display: flex;
+  background: #f1f3ef;
+  border: 1px solid #dfe5de;
+  border-radius: 12px;
+  padding: 4px;
+  width: 100%;
 }
 
-.security-card {
-  max-width: 480px;
+.tab {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  font-weight: 700;
+  color: #2a2a2a;
+  cursor: pointer;
+  font-size: 0.95rem;
 }
 
-.security-card h2 {
-  margin: 0 0 1rem;
-  font-size: 1.2rem;
-  color: #14212b;
+.tab:hover {
+  background: #e9e3d5;
 }
 
-.profile-photo-card {
+.tab.active {
+  background: #d9b472;
+  color: #1d1d1d;
+  box-shadow: inset 0 0 0 1px rgba(118, 86, 13, 0.12);
+}
+
+.avatar-panel {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
+  padding: 1.1rem 0 0;
 }
 
-.avatar-shell {
+.avatar-wrap {
   position: relative;
-  width: 176px;
-  height: 176px;
+  width: 150px;
+  height: 150px;
   border-radius: 50%;
-  padding: 0.35rem;
-  background: linear-gradient(145deg, #eef4f1, #e1ebe6);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.65), 0 10px 20px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(180deg, #efe9dc, #f9f5ee);
+  display: grid;
+  place-items: center;
+  box-shadow: inset 0 0 0 2px rgba(120, 92, 28, 0.08), 0 14px 26px rgba(85, 67, 31, 0.08);
+  overflow: visible;
 }
 
-.avatar-shell img {
+.avatar-wrap svg {
+  width: 76px;
+  height: 76px;
+}
+
+.avatar-image {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  display: block;
-  border-radius: 50%;
   object-fit: cover;
-  background: #f4efe8;
-}
-
-.avatar-actions {
-  margin-top: 1rem;
-  display: grid;
-  gap: 0.55rem;
-  width: 100%;
-}
-
-.avatar-status {
-  color: #5a685f;
-  font-size: 0.92rem;
-}
-
-.avatar-status.selected {
-  color: #0b5d4a;
-  font-weight: 700;
-}
-
-.avatar-remove {
-  justify-self: center;
-  border: 1px solid #dce7e2;
-  background: #ffffff;
-  color: #33434d;
-  border-radius: 1rem;
-  padding: 0.8rem 1rem;
-  cursor: pointer;
-}
-
-.avatar-remove.hidden {
-  display: none;
+  border-radius: 50%;
 }
 
 .avatar-edit {
-  right: 8px;
-  bottom: 8px;
+  position: absolute;
+  right: -8px;
+  bottom: -8px;
+  width: 30px;
+  height: 30px;
   border: 0;
-  width: 2.3rem;
-  height: 2.3rem;
   border-radius: 50%;
-  background: #0f766e;
-  color: #ffffff;
-  font-size: 1rem;
-  cursor: pointer;
-  box-shadow: 0 6px 16px rgba(15, 118, 110, 0.25);
-}
-
-.profile-caption {
-  margin: 1rem 0 0;
-  color: #1f2a2f;
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-.settings-form {
+  background: #d39a2d;
+  color: #fff;
   display: grid;
-  gap: 1.2rem;
-  max-width: 520px;
-  width: 100%;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 10px 18px rgba(90, 66, 16, 0.16);
+  z-index: 1;
 }
 
-.field-group {
+.avatar-edit[hidden] {
+  display: none;
+}
+
+.avatar-edit svg {
+  width: 14px;
+  height: 14px;
+}
+
+.user-name {
+  margin-top: 1rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1f2d2b;
+}
+
+.edit-profile {
+  margin-top: 0.8rem;
+  border: 0;
+  border-radius: 12px;
+  padding: 0.8rem 1.25rem;
+  background: #0b5d4a;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  min-width: 140px;
+}
+
+.edit-profile:hover {
+  background: #094544;
+}
+
+.details-panel {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-view[hidden] {
+  display: none;
+}
+
+.account-form {
+  display: grid;
+  gap: 1rem;
+  padding-top: 0.4rem;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.account-form label {
   display: grid;
   gap: 0.45rem;
-}
-
-.field-group label {
-  font-size: 0.95rem;
+  color: #2b2b2b;
   font-weight: 700;
-  color: #39454d;
+  font-size: 0.82rem;
 }
 
-.field-group input {
+.account-form input {
   width: 100%;
-  border: 1px solid #dce7e2;
-  border-radius: 1rem;
-  padding: 1rem 1.1rem;
-  font: inherit;
-  color: #17212b;
-  background: #ffffff;
+  padding: 0.88rem 1rem;
+  border: 1px solid #f0e5c6;
+  border-radius: 12px;
+  background: #fff;
+  color: #121212;
+  font-size: 0.95rem;
 }
 
-.field-group input[readonly] {
-  background: #fff4d9;
-  color: #4a4a41;
+.account-form input[readonly] {
+  background: #f9f7f2;
+  color: #5c5c5c;
 }
 
-.save-profile {
+.save-btn {
   justify-self: start;
-  margin-top: 1.2rem;
+  padding: 0.9rem 1.4rem;
   border: 0;
-  border-radius: 1rem;
-  padding: 1rem 1.5rem;
-  background: #0b5d4a;
-  color: #ffffff;
-  font-size: 0.98rem;
-  font-weight: 700;
+  border-radius: 12px;
+  background: #d39a2d;
+  color: #fff;
+  font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 14px 28px rgba(11, 93, 74, 0.18);
+  margin-top: 0.5rem;
+}
+
+.save-btn:hover {
+  background: #c48a1f;
 }
 
 .notice {
-  margin: 1.1rem 0 0;
-  padding: 0.7rem 0.9rem;
-  border-radius: 0.6rem;
-  color: #a61b1b;
-  background: #fff0f0;
+  margin-top: 0.25rem;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.9rem;
 }
 
 .notice.success {
-  color: #0b5d4a;
-  background: #dff5ea;
+  background: #ebf9ef;
+  color: #186a4c;
 }
 
 .notice.error {
-  color: #a61b1b;
   background: #fff0f0;
+  color: #9f1b1b;
 }
 
-@media (max-width: 780px) {
-  .tenant-settings {
-    padding: 1.25rem;
+@media (max-width: 760px) {
+  .settings-body {
+    flex-direction: column;
+  }
+
+  .profile-side {
+    width: 100%;
+  }
+
+  .field-row {
+    grid-template-columns: 1fr;
   }
 
   .settings-card {
     padding: 1.25rem;
-  }
-
-  .profile-panel {
-    grid-template-columns: 1fr;
-  }
-
-  .settings-form {
-    max-width: none;
-  }
-
-  .save-profile {
-    justify-self: stretch;
   }
 }

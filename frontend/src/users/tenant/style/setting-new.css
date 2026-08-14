@@ -1,44 +1,55 @@
-﻿:root {
-  font-family: Inter, system-ui, sans-serif;
-  color: #1f2933;
-  background: #f7f4ee;
+:root {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #2d2d2d;
+  background: #fef1d7;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
-  background: linear-gradient(180deg, #f7f4ee 0%, #f3efe8 100%);
+  background: linear-gradient(180deg, #fef1d7 0%, #f8faf8 100%);
 }
 
-button, input {
+button,
+input {
   font: inherit;
 }
 
-.owner-main.owner-settings {
-  min-width: 0;
-  padding: 2.25rem 2rem;
-  background: linear-gradient(180deg, #f7f4ee 0%, #f3efe8 100%);
+.tenant-page-main {
+  min-height: 100vh;
+  padding: 2rem 2rem 3rem;
+  background: linear-gradient(180deg, #fef1d7 0%, #f8faf8 100%);
+}
+
+.tenant-settings {
+  width: min(92%, 1040px);
+  margin: 0 auto;
 }
 
 .settings-card {
-  max-width: 1080px;
-  width: 100%;
-  margin: 2.5rem auto;
+  max-width: 1040px;
+  margin: 2rem auto;
   background: #fff;
-  box-shadow: 0 24px 50px rgba(85, 67, 31, 0.1);
-  border: 1px solid rgba(172, 149, 103, 0.18);
-  border-radius: 32px;
+  box-shadow: 0 24px 50px rgba(15, 23, 42, 0.08);
+  border: 1px solid #e9dec8;
+  border-radius: 2rem;
   padding: 2rem 2.2rem;
   position: relative;
-  transform: translateY(4px);
+}
+
+.settings-header {
+  margin-bottom: 1.5rem;
 }
 
 .settings-header h1 {
-  margin: 0 0 1.25rem;
-  font-size: 2.2rem;
+  margin: 0;
+  font-size: 2rem;
   font-weight: 800;
-  color: #1f2d2b;
-  letter-spacing: -0.04em;
+  color: #14212b;
+  letter-spacing: -0.02em;
 }
 
 .settings-body {
@@ -52,15 +63,14 @@ button, input {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  flex-shrink: 0;
   padding-top: 0.5rem;
 }
 
 .segmented-tabs {
   display: flex;
-  background: #f5efe5;
-  border: 1px solid #e6dcc2;
-  border-radius: 14px;
+  background: #f1f3ef;
+  border: 1px solid #dfe5de;
+  border-radius: 12px;
   padding: 4px;
   width: 100%;
 }
@@ -74,10 +84,15 @@ button, input {
   font-weight: 700;
   color: #2a2a2a;
   cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.tab:hover {
+  background: #e9e3d5;
 }
 
 .tab.active {
-  background: #d8b457;
+  background: #d9b472;
   color: #1d1d1d;
   box-shadow: inset 0 0 0 1px rgba(118, 86, 13, 0.12);
 }
@@ -102,12 +117,18 @@ button, input {
   overflow: visible;
 }
 
-.avatar-wrap img {
+.avatar-wrap svg {
+  width: 76px;
+  height: 76px;
+}
+
+.avatar-image {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  display: block;
-  border-radius: 50%;
   object-fit: cover;
+  border-radius: 50%;
 }
 
 .avatar-edit {
@@ -128,7 +149,12 @@ button, input {
 }
 
 .avatar-edit[hidden] {
-  display: none !important;
+  display: none;
+}
+
+.avatar-edit svg {
+  width: 14px;
+  height: 14px;
 }
 
 .user-name {
@@ -140,24 +166,18 @@ button, input {
 
 .edit-profile {
   margin-top: 0.8rem;
-  width: 100%;
   border: 0;
   border-radius: 12px;
-  padding: 0.85rem 1rem;
+  padding: 0.8rem 1.25rem;
   background: #0b5d4a;
-  color: #ffffff;
+  color: #fff;
   font-weight: 700;
-  font-size: 1rem;
   cursor: pointer;
-  box-shadow: 0 8px 18px rgba(11, 93, 74, 0.18);
+  min-width: 140px;
 }
 
 .edit-profile:hover {
-  background: #0a4a39;
-}
-
-.edit-profile[hidden] {
-  display: none;
+  background: #094544;
 }
 
 .details-panel {
@@ -165,18 +185,14 @@ button, input {
   min-width: 0;
 }
 
-.settings-view {
-  display: block;
-}
-
 .settings-view[hidden] {
   display: none;
 }
 
-.account-form,
-.security-form {
+.account-form {
   display: grid;
   gap: 1rem;
+  padding-top: 0.4rem;
 }
 
 .field-row {
@@ -185,93 +201,66 @@ button, input {
   gap: 1rem;
 }
 
-.account-form label,
-.security-form label {
+.account-form label {
   display: grid;
   gap: 0.45rem;
-}
-
-.account-form label span,
-.security-form label span {
-  font-size: 0.95rem;
+  color: #2b2b2b;
   font-weight: 700;
-  color: #1f2d2b;
+  font-size: 0.82rem;
 }
 
-.account-form input,
-.security-form input {
+.account-form input {
   width: 100%;
-  border: 1px solid #dfe5df;
+  padding: 0.88rem 1rem;
+  border: 1px solid #f0e5c6;
   border-radius: 12px;
-  padding: 0.8rem 0.95rem;
-  background: #f5f3ef;
-  color: #17212b;
+  background: #fff;
+  color: #121212;
+  font-size: 0.95rem;
 }
 
-.account-form input:focus,
-.security-form input:focus {
-  outline: none;
-  border-color: #0b5d4a;
-  background: #ffffff;
-}
-
-.account-form input[readonly],
-.security-form input[readonly] {
+.account-form input[readonly] {
   background: #f9f7f2;
   color: #5c5c5c;
-  cursor: not-allowed;
 }
 
 .save-btn {
-  margin-top: 0.25rem;
-  justify-self: flex-start;
+  justify-self: start;
+  padding: 0.9rem 1.4rem;
   border: 0;
   border-radius: 12px;
-  padding: 0.8rem 1.25rem;
-  background: #0b5d4a;
+  background: #d39a2d;
   color: #fff;
-  font-weight: 700;
-  font-size: 0.96rem;
+  font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 8px 18px rgba(11, 93, 74, 0.18);
+  margin-top: 0.5rem;
+}
+
+.save-btn:hover {
+  background: #c48a1f;
 }
 
 .notice {
-  margin-top: 1.25rem;
-  padding: 0.9rem 1rem;
-  border-radius: 0.6rem;
-  font-size: 0.95rem;
-  color: #9f1b1b;
-  background: #fff0f0;
+  margin-top: 0.25rem;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.9rem;
 }
 
 .notice.success {
-  color: #186a4c;
   background: #ebf9ef;
+  color: #186a4c;
 }
 
 .notice.error {
-  color: #9f1b1b;
   background: #fff0f0;
+  color: #9f1b1b;
 }
 
-.notice[hidden] {
-  display: none;
-}
-
-@media (max-width: 880px) {
-  .owner-main.owner-settings {
-    padding: 1.5rem;
-  }
-
-  .settings-card {
-    padding: 1.4rem 1.1rem;
-    border-radius: 24px;
-  }
-
+@media (max-width: 760px) {
   .settings-body {
     flex-direction: column;
-    gap: 1.5rem;
   }
 
   .profile-side {
@@ -280,5 +269,9 @@ button, input {
 
   .field-row {
     grid-template-columns: 1fr;
+  }
+
+  .settings-card {
+    padding: 1.25rem;
   }
 }
