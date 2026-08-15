@@ -35,7 +35,10 @@ export async function list({ page, limit, search }) {
 export async function update(id, { name, first_name, last_name, phone, avatar_url, status, role }) {
   // If first_name/last_name provided, compute a new `name` value for legacy consumers
   const computedName = (first_name || last_name) ? `${first_name ?? ''} ${last_name ?? ''}`.trim() : name ?? null;
-  await query('UPDATE users SET name = COALESCE(?, name), first_name = COALESCE(?, first_name), last_name = COALESCE(?, last_name), phone = COALESCE(?, phone), avatar_url = COALESCE(?, avatar_url), status = COALESCE(?, status), role = COALESCE(?, role) WHERE id = ?', [computedName ?? null, first_name ?? null, last_name ?? null, phone ?? null, avatar_url ?? null, status ?? null, role ?? null, id]);
+  await query(
+    'UPDATE users SET name = COALESCE(?, name), first_name = COALESCE(?, first_name), last_name = COALESCE(?, last_name), phone = COALESCE(?, phone), avatar_url = COALESCE(?, avatar_url), status = COALESCE(?, status), role = COALESCE(?, role) WHERE id = ?',
+    [computedName ?? null, first_name ?? null, last_name ?? null, phone ?? null, avatar_url ?? null, status ?? null, role ?? null, id]
+  );
   return findById(id);
 }
 

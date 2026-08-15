@@ -1,5 +1,5 @@
 import { ensureTenantSidebarStyles, renderTenantSidebar } from './sidebarTenant.js';
-import { getUserAvatarUrl } from './avatar.js';
+import { getUserAvatarUrl } from './setting.js';
 
 const API_URL = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const auth = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });

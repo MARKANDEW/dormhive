@@ -18,7 +18,16 @@ const allowedOrigins = (process.env.CLIENT_URL ?? 'http://localhost:3000')
 const isLocalDevOrigin = (origin = '') => /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/i.test(origin);
 
 app.disable('x-powered-by');
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      // allow images from same origin, data URIs, and common local dev origins
+      "img-src": ["'self'", 'data:', 'http://localhost:3000', 'http://localhost:49843', 'http://localhost:5000']
+    }
+  }
+}));
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin) || isLocalDevOrigin(origin)) {

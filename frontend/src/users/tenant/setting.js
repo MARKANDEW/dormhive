@@ -1,5 +1,67 @@
 import { ensureTenantSidebarStyles, renderTenantSidebar } from './sidebarTenant.js';
-import { getUserAvatarUrl } from './avatar.js';
+
+// Avatar helper functions
+const API_BASE = (window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1').replace(/\/api\/v1\/?$/, '');
+
+function normalizeAvatarPath(value = '') {
+  const url = String(value || '').trim();
+  if (!url) return '';
+  if (url.startsWith('data:')) return url;
+  if (/^https?:\/\//i.test(url)) return url;
+  const normalized = url.replace(/^\.\//, '').replace(/^\/+/, '');
+  return normalized.startsWith('uploads/') ? `/${normalized}` : `/${normalized}`;
+}
+
+function resolveImageUrl(value = '') {
+  const url = normalizeAvatarPath(value);
+  if (!url) return '';
+  if (url.startsWith('data:')) return url;
+  if (/^https?:\/\//i.test(url)) return url;
+  return `${API_BASE}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
+function buildDefaultUserAvatarSvg(name = 'Tenant User') {
+  const initials = String(name).trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join('') || 'T';
+  const svg = `
+    <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${name} portrait">
+      <rect width="240" height="240" rx="120" fill="#f2efe9"/>
+      <circle cx="120" cy="94" r="46" fill="#223547"/>
+      <path d="M67 198c8-37 32-57 53-57s45 20 53 57" fill="#2b4963"/>
+      <path d="M85 106c9-27 24-43 36-43 26 0 40 20 40 44 0 18-7 29-20 37-13 7-29 8-42 2-13-6-20-17-24-40z" fill="#1d2d3c"/>
+      <path d="M75 175c15-14 31-22 45-22 16 0 31 8 45 22" fill="#11212d"/>
+      <rect x="72" y="164" width="96" height="24" rx="12" fill="#0f2b3f"/>
+      <rect x="86" y="171" width="68" height="10" rx="5" fill="#4b6781"/>
+      <text x="50%" y="86%" text-anchor="middle" font-size="42" font-family="Inter, Arial, sans-serif" fill="#ffffff" font-weight="700">${initials}</text>
+    </svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+async function refreshTenantUserSession() {
+  try {
+    const currentUser = JSON.parse(localStorage.getItem('dormhive.user') ?? '{}');
+    if (!currentUser?.id) return currentUser || {};
+    const token = localStorage.getItem('dormhive.accessToken') ?? '';
+    const response = await fetch(`${(window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1').replace(/\/api\/v1\/?$/, '')}/api/v1/users/${currentUser.id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || !body?.data) return currentUser;
+    const latestUser = { ...currentUser, ...body.data };
+    localStorage.setItem('dormhive.user', JSON.stringify(latestUser));
+    return latestUser;
+  } catch {
+    return JSON.parse(localStorage.getItem('dormhive.user') ?? '{}');
+  }
+}
+
+function getUserAvatarUrl(user = {}, name = 'Tenant User') {
+  const profileName = String(user?.name || name || 'Tenant User').trim();
+  if (!user || !user.avatar_url) return buildDefaultUserAvatarSvg(profileName);
+  return resolveImageUrl(user.avatar_url);
+}
+
+// Export avatar functions for use in other tenant pages
+export { resolveImageUrl, getUserAvatarUrl, refreshTenantUserSession };
 
 function normalizeApiBase(baseUrl = 'http://localhost:5000/api/v1') {
   const normalized = String(baseUrl || 'http://localhost:5000/api/v1').trim().replace(/\/+$/, '');
@@ -18,6 +80,22 @@ const saveUser = (nextUser = {}) => {
   return mergedUser;
 };
 
+async function refreshTenantUserFromServer(userId) {
+  if (!userId) return getUser();
+  try {
+    const response = await fetch(`${API}/users/${userId}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` }
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || !body?.data) return getUser();
+    const latestUser = { ...getUser(), ...body.data };
+    localStorage.setItem('dormhive.user', JSON.stringify(latestUser));
+    return latestUser;
+  } catch {
+    return getUser();
+  }
+}
+
 function displayNotice(element, text, state = 'error') {
   if (!element) return;
   element.hidden = false;
@@ -35,11 +113,15 @@ function css() {
   }
 }
 
-export function renderSetting(root = document.querySelector('#app')) {
+export async function renderSetting(root = document.querySelector('#app')) {
   if (!root) throw new Error('Tenant settings page requires #app.');
   css();
   ensureTenantSidebarStyles();
   let user = getUser();
+  if (!user || !user.id || user.role !== 'tenant') {
+    return location.assign('#/login');
+  }
+  user = await refreshTenantUserSession();
   if (!user || !user.id || user.role !== 'tenant') {
     return location.assign('#/login');
   }
@@ -158,6 +240,17 @@ export function renderSetting(root = document.querySelector('#app')) {
   const avatarSvg = root.querySelector('.avatar-svg');
   const profileCaption = root.querySelector('.user-name');
   let isEditMode = false;
+  let pendingAvatarFile = null;
+
+  function syncAvatarDisplay(avatarValue = user.avatar_url || '') {
+    const nextValue = String(avatarValue || '').trim();
+    const resolved = nextValue ? resolveImageUrl(nextValue) : '';
+    avatarImage.src = resolved || getUserAvatarUrl({ avatar_url: nextValue }, displayName);
+    avatarImage.hidden = !nextValue;
+    avatarSvg.style.display = nextValue ? 'none' : '';
+  }
+
+  syncAvatarDisplay(user.avatar_url || '');
 
   const legacyParts = (user.name || '').trim().split(/\s+/).filter(Boolean);
   firstInput.value = user.first_name ?? (legacyParts[0] ?? '');
@@ -223,17 +316,50 @@ export function renderSetting(root = document.querySelector('#app')) {
     }
 
     try {
+      let currentAvatarUrl = user.avatar_url || '';
+
+      if (pendingAvatarFile) {
+        console.debug('Tenant setting: uploading avatar', pendingAvatarFile && { name: pendingAvatarFile.name, type: pendingAvatarFile.type, size: pendingAvatarFile.size });
+        const uploadFormData = new FormData();
+        uploadFormData.append('avatar', pendingAvatarFile);
+        const uploadResponse = await fetch(`${API}/users/${user.id}/avatar`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
+          body: uploadFormData
+        });
+        const uploadBody = await uploadResponse.json().catch(() => ({}));
+        console.debug('Tenant setting: upload response', uploadResponse.status, uploadBody);
+        if (!uploadResponse.ok) throw new Error(uploadBody.message ?? 'Unable to upload profile picture.');
+
+        currentAvatarUrl = uploadBody.data?.avatar_url || uploadBody.avatar_url || user.avatar_url || '';
+        const avatarUpdatedUser = { ...user, ...uploadBody.data, avatar_url: currentAvatarUrl };
+        user = avatarUpdatedUser;
+        saveUser(avatarUpdatedUser);
+        syncAvatarDisplay(currentAvatarUrl);
+        pendingAvatarFile = null;
+        avatarInput.value = '';
+      }
+
       const response = await fetch(`${API}/users/${user.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ ...payload, avatar_url: currentAvatarUrl })
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.message ?? 'Unable to update profile.');
 
-      const updatedUser = { ...(user || {}), ...payload, email: user.email ?? displayEmail };
-      localStorage.setItem('dormhive.user', JSON.stringify(updatedUser));
-      user = updatedUser;
+      const serverUser = await refreshTenantUserSession();
+      const refreshedUser = {
+        ...(user || {}),
+        ...serverUser,
+        ...body.data,
+        ...payload,
+        avatar_url: currentAvatarUrl || serverUser.avatar_url || body.data?.avatar_url || user.avatar_url || '',
+        email: user.email ?? displayEmail
+      };
+      localStorage.setItem('dormhive.user', JSON.stringify(refreshedUser));
+      user = refreshedUser;
+      syncAvatarDisplay(refreshedUser.avatar_url || currentAvatarUrl || '');
       displayNotice(profileNotice, 'Profile saved.', 'success');
       setEditState(false);
       profileCaption.textContent = payload.name || 'Tenant User';
@@ -290,29 +416,12 @@ export function renderSetting(root = document.querySelector('#app')) {
   avatarInput.addEventListener('change', async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    console.debug('Tenant setting: avatar selected', { name: file.name, type: file.type, size: file.size });
 
-    const formData = new FormData();
-    formData.append('avatar', file);
-
-    try {
-      const response = await fetch(`${API}/users/${user.id}/avatar`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
-        body: formData
-      });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.message ?? 'Unable to upload profile picture.');
-
-      const newSrc = body.data.avatar_url && !body.data.avatar_url.startsWith('http') ? `http://localhost:5000${body.data.avatar_url}` : body.data.avatar_url;
-      avatarImage.src = newSrc;
-      avatarImage.hidden = false;
-      avatarSvg.style.display = 'none';
-      user = { ...user, avatar_url: body.data.avatar_url };
-      localStorage.setItem('dormhive.user', JSON.stringify(user));
-    } catch (error) {
-      displayNotice(profileNotice, error.message, 'error');
-    }
+    pendingAvatarFile = file;
+    const previewUrl = URL.createObjectURL(file);
+    avatarImage.src = previewUrl;
+    avatarImage.hidden = false;
+    avatarSvg.style.display = 'none';
   });
 }
-
-

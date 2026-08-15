@@ -60,8 +60,22 @@ export async function update(request, response, next) {
     }
 
     const input = isAdmin
-      ? { name: request.body.name, first_name: request.body.first_name, last_name: request.body.last_name, phone: request.body.phone, status: request.body.status, role: request.body.role }
-      : { name: request.body.name, first_name: request.body.first_name, last_name: request.body.last_name, phone: request.body.phone };
+      ? {
+          name: request.body.name,
+          first_name: request.body.first_name,
+          last_name: request.body.last_name,
+          phone: request.body.phone,
+          avatar_url: request.body.avatar_url,
+          status: request.body.status,
+          role: request.body.role
+        }
+      : {
+          name: request.body.name,
+          first_name: request.body.first_name,
+          last_name: request.body.last_name,
+          phone: request.body.phone,
+          avatar_url: request.body.avatar_url
+        };
     const user = await users.update(request.params.id, input);
     return user ? response.json({ data: user }) : response.status(404).json({ message: 'User not found.' });
   } catch (error) { next(error); }
@@ -75,7 +89,8 @@ export async function updateAvatar(request, response, next) {
     if (!request.file) {
       return response.status(422).json({ message: 'Please provide a valid image file.' });
     }
-    const avatarUrl = `/uploads/users/${request.file.filename}`;
+    const roleFolder = request.user?.role || 'tenant';
+    const avatarUrl = `/uploads/users/${roleFolder}/${request.file.filename}`;
     const user = await users.update(request.params.id, { avatar_url: avatarUrl });
     return user ? response.json({ data: user }) : response.status(404).json({ message: 'User not found.' });
   } catch (error) { next(error); }

@@ -1,6 +1,6 @@
 import { renderMapPanelShell, initLeafletMap, updateLeafletMarkers } from '../../components/mapPanel.js';
 import { ensureTenantSidebarStyles, renderTenantSidebar } from './sidebarTenant.js';
-import { getUserAvatarUrl } from './avatar.js';
+import { getUserAvatarUrl, refreshTenantUserSession } from './setting.js';
 
 const API_URL = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const apiBase = API_URL.replace(/\/api\/v1\/?$/, '');
@@ -160,13 +160,13 @@ function listingCard(item, index) {
   `;
 }
 
-export function renderDashboardTenant(root = document.querySelector('#app')) {
+export async function renderDashboardTenant(root = document.querySelector('#app')) {
   if (!root) throw new Error('Tenant dashboard requires #app.');
   cleanupDuplicateTenantSidebarStyles();
   loadStyle();
   ensureTenantSidebarStyles();
 
-  const user = session();
+  const user = await refreshTenantUserSession();
   const displayName = user.name || 'Tenant';
   root.innerHTML = `
     <div class="dh-app dh-dashboard">

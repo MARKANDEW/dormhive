@@ -4,12 +4,15 @@ import path from 'node:path';
 
 const uploadBaseDir = path.resolve('uploads');
 
-function createUploadMiddleware(subfolder) {
-  const uploadDir = path.join(uploadBaseDir, subfolder);
-  fs.mkdirSync(uploadDir, { recursive: true });
+function createUploadMiddleware(subfolderResolver) {
   return multer({
     storage: multer.diskStorage({
-      destination: (_request, _file, callback) => callback(null, uploadDir),
+      destination: (request, _file, callback) => {
+        const resolvedSubfolder = typeof subfolderResolver === 'function' ? subfolderResolver(request) : subfolderResolver;
+        const uploadDir = path.join(uploadBaseDir, resolvedSubfolder);
+        fs.mkdirSync(uploadDir, { recursive: true });
+        callback(null, uploadDir);
+      },
       filename: (_request, file, callback) => {
         const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '-');
         callback(null, `${Date.now()}-${safeName}`);
@@ -24,4 +27,7 @@ function createUploadMiddleware(subfolder) {
 }
 
 export const upload = createUploadMiddleware('properties');
-export const uploadUser = createUploadMiddleware('users');
+export const uploadUser = createUploadMiddleware((request) => {
+  const role = request?.user?.role || 'tenant';
+  return path.join('users', role);
+});
