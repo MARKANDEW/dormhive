@@ -1,5 +1,8 @@
 function removeAuthStyles() {
   document.querySelectorAll('link[data-dormhive-auth]').forEach((link) => link.remove());
+  document.querySelectorAll('link[id^="dormhive-"]').forEach((link) => link.remove());
+  // Also remove body classes from auth pages
+  document.body.className = '';
 }
 
 function loadStylesheet() {

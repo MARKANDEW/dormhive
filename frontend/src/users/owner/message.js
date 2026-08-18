@@ -266,6 +266,13 @@ export function renderMessage(root = document.querySelector('#app')) {
     }
   });
 
+  form.querySelector('textarea').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      form.dispatchEvent(new Event('submit'));
+    }
+  });
+
   searchInput.addEventListener('input', (event) => renderConversations(event.target.value));
 
   const load = async () => {

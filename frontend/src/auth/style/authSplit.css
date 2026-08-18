@@ -62,13 +62,29 @@ form {
 }
 
 .form-box.register {
-  visibility: hidden !important;
   opacity: 0;
+  z-index: 1;
+  pointer-events: none;
+  transition: opacity 0.3s ease-in-out 1.8s;
 }
 .container.active .form-box.register {
-  visibility: visible !important;
   opacity: 1;
-  transition: opacity 0.6s ease-in-out 1.2s;
+  z-index: 2;
+  pointer-events: auto;
+  transition: opacity 0.3s ease-in-out 0s;
+}
+
+.form-box.login {
+  opacity: 1;
+  z-index: 2;
+  pointer-events: auto;
+  transition: opacity 0.3s ease-in-out 0s;
+}
+.container.active .form-box.login {
+  opacity: 0;
+  z-index: 1;
+  pointer-events: none;
+  transition: opacity 0.3s ease-in-out 1.8s;
 }
 
 .input-box {
@@ -135,13 +151,13 @@ form {
 .btn {
   width: 100%;
   height: 48px;
-  background: #7494ec;
+  background: #7494ec !important;
   border-radius: 8px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  border: none;
+  border: none !important;
   cursor: pointer;
   font-size: 16px;
-  color: #fff;
+  color: #fff !important;
   font-weight: 600;
 }
 
@@ -220,9 +236,22 @@ form {
 .toggle-panel .btn {
   width: 160px;
   height: 46px;
-  background: transparent;
-  border: 2px solid #fff;
-  box-shadow: none;
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.4);
+  border: 4px solid #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.toggle-panel .btn:hover {
+  border-color: #ffffff;
+  background: rgba(255, 255, 255, 0.6);
 }
 
 .container .auth-brand {
@@ -246,6 +275,23 @@ form {
 
 .form-inner h1 { color: #333; margin-bottom: 4px; }
 .form-inner p { color: #666; margin-bottom: 14px; }
+
+.form-inner .btn {
+  background: #7494ec !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+.form-inner .auth-submit {
+  background: #7494ec !important;
+  color: #fff !important;
+  border: none !important;
+  width: 100%;
+}
+
+.form-inner .auth-submit:hover {
+  background: #6382d6 !important;
+}
 
 .checkbox-label {
   display: flex;

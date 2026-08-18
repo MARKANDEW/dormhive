@@ -1,13 +1,19 @@
 const API_BASE_URL = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 
 function loadStylesheet() {
-  if (document.querySelector('link[data-dormhive-auth="split"]')) return;
+  // Remove all auth stylesheets first to ensure clean state
+  document.querySelectorAll('link[data-dormhive-auth]').forEach((link) => link.remove());
+  document.querySelectorAll('link[id^="dormhive-"]').forEach((link) => link.remove());
+  
+  // Load fresh stylesheet with cache busting
   const link = document.createElement('link');
   link.rel = 'stylesheet';
-  link.href = new URL('./style/split-auth.css', import.meta.url).href;
+  link.href = new URL('./style/split-auth.css', import.meta.url).href + '?t=' + Date.now();
   link.dataset.dormhiveAuth = 'split';
   document.head.append(link);
-  if (!document.querySelector('link[data-dormhive-auth="boxicons"]')) {
+  
+  // Load boxicons
+  if (!document.querySelector('link[href*="boxicons"]')) {
     const icons = document.createElement('link');
     icons.rel = 'stylesheet';
     icons.href = "https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css";
@@ -30,6 +36,7 @@ function showMessage(element, message) {
 export function renderLogin(root = document.querySelector('#app')) {
   if (!root) throw new Error('Login page requires an element with id "app".');
   loadStylesheet();
+  root.className = '';
   root.innerHTML = `
     <div class="container">
       <a class="auth-brand" href="../index.html">DormHive</a>
@@ -44,7 +51,7 @@ export function renderLogin(root = document.querySelector('#app')) {
             <div class="forgot-link"><a href="#">Forgot Password?</a></div>
             <button class="btn auth-submit" type="submit">Login</button>
             <p>or login with social platforms</p>
-            <div class="social-icons"><a href="#"><i class='bx bxl-google'></i></a><a href="#"><i class='bx bxl-facebook'></i></a><a href="#"><i class='bx bxl-github'></i></a><a href="#"><i class='bx bxl-linkedin'></i></a></div>
+            <div class="social-icons"><a href="#"><i class='bx bxl-google'></i></a><a href="#"><i class='bx bxl-facebook'></i></a></div>
           </div>
         </form>
       </div>
@@ -91,7 +98,7 @@ export function renderLogin(root = document.querySelector('#app')) {
             <label class="checkbox-label"><input name="terms" type="checkbox" required> Agree to the terms of service</label>
             <button class="btn auth-submit" type="submit">Register</button>
             <p>or register with social platforms</p>
-            <div class="social-icons"><a href="#"><i class='bx bxl-google'></i></a><a href="#"><i class='bx bxl-facebook'></i></a><a href="#"><i class='bx bxl-github'></i></a><a href="#"><i class='bx bxl-linkedin'></i></a></div>
+            <div class="social-icons"><a href="#"><i class='bx bxl-google'></i></a><a href="#"><i class='bx bxl-facebook'></i></a></div>
           </div>
         </form>
       </div>
@@ -121,8 +128,24 @@ export function renderLogin(root = document.querySelector('#app')) {
   const loginSubmitButton = root.querySelector('.form-box.login .auth-submit');
   const registerSubmitButton = root.querySelector('.form-box.register .auth-submit');
 
-  registerBtn.addEventListener('click', () => container.classList.add('active'));
-  loginBtn.addEventListener('click', () => container.classList.remove('active'));
+  container.classList.remove('active');
+
+  container.classList.remove('active');
+
+  registerBtn.addEventListener('click', (event) => {
+    event.preventDefault();
+    container.classList.add('active');
+    window.setTimeout(() => {
+      window.location.hash = '#/register';
+    }, 1200);
+  });
+  loginBtn.addEventListener('click', (event) => {
+    event.preventDefault();
+    container.classList.remove('active');
+    window.setTimeout(() => {
+      window.location.hash = '#/login';
+    }, 1200);
+  });
 
   loginForm.addEventListener('submit', async (event) => {
     event.preventDefault();

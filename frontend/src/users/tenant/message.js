@@ -163,6 +163,13 @@ export function renderMessage(root = document.querySelector('#app')) {
     } catch (error) { status.textContent = error.message; }
   });
 
+  form.querySelector('textarea').addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      form.dispatchEvent(new Event('submit'));
+    }
+  });
+
   fetch(`${API_URL}/messages/conversations`, { headers: headers() }).then(async (response) => {
     const body = await response.json();
     if (!response.ok) throw new Error(body.message);
