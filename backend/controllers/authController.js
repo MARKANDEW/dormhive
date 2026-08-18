@@ -6,6 +6,14 @@ function tokenFor(user) {
   return jwt.sign({ sub: user.id, role: user.role }, process.env.JWT_ACCESS_SECRET, { expiresIn: process.env.JWT_ACCESS_EXPIRES_IN ?? '15m' });
 }
 
+export function isValidPhilippinePhoneNumber(value) {
+  if (typeof value !== 'string') return false;
+  const trimValue = value.trim();
+  const digits = trimValue.replace(/\D/g, '');
+  const localNumber = digits.startsWith('63') ? digits.slice(2) : digits;
+  return /^9\d{9}$/.test(localNumber) && localNumber.length === 10;
+}
+
 function isValidPhone(value) {
   return typeof value === 'string' && /^\+?[0-9\s().-]{7,20}$/.test(value.trim());
 }
@@ -15,6 +23,9 @@ export async function register(request, response, next) {
     const { first_name, last_name, name, email, password, role = 'tenant', phone } = request.body;
     const normalizedPhone = typeof phone === 'string' ? phone.trim() : phone;
     if (!['tenant', 'owner'].includes(role)) return response.status(422).json({ message: 'Role must be tenant or owner.' });
+    if (!normalizedPhone || !isValidPhilippinePhoneNumber(normalizedPhone)) {
+      return response.status(422).json({ message: 'Phone number must be exactly 10 digits.' });
+    }
     if (!/^\S+@\S+\.\S+$/.test(email) || password.length < 8 || (normalizedPhone && !isValidPhone(normalizedPhone))) {
       return response.status(422).json({ message: 'Provide a valid email, a valid phone number if supplied, and a password of at least 8 characters.' });
     }

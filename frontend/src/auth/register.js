@@ -1,19 +1,13 @@
 const API_BASE_URL = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 
 function loadStylesheet() {
-  // Remove all auth stylesheets first to ensure clean state
-  document.querySelectorAll('link[data-dormhive-auth]').forEach((link) => link.remove());
-  document.querySelectorAll('link[id^="dormhive-"]').forEach((link) => link.remove());
-  
-  // Load fresh stylesheet with cache busting
+  if (document.querySelector('link[data-dormhive-auth="split"]')) return;
   const link = document.createElement('link');
   link.rel = 'stylesheet';
-  link.href = new URL('./style/split-auth.css', import.meta.url).href + '?t=' + Date.now();
+  link.href = new URL('./style/split-auth.css', import.meta.url).href;
   link.dataset.dormhiveAuth = 'split';
   document.head.append(link);
-  
-  // Load boxicons
-  if (!document.querySelector('link[href*="boxicons"]')) {
+  if (!document.querySelector('link[data-dormhive-auth="boxicons"]')) {
     const icons = document.createElement('link');
     icons.rel = 'stylesheet';
     icons.href = "https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css";
@@ -31,7 +25,6 @@ function showMessage(element, message) {
 export function renderRegister(root = document.querySelector('#app')) {
   if (!root) throw new Error('Register page requires an element with id "app".');
   loadStylesheet();
-  root.className = '';
   root.innerHTML = `
     <div class="container active">
       <a class="auth-brand" href="../index.html">DormHive</a>
@@ -45,7 +38,7 @@ export function renderRegister(root = document.querySelector('#app')) {
             <div class="forgot-link"><a href="#">Forgot Password?</a></div>
             <button class="btn auth-submit" type="submit">Login</button>
             <p>or login with social platforms</p>
-            <div class="social-icons"><a href="#"><i class='bx bxl-google'></i></a><a href="#"><i class='bx bxl-facebook'></i></a></div>
+            <div class="social-icons"><a href="#"><i class='bx bxl-google'></i></a><a href="#"><i class='bx bxl-facebook'></i></a><a href="#"><i class='bx bxl-github'></i></a><a href="#"><i class='bx bxl-linkedin'></i></a></div>
           </div>
         </form>
       </div>
@@ -56,49 +49,19 @@ export function renderRegister(root = document.querySelector('#app')) {
             <h1 id="register-title">Registration</h1>
             <p>Create your account</p>
             <p class="auth-message" role="alert" hidden></p>
-            <div class="input-box">
-              <label for="firstName" class="field-label">First name</label>
-              <input id="firstName" name="firstName" type="text" required maxlength="60">
-              <i class='bx bxs-user'></i>
-            </div>
-            <div class="input-box">
-              <label for="lastName" class="field-label">Last name</label>
-              <input id="lastName" name="lastName" type="text" required maxlength="60">
-              <i class='bx bxs-user'></i>
-            </div>
-            <div class="input-box">
-              <label for="email_r" class="field-label">Email address</label>
-              <input id="email_r" name="email" type="email" required>
-              <i class='bx bxs-envelope'></i>
-            </div>
-            <div class="input-box">
-              <label for="phone" class="field-label">Phone Number (+63)</label>
-              <input id="phone" name="phone" type="tel" placeholder="9xxxxxxxxx" required maxlength="10" inputmode="numeric" pattern="[0-9]*">
+            <div class="input-box"><input id="first_name" name="first_name" type="text" placeholder="First name" required maxlength="120"><i class='bx bxs-user'></i></div>
+            <div class="input-box"><input id="last_name" name="last_name" type="text" placeholder="Last name" required maxlength="120"><i class='bx bxs-user'></i></div>
+            <div class="input-box"><input id="email_r" name="email" type="email" placeholder="Email address" required><i class='bx bxs-envelope'></i></div>
+            <div class="input-box phone-input-box">
+              <span class="phone-prefix" aria-hidden="true">+63</span>
+              <input id="phone_r" name="phone" type="tel" inputmode="numeric" placeholder="9XXXXXXXXX" required maxlength="10" autocomplete="tel">
               <i class='bx bxs-phone'></i>
             </div>
-            <div id="phone-hint" class="field-hint" style="display: none; color: #e53e3e; font-weight: 600; margin: -10px 0 10px 0;">Phone number must be exactly 10 digits</div>
-            <div class="input-box">
-              <label for="role" class="field-label">I want to</label>
-              <select id="role" name="role" required>
-                <option value="tenant">Find a rental</option>
-                <option value="owner">List a property</option>
-              </select>
-            </div>
-            <div class="input-box">
-              <label for="password_r" class="field-label">Password</label>
-              <input id="password_r" name="password" type="password" required minlength="8">
-              <i class='bx bxs-lock-alt'></i>
-            </div>
-            <div class="field-hint">Use at least 8 characters.</div>
-            <div class="input-box">
-              <label for="confirmPassword" class="field-label">Confirm password</label>
-              <input id="confirmPassword" name="confirmPassword" type="password" required minlength="8">
-              <i class='bx bxs-lock-alt'></i>
-            </div>
-            <label class="checkbox-label"><input name="terms" type="checkbox" required> Agree to the terms of service</label>
+            <div class="input-box"><select id="role" name="role" required><option value="tenant">I want to</option><option value="tenant">Find a rental</option><option value="owner">List a property</option></select></div>
+            <div class="input-box"><input id="password_r" name="password" type="password" placeholder="Password" required minlength="8"><i class='bx bxs-lock-alt'></i></div>
+            <div class="input-box"><input id="confirm_password" name="confirmPassword" type="password" placeholder="Confirm password" required minlength="8"><i class='bx bxs-lock-alt'></i></div>
+            <label class="checkbox-label"><input name="terms" type="checkbox" required> I agree to the terms of service.</label>
             <button class="btn auth-submit" type="submit">Register</button>
-            <p>or register with social platforms</p>
-            <div class="social-icons"><a href="#"><i class='bx bxl-google'></i></a><a href="#"><i class='bx bxl-facebook'></i></a></div>
           </div>
         </form>
       </div>
@@ -124,78 +87,70 @@ export function renderRegister(root = document.querySelector('#app')) {
   const form = root.querySelector('.form-box.register form');
   const message = root.querySelector('.auth-message');
   const submitButton = root.querySelector('.auth-submit');
-  const phoneInput = root.querySelector('#phone');
-  const phoneHint = root.querySelector('#phone-hint');
+  const phoneInput = root.querySelector('#phone_r');
 
-  container.classList.add('active');
+  const getPhoneDigits = (value = '') => String(value).replace(/\D/g, '').slice(0, 10);
 
-  // Phone number validation
-  if (phoneInput && phoneHint) {
-    const validatePhone = () => {
-      const phoneValue = phoneInput.value.replace(/\D/g, '');
-      const isValid = phoneValue.length === 10;
-      phoneInput.style.borderColor = isValid || phoneValue.length === 0 ? '' : '#e53e3e';
-      phoneHint.style.display = isValid || phoneValue.length === 0 ? 'none' : 'block';
-      return isValid || phoneValue.length === 0;
-    };
+  const normalizePhoneValue = (value = '') => {
+    const digits = getPhoneDigits(value);
+    return digits;
+  };
 
-    phoneInput.addEventListener('input', () => {
-      phoneInput.value = phoneInput.value.replace(/\D/g, '');
-      validatePhone();
-    });
+  const toServerPhoneValue = (value = '') => {
+    const digits = getPhoneDigits(value);
+    return digits ? `+63${digits}` : '';
+  };
 
-    phoneInput.addEventListener('blur', validatePhone);
-  }
+  const isValidPhoneValue = (value = '') => {
+    const digits = getPhoneDigits(value);
+    return /^9\d{9}$/.test(digits) && digits.length === 10;
+  };
 
-  container.classList.add('active');
+  const validatePhoneField = (showError = true) => {
+    const digits = getPhoneDigits(phoneInput.value);
+    phoneInput.value = digits;
+    const valid = isValidPhoneValue(digits);
+    phoneInput.setCustomValidity(valid ? '' : 'Phone number must be exactly 10 digits.');
+    if (showError && !valid) {
+      showMessage(message, 'Phone number must be exactly 10 digits.');
+    } else if (showError && message && !message.hidden && message.textContent === 'Phone number must be exactly 10 digits.') {
+      message.hidden = true;
+      message.textContent = '';
+    }
+    return valid;
+  };
 
-  registerBtn.addEventListener('click', (event) => {
-    event.preventDefault();
-    container.classList.add('active');
-    window.setTimeout(() => {
-      window.location.hash = '#/register';
-    }, 1200);
+  phoneInput.addEventListener('input', () => {
+    phoneInput.value = normalizePhoneValue(phoneInput.value);
+    validatePhoneField(false);
   });
-  loginBtn.addEventListener('click', (event) => {
-    event.preventDefault();
-    container.classList.remove('active');
-    window.setTimeout(() => {
-      window.location.hash = '#/login';
-    }, 1200);
-  });
+
+  registerBtn.addEventListener('click', () => container.classList.add('active'));
+  loginBtn.addEventListener('click', () => container.classList.remove('active'));
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    if (!form.reportValidity()) return;
 
     const formData = Object.fromEntries(new FormData(form));
-    const { terms, firstName, lastName, confirmPassword, phone, ...rest } = formData;
+    const password = String(formData.password ?? '');
+    const confirmPassword = String(formData.confirmPassword ?? '');
 
-    // Validate phone number
-    const phoneValue = String(phone ?? '').replace(/\D/g, '');
-    if (phoneValue.length !== 10) {
-      showMessage(message, 'Phone number must be exactly 10 digits.');
-      return;
-    }
-
-    // Validate password confirmation
-    if (formData.password !== confirmPassword) {
+    if (password !== confirmPassword) {
       showMessage(message, 'Passwords do not match.');
       return;
     }
 
-    const payload = {
-      first_name: String(firstName ?? '').trim(),
-      last_name: String(lastName ?? '').trim(),
-      name: `${String(firstName ?? '').trim()} ${String(lastName ?? '').trim()}`.trim(),
-      email: String(rest.email ?? '').trim(),
-      phone: '+63' + phoneValue,
-      password: String(rest.password ?? ''),
-      role: String(rest.role ?? 'tenant')
-    };
+    if (!form.reportValidity()) return;
+    if (!validatePhoneField(true)) {
+      phoneInput.focus();
+      return;
+    }
+
+    const { terms, confirmPassword: _confirmPassword, ...payload } = formData;
+    payload.phone = toServerPhoneValue(payload.phone);
 
     submitButton.disabled = true;
-    submitButton.textContent = 'Registering…';
+    submitButton.textContent = 'Creating account…';
     if (message) message.hidden = true;
     try {
       const response = await fetch(`${API_BASE_URL}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -211,4 +166,5 @@ export function renderRegister(root = document.querySelector('#app')) {
     }
   });
 }
+
 

@@ -14,7 +14,6 @@ body {
   background: linear-gradient(90deg, #e2e2e2, #c9d6ff);
   margin: 0;
   padding: 0;
-  overflow-x: hidden;
 }
 
 .container {
@@ -54,7 +53,9 @@ form {
   text-align: center;
   padding: 40px;
   z-index: 1;
-  transition: right 0.6s ease-in-out 1.2s;
+  transition:
+    0.6s ease-in-out 1.2s,
+    visibility 0s 1s;
 }
 
 .container.active .form-box {
@@ -62,29 +63,10 @@ form {
 }
 
 .form-box.register {
-  opacity: 0;
-  z-index: 1;
-  pointer-events: none;
-  transition: opacity 0.3s ease-in-out 1.8s;
+  visibility: hidden;
 }
 .container.active .form-box.register {
-  opacity: 1;
-  z-index: 2;
-  pointer-events: auto;
-  transition: opacity 0.3s ease-in-out 0s;
-}
-
-.form-box.login {
-  opacity: 1;
-  z-index: 2;
-  pointer-events: auto;
-  transition: opacity 0.3s ease-in-out 0s;
-}
-.container.active .form-box.login {
-  opacity: 0;
-  z-index: 1;
-  pointer-events: none;
-  transition: opacity 0.3s ease-in-out 1.8s;
+  visibility: visible;
 }
 
 .input-box {
@@ -92,44 +74,52 @@ form {
   margin: 12px 0;
 }
 
-.field-label {
-  display: block;
-  margin: 0 0 8px;
-  color: #333;
-  font-size: 12px;
-  font-weight: 600;
-  text-align: left;
-}
-
-.field-hint {
-  margin: -2px 0 10px;
-  color: #64748b;
-  font-size: 12px;
-  text-align: left;
-}
-
 .input-box input,
 .input-box select {
   width: 100%;
   padding: 13px 50px 13px 20px;
   background: #eee;
-  border-radius: 8px;
+  border-radius: 10px;
   border: none;
   outline: none;
   font-size: 16px;
   color: #333;
   font-weight: 500;
-  font-family: "Poppins", sans-serif;
 }
 
-.input-box input::placeholder {
+.phone-input-box {
+  position: relative;
+}
+
+.phone-prefix {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #333;
+  font-size: 16px;
+  font-weight: 500;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.phone-input-box input {
+  padding-left: 72px;
+}
+
+.input-box input::placeholder,
+.input-box select {
   color: #888;
   font-weight: 400;
 }
 
-.input-box select option {
-  color: #333;
-  background: #fff;
+.input-box select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, #666 50%), linear-gradient(135deg, #666 50%, transparent 50%);
+  background-position: calc(100% - 20px) calc(50% - 2px), calc(100% - 14px) calc(50% - 2px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 42px;
 }
 
 .input-box i {
@@ -138,6 +128,31 @@ form {
   top: 50%;
   transform: translateY(-50%);
   font-size: 20px;
+  color: #666;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 18px;
+  font-size: 14px;
+  color: #333;
+}
+
+.checkbox-label input {
+  width: 16px;
+  height: 16px;
+  accent-color: #7494ec;
+}
+
+.auth-message {
+  margin-bottom: 12px;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: rgba(255, 88, 88, 0.08);
+  color: #c62828;
+  font-size: 13px;
 }
 
 .forgot-link {
@@ -151,13 +166,13 @@ form {
 .btn {
   width: 100%;
   height: 48px;
-  background: #7494ec !important;
+  background: #7494ec;
   border-radius: 8px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  border: none !important;
+  border: none;
   cursor: pointer;
   font-size: 16px;
-  color: #fff !important;
+  color: #fff;
   font-weight: 600;
 }
 
@@ -236,22 +251,9 @@ form {
 .toggle-panel .btn {
   width: 160px;
   height: 46px;
-  padding: 12px 24px;
-  background: rgba(255, 255, 255, 0.4);
-  border: 4px solid #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  color: #fff;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-sizing: border-box;
-}
-
-.toggle-panel .btn:hover {
-  border-color: #ffffff;
-  background: rgba(255, 255, 255, 0.6);
+  background: transparent;
+  border: 2px solid #fff;
+  box-shadow: none;
 }
 
 .container .auth-brand {
@@ -268,62 +270,16 @@ form {
   width: 100%;
   max-width: 360px;
   margin: 0 auto;
-  max-height: calc(100vh - 80px);
-  overflow-y: auto;
-  padding-right: 8px;
 }
 
 .form-inner h1 { color: #333; margin-bottom: 4px; }
 .form-inner p { color: #666; margin-bottom: 14px; }
 
-.form-inner .btn {
-  background: #7494ec !important;
-  color: #fff !important;
-  border: none !important;
-}
-
-.form-inner .auth-submit {
-  background: #7494ec !important;
-  color: #fff !important;
-  border: none !important;
-  width: 100%;
-}
-
-.form-inner .auth-submit:hover {
-  background: #6382d6 !important;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  font-size: 14px;
-  color: #333;
-  margin: 12px 0 18px;
-  text-align: left;
-}
-
-.checkbox-label input {
-  width: auto;
-  margin-right: 8px;
-  padding: 0;
-  background: none;
-  border: none;
-}
-
-.form-inner {
-  width: min(100%, 360px);
-  margin: 0 auto;
-  max-height: calc(100vh - 80px);
-  overflow-y: auto;
-  padding-right: 8px;
-}
-
-.form-inner .input-box { margin: 10px 0; }
+.form-inner .input-box { margin: 14px 0; }
 .form-inner .btn { width: 100%; }
 
 @media screen and (max-width: 650px) {
   .container { width: 100vw; height: 100vh; }
-  .form-box { padding: 20px 18px; }
+  .form-box { padding: 20px; }
   .toggle-panel h1 { font-size: 30px; }
 }
