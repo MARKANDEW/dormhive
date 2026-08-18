@@ -1,4 +1,4 @@
-import { ensureOwnerSidebarStyles, renderOwnerSidebar } from './sidebarOwner.js';
+import { ensureOwnerSidebarStyles, renderOwnerProfileCard, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const headers = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
@@ -7,8 +7,24 @@ const user = () => { try { return JSON.parse(localStorage.getItem('dormhive.user
 const initials = (value = '') => value.split(' ').filter(Boolean).map((part) => part[0]).slice(0, 2).join('').toUpperCase() || 'U';
 const dayTime = (value) => new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(new Date(value));
 const shortDate = (value) => new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(value));
+const isImageDataUrl = (value = '') => typeof value === 'string' && /^data:image\//i.test(value.trim());
+const renderMessageBody = (value = '') => {
+  const text = String(value ?? '');
+  if (isImageDataUrl(text)) {
+    return `<div class="message-attachment"><img src="${text}" alt="Sent image" /></div>`;
+  }
+  return esc(text || 'No message text.');
+};
 
 function css() {
+  if (!document.querySelector('[data-owner-style="dashboard"]')) {
+    const shared = document.createElement('link');
+    shared.rel = 'stylesheet';
+    shared.href = new URL('./style/dashboardOwner.css', import.meta.url);
+    shared.dataset.ownerStyle = 'dashboard';
+    document.head.append(shared);
+  }
+
   if (!document.querySelector('[data-owner-style="message"]')) {
     const l = document.createElement('link');
     l.rel = 'stylesheet';
@@ -28,18 +44,14 @@ export function renderMessage(root = document.querySelector('#app')) {
       ${renderOwnerSidebar('message')}
       <div class="owner-main">
         <main class="owner-inbox-page">
-          <header class="topbar">
-            <label class="top-search" aria-label="Search">
+          <header class="owner-topbar">
+            <div class="topbar-left"></div>
+            <label class="search-bar" aria-label="Search my listings, inquiries, tenants">
               <span>⌕</span>
               <input type="search" placeholder="Search my listings, inquiries, tenants..." />
             </label>
-            <div class="profile-area">
-              <button class="icon-button" type="button" aria-label="Notifications">🔔</button>
-              <div class="avatar-chip">${esc(initials(user().name))}</div>
-              <div class="profile-meta">
-                <strong>${esc(user().name || 'Property Owner')}</strong>
-                <span>${esc((user().role || 'owner').replace(/\b\w/g, (char) => char.toUpperCase()))}</span>
-              </div>
+            <div class="topbar-right">
+              ${renderOwnerProfileCard()}
             </div>
           </header>
 
@@ -68,8 +80,22 @@ export function renderMessage(root = document.querySelector('#app')) {
               </div>
               <div class="messages"></div>
               <form class="composer" hidden>
-                <textarea required maxlength="2000" placeholder="Type your message here..."></textarea>
-                <button type="submit">Send</button>
+                <div class="composer-tools">
+                  <label class="upload-button" title="Send a photo" aria-label="Send a photo">
+                    <input class="image-input" type="file" accept="image/*" hidden>
+                    <span>＋</span>
+                  </label>
+                  <div class="composer-input-wrapper">
+                    <div class="attachment-strip hidden">
+                      <div class="attachment-item">
+                        <img class="attachment-preview" src="" alt="Selected attachment preview">
+                        <button type="button" class="remove-attachment" aria-label="Remove selected photo">×</button>
+                      </div>
+                    </div>
+                    <textarea maxlength="2000" placeholder="Type your message here..."></textarea>
+                  </div>
+                  <button type="submit">Send</button>
+                </div>
               </form>
             </section>
           </section>
@@ -85,8 +111,37 @@ export function renderMessage(root = document.querySelector('#app')) {
   const chatTitle = root.querySelector('#chat-contact');
   const chatProperty = root.querySelector('#chat-property');
   const chatAvatar = root.querySelector('#chat-avatar');
-  const searchInput = root.querySelector('.top-search input');
+  const searchInput = root.querySelector('.search-bar input');  const imageInput = form.querySelector('.image-input');
+  const attachmentStrip = form.querySelector('.attachment-strip');
+  const attachmentPreview = form.querySelector('.attachment-preview');
+  const removeAttachmentButton = form.querySelector('.remove-attachment');
+  let pendingImage = '';
 
+  const clearPendingImage = () => {
+    pendingImage = '';
+    imageInput.value = '';
+    attachmentPreview.src = '';
+    attachmentStrip.classList.add('hidden');
+  };
+
+  removeAttachmentButton.addEventListener('click', clearPendingImage);
+
+  imageInput.addEventListener('change', (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      status.textContent = 'Please choose an image file.';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      pendingImage = String(reader.result ?? '');
+      attachmentPreview.src = pendingImage;
+      attachmentStrip.classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+  });
   const getPropertyTitle = (propertyId) => {
     const property = state.properties.find((item) => String(item.id) === String(propertyId));
     return property?.title || 'Property';
@@ -141,10 +196,15 @@ export function renderMessage(root = document.querySelector('#app')) {
             <div class="avatar-chip tiny">${message.sender_id === Number(user().id) ? initials(user().name || 'You') : initials(state.selected.participant_name ?? 'Tenant')}</div>
             <span>${esc(message.sender_id === Number(user().id) ? 'You' : state.selected.participant_name ?? 'Tenant')}</span>
           </div>
-          <div class="bubble-body">${esc(message.body || 'No message text.')}</div>
+          <div class="bubble-body">${renderMessageBody(message.body)}</div>
           <small>${esc(shortDate(message.created_at))} • ${esc(dayTime(message.created_at))}</small>
         </article>
       `).join('') || '<p class="empty">Start the conversation.</p>';
+
+      messages.querySelectorAll('.message-attachment img').forEach((img) => {
+        img.style.cursor = 'pointer';
+        img.addEventListener('click', () => openPhotoViewer(img.src));
+      });
 
       form.hidden = false;
       renderConversations(searchInput.value);
@@ -153,25 +213,57 @@ export function renderMessage(root = document.querySelector('#app')) {
     }
   };
 
+  const openPhotoViewer = (imageDataUrl) => {
+    const modal = document.createElement('div');
+    modal.className = 'photo-viewer-modal';
+    modal.innerHTML = `
+      <div class="photo-viewer-backdrop"></div>
+      <div class="photo-viewer-content">
+        <button class="photo-viewer-close" aria-label="Close photo">×</button>
+        <img src="${imageDataUrl}" alt="Message photo" class="photo-viewer-image" />
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.querySelector('.photo-viewer-close').addEventListener('click', () => modal.remove());
+    modal.querySelector('.photo-viewer-backdrop').addEventListener('click', () => modal.remove());
+  };
+
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     const textarea = form.querySelector('textarea');
-    if (!textarea.reportValidity() || !state.selected) return;
+    if (!state.selected) return;
 
-    const response = await fetch(`${API}/messages`, {
-      method: 'POST',
-      headers: headers(),
-      body: JSON.stringify({ conversationId: state.selected.id, body: textarea.value.trim() })
-    });
+    const textMessage = textarea.value.trim();
+    const hasImage = !!pendingImage;
+    const hasText = !!textMessage;
 
-    const body = await response.json();
-    if (!response.ok) {
-      status.textContent = body.message ?? 'Message could not be sent.';
-      return;
+    if (!hasImage && !hasText) return;
+
+    try {
+      if (hasImage) {
+        await fetch(`${API}/messages`, {
+          method: 'POST',
+          headers: headers(),
+          body: JSON.stringify({ conversationId: state.selected.id, body: pendingImage })
+        });
+      }
+
+      if (hasText) {
+        const response = await fetch(`${API}/messages`, {
+          method: 'POST',
+          headers: headers(),
+          body: JSON.stringify({ conversationId: state.selected.id, body: textMessage })
+        });
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.message ?? 'Message could not be sent.');
+      }
+
+      textarea.value = '';
+      clearPendingImage();
+      await select(state.selected.id);
+    } catch (error) {
+      status.textContent = error.message;
     }
-
-    textarea.value = '';
-    await select(state.selected.id);
   });
 
   searchInput.addEventListener('input', (event) => renderConversations(event.target.value));
@@ -194,9 +286,33 @@ export function renderMessage(root = document.querySelector('#app')) {
       status.hidden = true;
       renderConversations();
 
-      if (state.conversations[0]) {
+      const savedSelection = (() => {
+        try {
+          return JSON.parse(localStorage.getItem('dormhive.activeTenantSelection') ?? 'null');
+        } catch {
+          return null;
+        }
+      })();
+
+      const hashMatch = location.hash.match(/#\/owner\/message\/tenant\/(\d+)/);
+      const tenantIdFromUrl = hashMatch ? Number(hashMatch[1]) : null;
+      const targetTenantId = savedSelection?.tenantId ?? tenantIdFromUrl;
+
+      if (targetTenantId) {
+        const targetConversation = state.conversations.find((conv) => Number(conv.tenant_id) === Number(targetTenantId));
+        if (targetConversation) {
+          await select(targetConversation.id);
+          localStorage.removeItem('dormhive.activeTenantSelection');
+          if (location.hash.startsWith('#/owner/message/tenant/')) {
+            location.hash = '#/owner/message';
+          }
+        } else if (state.conversations[0]) {
+          await select(state.conversations[0].id);
+        }
+      } else if (state.conversations[0]) {
         await select(state.conversations[0].id);
       }
+      await updateListingCountsInSidebar();
     } catch (error) {
       status.textContent = error.message;
       messages.innerHTML = `<p class="empty">${esc(error.message)}</p>`;

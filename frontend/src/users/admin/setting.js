@@ -1,4 +1,6 @@
 import { ensureAdminSidebarStyles, renderAdminSidebar } from './sidebarAdmin.js';
+import { applyAdminPrivacy } from './privacy.js';
+import { resolveUserAvatarUrl } from './avatar.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const BACKEND_BASE = API.replace(/\/api\/v1$/, '');
@@ -20,11 +22,6 @@ function displayNotice(element, text, state = 'error') {
   element.className = `notice ${state}`;
 }
 
-function getAvatarUrl(url) {
-  if (!url) return '';
-  return url.startsWith('http') ? url : `${BACKEND_BASE}${url}`;
-}
-
 export function renderSetting(root = document.querySelector('#app')) {
   if (!root) throw new Error('Admin settings page requires #app.');
   css();
@@ -37,6 +34,8 @@ export function renderSetting(root = document.querySelector('#app')) {
   const email = user.email ?? 'admin@dormhive.com';
   const phone = user.phone ?? 'xxxxxxxxx';
   const userName = [firstName, lastName].filter(Boolean).join(' ') || 'Admin User';
+
+  const getAvatarUrl = (url) => resolveUserAvatarUrl(url || '', userName);
 
   root.innerHTML = `
     <div class="admin-shell">
@@ -77,8 +76,11 @@ export function renderSetting(root = document.querySelector('#app')) {
                     </button>
                     <input class="avatar-input" type="file" accept="image/*" hidden>
                   </div>
-                  <div class="user-name">${userName}</div>
-                  <button type="button" class="edit-profile">Edit Profile</button>
+                  <div class="user-name" data-privacy-mask="name">${userName}</div>
+                  <div class="profile-actions">
+                    <button type="button" class="discard-profile" hidden>Discard</button>
+                    <button type="button" class="edit-profile">Edit Profile</button>
+                  </div>
                 </div>
               </aside>
 
@@ -88,22 +90,22 @@ export function renderSetting(root = document.querySelector('#app')) {
                     <div class="field-row">
                       <label>
                         <span>First Name</span>
-                        <input id="admin-first" name="first_name" type="text" value="${firstName}" required readonly>
+                        <input id="admin-first" name="first_name" type="text" value="${firstName}" data-privacy-mask="name" required readonly>
                       </label>
                       <label>
                         <span>Last Name</span>
-                        <input id="admin-last" name="last_name" type="text" value="${lastName}" required readonly>
+                        <input id="admin-last" name="last_name" type="text" value="${lastName}" data-privacy-mask="name" required readonly>
                       </label>
                     </div>
 
                     <label>
                       <span>Email Address</span>
-                      <input name="email" type="email" value="${email}" readonly>
+                      <input name="email" type="email" value="${email}" data-privacy-mask="email" readonly>
                     </label>
 
                     <label>
                       <span>phone number</span>
-                      <input id="admin-phone" name="phone" type="tel" value="${phone}" maxlength="20" readonly>
+                      <input id="admin-phone" name="phone" type="tel" value="${phone}" data-privacy-mask="phone" maxlength="20" readonly>
                     </label>
 
                     <p class="notice" data-notice="profile" hidden role="alert"></p>
@@ -147,6 +149,7 @@ export function renderSetting(root = document.querySelector('#app')) {
   const lastInput = profileForm.querySelector('#admin-last');
   const phoneInput = profileForm.querySelector('#admin-phone');
   const editProfileButton = root.querySelector('.edit-profile');
+  const discardProfileButton = root.querySelector('.discard-profile');
   const profileNotice = root.querySelector('[data-notice="profile"]');
   const securityNotice = root.querySelector('[data-notice="security"]');
   const avatarInput = root.querySelector('.avatar-input');
@@ -154,6 +157,12 @@ export function renderSetting(root = document.querySelector('#app')) {
   const avatarImage = root.querySelector('.avatar-image');
   const avatarSvg = root.querySelector('.avatar-svg');
   let isEditMode = false;
+  let profileSnapshot = {
+    first_name: firstName,
+    last_name: lastName,
+    phone: phone,
+    name: userName
+  };
 
   function setProfileEditable(enabled) {
     [firstInput, lastInput, phoneInput].forEach((input) => {
@@ -162,13 +171,36 @@ export function renderSetting(root = document.querySelector('#app')) {
     });
   }
 
+  function restoreProfileSnapshot(snapshot = profileSnapshot) {
+    firstInput.value = snapshot.first_name ?? '';
+    lastInput.value = snapshot.last_name ?? '';
+    phoneInput.value = snapshot.phone ?? '';
+    root.querySelector('.user-name').textContent = (snapshot.first_name || snapshot.last_name)
+      ? `${snapshot.first_name || ''} ${snapshot.last_name || ''}`.trim()
+      : snapshot.name || 'Admin User';
+  }
+
   function setEditState(enabled) {
     isEditMode = enabled;
     editProfileButton.textContent = enabled ? 'Save Profile' : 'Edit Profile';
+    discardProfileButton.hidden = !enabled;
     avatarEditButton.hidden = !enabled;
     setProfileEditable(enabled);
     if (enabled) {
+      profileSnapshot = {
+        first_name: firstInput.value || firstName,
+        last_name: lastInput.value || lastName,
+        phone: phoneInput.value || phone,
+        name: userName
+      };
       firstInput.focus();
+    } else {
+      profileSnapshot = {
+        first_name: firstName,
+        last_name: lastName,
+        phone: phone,
+        name: userName
+      };
     }
   }
 
@@ -184,10 +216,21 @@ export function renderSetting(root = document.querySelector('#app')) {
     profileView.hidden = !isProfile;
     securityView.hidden = isProfile;
     editProfileButton.hidden = !isProfile;
+    discardProfileButton.hidden = !isProfile || !isEditMode;
   }
 
   tabs.forEach((tab) => {
     tab.addEventListener('click', () => setActiveTab(tab.dataset.tab));
+  });
+
+  discardProfileButton.addEventListener('click', () => {
+    restoreProfileSnapshot(profileSnapshot);
+    setEditState(false);
+    displayNotice(profileNotice, 'Changes discarded.', 'error');
+    setTimeout(() => {
+      profileNotice.hidden = true;
+      profileNotice.textContent = '';
+    }, 1800);
   });
 
   editProfileButton.addEventListener('click', async () => {
@@ -308,4 +351,5 @@ export function renderSetting(root = document.querySelector('#app')) {
 
   setProfileEditable(false);
   setActiveTab('profile');
+  applyAdminPrivacy(root);
 }

@@ -1,6 +1,7 @@
 import { renderMapPanelShell, initLeafletMap, updateLeafletMarkers } from '../../components/mapPanel.js';
 import { ensureTenantSidebarStyles, renderTenantSidebar } from './sidebarTenant.js';
 import { getUserAvatarUrl, refreshTenantUserSession } from './setting.js';
+import { createModal, openModal } from '../../components/modal.js';
 
 const API_URL = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const apiBase = API_URL.replace(/\/api\/v1\/?$/, '');
@@ -20,6 +21,12 @@ const esc = (value = '') => {
   node.textContent = value;
   return node.innerHTML;
 };
+function tenantFullName(user = {}) {
+  const firstName = String(user.first_name ?? user.firstName ?? '').trim();
+  const lastName = String(user.last_name ?? user.lastName ?? '').trim();
+  const combined = [firstName, lastName].filter(Boolean).join(' ');
+  return combined || String(user.name ?? 'Tenant').trim() || 'Tenant';
+}
 const money = (value = 0) => `PHP ${Number(value || 0).toLocaleString('en-PH')}`;
 const glyph = { grid: '&#9638;', chat: '&#9993;', calendar: '&#9783;', gear: '&#9881;', menu: '&#9776;', search: '&#9906;', bell: '&#9679;', pin: '&#9679;', heart: '&#9825;', home: '&#8962;', walk: '&#10148;', target: '&#8857;', layers: '&#9638;', arrow: '&#8594;', chevron: '&#8964;', wifi: '&#8976;', snow: '&#10052;', kitchen: '&#9832;', laundry: '&#8635;', car: '&#9670;' };
 const icon = (name) => `<span class="icon">${glyph[name] ?? ''}</span>`;
@@ -38,6 +45,57 @@ function loadStyle() {
     aLink.href = new URL('./style/amenities.css', import.meta.url);
     aLink.dataset.tenantStyle = 'amenities';
     document.head.append(aLink);
+  }
+  // Add CSS for full-map-container modal
+  if (!document.querySelector('style[data-tenant-modal-css]')) {
+    const style = document.createElement('style');
+    style.dataset.tenantModalCss = '1';
+    style.textContent = `
+      .full-map-container {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        min-height: 0;
+      }
+      .full-map-container .leaflet-map {
+        width: 100% !important;
+        height: 500px !important;
+        min-height: 500px !important;
+        border-radius: 0.8rem;
+        border: 1px solid #dce7e2;
+        box-sizing: border-box !important;
+        display: block !important;
+      }
+      #nearby-map-status {
+        margin: 0;
+        padding: 0.5rem;
+        font-size: 0.85rem;
+        color: #6d8179;
+        text-align: center;
+      }
+      .ui-modal:has(.full-map-container) {
+        width: min(95vw, 900px);
+        max-height: 90vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .ui-modal:has(.full-map-container) .ui-modal__header {
+        flex-shrink: 0;
+      }
+      .ui-modal:has(.full-map-container) .ui-modal__body {
+        overflow: visible;
+        padding: 0.8rem;
+        max-height: calc(90vh - 110px);
+        flex: 1;
+        min-height: 500px;
+      }
+      .ui-modal:has(.full-map-container) .ui-modal__footer {
+        flex-shrink: 0;
+      }
+    `;
+    document.head.append(style);
   }
 }
 
@@ -160,6 +218,195 @@ function listingCard(item, index) {
   `;
 }
 
+function syncTenantProfileUi(root, user = {}) {
+  const nextUser = user && Object.keys(user).length ? user : JSON.parse(localStorage.getItem('dormhive.user') ?? '{}');
+  const avatarEl = root.querySelector('.profile-avatar');
+  const nameEl = root.querySelector('.profile-name');
+  if (!avatarEl || !nameEl) return;
+
+  const fullName = tenantFullName(nextUser);
+  const avatarUrl = nextUser.avatar_url ? getUserAvatarUrl(nextUser, fullName) : '';
+  avatarEl.innerHTML = avatarUrl ? `<img src="${esc(avatarUrl)}" alt="${esc(fullName)} avatar" />` : `<b>${esc((fullName || 'T').split(' ').map((part) => part[0]).join('').slice(0,2).toUpperCase() || 'T')}</b>`;
+  nameEl.textContent = fullName;
+}
+
+// Ensure Leaflet is loaded
+async function ensureLeafletLoaded() {
+  // Load Leaflet CSS if not already present
+  if (!document.querySelector('link[href*="leaflet.css"]')) {
+    const leafletCss = document.createElement('link');
+    leafletCss.rel = 'stylesheet';
+    leafletCss.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.append(leafletCss);
+  }
+  
+  // Load Leaflet JS if not already loaded
+  if (!window.L) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = (err) => reject(err);
+      document.head.append(script);
+    });
+  }
+  return Promise.resolve();
+}
+
+// Show full-screen map modal with nearby listings
+async function showNearbyListingsModal(properties = []) {
+  // Load Leaflet libraries first
+  try {
+    await ensureLeafletLoaded();
+  } catch (e) {
+    console.error('Failed to load Leaflet:', e);
+    alert('Could not load map library. Check browser console.');
+    return;
+  }
+  
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  const mapHtml = `
+    <div class="full-map-container">
+      <div id="tenant-nearby-map" class="leaflet-map"></div>
+      <p id="nearby-map-status"></p>
+    </div>
+  `;
+  const modal = createModal({ title: 'Nearby Verified Listings', content: mapHtml, closeLabel: 'Close' });
+  
+  // Store map reference for cleanup
+  let mapInstance = null;
+  
+  // Add cleanup handler
+  const cleanupMap = () => {
+    if (mapInstance) {
+      try {
+        mapInstance.remove();
+        mapInstance = null;
+        console.log('Map cleaned up');
+      } catch (e) {
+        console.log('Error cleaning up map:', e);
+      }
+    }
+    // Remove modal from DOM after closing
+    setTimeout(() => {
+      if (modal && modal.parentElement) {
+        modal.remove();
+      }
+    }, 100);
+  };
+  
+  // Listen for close event and backdrop clicks
+  modal.addEventListener('close', cleanupMap);
+  modal.addEventListener('mousedown', (e) => {
+    if (e.target === modal) {
+      setTimeout(cleanupMap, 300);
+    }
+  });
+  
+  openModal(modal);
+  
+  // Wait for modal to render and initialize map
+  setTimeout(async () => {
+    try {
+      const mapContainer = modal.querySelector('#tenant-nearby-map');
+      const statusEl = modal.querySelector('#nearby-map-status');
+      
+      if (!mapContainer) {
+        console.error('Map container not found in modal');
+        if (statusEl) statusEl.textContent = 'Map container not found';
+        return;
+      }
+      
+      if (!window.L) {
+        console.error('Leaflet library not available');
+        if (statusEl) statusEl.textContent = 'Leaflet library not loaded';
+        return;
+      }
+      
+      console.log('Initializing Leaflet map for nearby listings...');
+      if (statusEl) statusEl.textContent = 'Initializing map...';
+      
+      // Force dimensions
+      mapContainer.style.width = '100%';
+      mapContainer.style.height = '500px';
+      mapContainer.style.display = 'block';
+      
+      // Initialize map
+      mapInstance = window.L.map(mapContainer, { 
+        attributionControl: true,
+        zoomControl: true 
+      }).setView([14.5995, 120.9842], 12);
+      
+      console.log('Map created, adding tile layer...');
+      
+      // Add tile layer
+      window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(mapInstance);
+      
+      // Add markers for properties
+      let markerCount = 0;
+      if (properties && properties.length > 0) {
+        const markerCoords = [];
+        
+        properties.forEach(prop => {
+          let lat = Number(prop.latitude ?? prop.lat ?? NaN);
+          let lng = Number(prop.longitude ?? prop.lng ?? NaN);
+          
+          // If coordinates are missing, use default Manila coordinates with small offset
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+            lat = 14.5995 + (markerCount * 0.001);
+            lng = 120.9842 + (markerCount * 0.001);
+          }
+          
+          if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            markerCoords.push([lat, lng]);
+            const title = esc(prop.title || 'Property');
+            const rent = esc(`₱${Number(prop.monthly_rent ?? 0).toLocaleString()}`);
+            const location = esc([prop.barangay, prop.municipality].filter(Boolean).join(', ') || 'Manila');
+            
+            window.L.marker([lat, lng]).addTo(mapInstance)
+              .bindPopup(`<strong>${title}</strong><br>${location}<br>${rent}/mo`);
+            markerCount++;
+          }
+        });
+        
+        console.log(`Added ${markerCount} markers to map`);
+        if (statusEl) statusEl.textContent = `Map loaded with ${markerCount} nearby verified listings`;
+        
+        // Fit map to bounds if we have markers
+        if (markerCoords.length > 1) {
+          try {
+            const bounds = window.L.latLngBounds(markerCoords);
+            mapInstance.fitBounds(bounds, { padding: [50, 50] });
+          } catch (e) {
+            console.log('Error fitting bounds:', e);
+          }
+        }
+      } else {
+        if (statusEl) statusEl.textContent = 'No verified listings to display';
+      }
+      
+      // Trigger map resize to ensure it displays properly
+      setTimeout(() => {
+        if (mapInstance) {
+          mapInstance.invalidateSize();
+          console.log('Map size invalidated');
+        }
+      }, 100);
+      
+    } catch (error) {
+      console.error('Map initialization error:', error);
+      const statusEl = modal.querySelector('#nearby-map-status');
+      if (statusEl) statusEl.textContent = 'Error: ' + error.message;
+      cleanupMap();
+    }
+  }, 300);
+}
+
 export async function renderDashboardTenant(root = document.querySelector('#app')) {
   if (!root) throw new Error('Tenant dashboard requires #app.');
   cleanupDuplicateTenantSidebarStyles();
@@ -167,7 +414,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
   ensureTenantSidebarStyles();
 
   const user = await refreshTenantUserSession();
-  const displayName = user.name || 'Tenant';
+  const displayName = tenantFullName(user);
   root.innerHTML = `
     <div class="dh-app dh-dashboard">
       ${renderTenantSidebar('dashboardTenant')}
@@ -183,8 +430,8 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
             <button type="button">${icon('bell')}<i></i></button>
             <button class="message-link" type="button">${icon('chat')}</button>
             <a class="profile" href="#/tenant/setting">
-              <span class="profile-avatar">${user.avatar_url ? `<img src="${esc(getUserAvatarUrl(user))}" alt="${esc(displayName)} avatar" />` : `<b>${esc((user.name || 'T')[0].toUpperCase())}</b>`}</span>
-              <span>${esc((user.role || 'tenant').toLowerCase())}</span>
+              <span class="profile-avatar">${user.avatar_url ? `<img src="${esc(getUserAvatarUrl(user, displayName))}" alt="${esc(displayName)} avatar" />` : `<b>${esc((displayName || 'T').split(' ').map((part) => part[0]).join('').slice(0,2).toUpperCase() || 'T')}</b>`}</span>
+              <span class="profile-name">${esc(displayName)}</span>
               ${icon('chevron')}
             </a>
           </div>
@@ -254,14 +501,14 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
             <fieldset>
               <legend>Amenities</legend>
               <div class="amenities">
-                <label><input type="checkbox" name="amenity" value="wifi"> ${icon('wifi')} Wi-Fi</label>
-                <label><input type="checkbox" name="amenity" value="laundry"> ${icon('laundry')} Laundry</label>
-                <label><input type="checkbox" name="amenity" value="kitchen"> ${icon('kitchen')} Kitchen</label>
-                <label><input type="checkbox" name="amenity" value="aircon"> ${icon('snow')} Aircon</label>
+                <label><input type="checkbox" name="amenity" value="wifi"> Wi-Fi</label>
+                <label><input type="checkbox" name="amenity" value="laundry"> Laundry</label>
+                <label><input type="checkbox" name="amenity" value="kitchen"> Kitchen</label>
+                <label><input type="checkbox" name="amenity" value="aircon">  Aircon</label>
                 <label><input type="checkbox" name="amenity" value="pets_allowed"> Pets allowed</label>
                 <label><input type="checkbox" name="amenity" value="dishwasher"> Dishwasher</label>
                 <label><input type="checkbox" name="amenity" value="balcony"> Balcony</label>
-                <label><input type="checkbox" name="amenity" value="parking"> ${icon('car')} Parking</label>
+                <label><input type="checkbox" name="amenity" value="parking"> Parking</label>
                 <label><input type="checkbox" name="amenity" value="utilities_included"> Utilities included</label>
                 <label><input type="checkbox" name="amenity" value="cable_ready"> Cable ready</label>
               </div>
@@ -289,6 +536,12 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
     maxPrice.value = String(range.value || 15000);
     rangeNote.textContent = `PHP 3,000 to PHP ${Number(range.value || 15000).toLocaleString('en-PH')}+`;
   };
+
+  const handleUserRefresh = async () => {
+    const latestUser = await refreshTenantUserSession();
+    syncTenantProfileUi(root, latestUser);
+  };
+  window.addEventListener('dormhive-user-updated', handleUserRefresh);
 
   const syncMapLocation = (items = []) => {
     if (!mapFrame) return;
@@ -384,6 +637,32 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
   applyButton.addEventListener('click', renderCards);
   search.addEventListener('input', renderCards);
 
+  // Add event listener for View nearby listings button
+  const nearButton = root.querySelector('.near');
+  if (nearButton) {
+    nearButton.addEventListener('click', async () => {
+      try {
+        await showNearbyListingsModal(state.all);
+      } catch (error) {
+        console.error('Nearby listings modal error:', error);
+        alert('Could not open nearby listings map.');
+      }
+    });
+  }
+
+  // Add event listener for View nearby listings button in map panel
+  const mapPanelButton = root.querySelector('.map-panel .panel-button');
+  if (mapPanelButton) {
+    mapPanelButton.addEventListener('click', async () => {
+      try {
+        await showNearbyListingsModal(state.all);
+      } catch (error) {
+        console.error('Nearby listings modal error:', error);
+        alert('Could not open nearby listings map.');
+      }
+    });
+  }
+
   const load = async () => {
     try {
       // Only load approved properties for tenants (Featured Listings and map markers)
@@ -399,6 +678,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
     }
   };
 
+  syncTenantProfileUi(root, user);
   updateRangeNote();
   load();
 

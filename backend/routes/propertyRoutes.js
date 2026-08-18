@@ -10,6 +10,7 @@ router.get('/', optionalAuthenticate, controller.list);
 router.get('/:id', optionalAuthenticate, controller.get);
 router.post('/', authenticate, authorize('owner', 'admin'), upload.single('image'), validate(['title', 'address', 'municipality', 'roomType', 'monthlyRent', 'maxOccupants']), controller.create);
 router.patch('/:id/status', authenticate, authorize('admin'), controller.changeStatus);
-router.patch('/:id', authenticate, controller.update);
+router.put('/:id', authenticate, authorize('owner', 'admin'), upload.single('image'), controller.update);
+router.patch('/:id', authenticate, authorize('owner', 'admin'), upload.single('image'), controller.update);
 router.delete('/:id', authenticate, controller.remove);
 export default router;

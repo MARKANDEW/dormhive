@@ -54,7 +54,23 @@ export async function update(request, response, next) {
     if (request.body.status && request.user.role !== 'admin') {
       return response.status(403).json({ message: 'Only admins can change property status.' });
     }
-    response.json({ data: await properties.update(request.params.id, request.body) });
+
+    const amenitiesRaw = request.body.amenities;
+    const amenities = Array.isArray(amenitiesRaw)
+      ? JSON.stringify(amenitiesRaw)
+      : typeof amenitiesRaw === 'string' && amenitiesRaw.trim()
+        ? JSON.stringify(amenitiesRaw.split(',').map((value) => value.trim()).filter(Boolean))
+        : property.amenities;
+
+    const input = {
+      ...request.body,
+      imageUrl: request.file ? `/uploads/properties/${request.file.filename}` : request.body.imageUrl ?? null,
+      availableSlots: Number(request.body.availableSlots ?? request.body.available_slots ?? 0) || null,
+      genderPreference: request.body.genderPreference ?? request.body.gender_preference ?? null,
+      amenities
+    };
+
+    response.json({ data: await properties.update(request.params.id, input) });
   } catch (error) { next(error); }
 }
 

@@ -1,4 +1,4 @@
-import { ensureOwnerSidebarStyles, renderOwnerSidebar } from './sidebarOwner.js';
+import { ensureOwnerSidebarStyles, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const auth = () => ({ Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
@@ -69,6 +69,7 @@ export function renderAnalytics(root = document.querySelector('#app')) {
     });
 
     root.querySelector('.status').hidden = true;
+    await updateListingCountsInSidebar();
   }).catch((e) => {
     root.querySelector('.status').textContent = e.message;
   });

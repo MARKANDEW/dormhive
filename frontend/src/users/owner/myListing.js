@@ -1,4 +1,4 @@
-﻿import { ensureOwnerSidebarStyles, renderOwnerSidebar } from './sidebarOwner.js';
+﻿import { ensureOwnerSidebarStyles, renderOwnerProfileCard, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
@@ -8,6 +8,7 @@ const DEFAULT_IMAGE_PLACEHOLDER = 'data:image/svg+xml;charset=UTF-8,' + encodeUR
 const resolveImageUrl = (value = '') => {
   const url = String(value || '').trim();
   if (!url) return '';
+  if (url.startsWith('data:') || url.startsWith('blob:')) return url;
   if (/^https?:\/\//i.test(url)) return url;
   return `${apiBase}${url.startsWith('/') ? '' : '/'}${url}`;
 };
@@ -63,6 +64,8 @@ export function renderMyListing(root = document.querySelector('#app')) {
   const account = user();
   const profileName = account.name || 'Property Owner';
   const initials = profileName.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '').join('') || 'PO';
+  const avatarUrl = resolveImageUrl(account.avatar_url || '');
+  const avatarMarkup = avatarUrl ? `<img src="${escape(avatarUrl)}" alt="${escape(profileName)} avatar" />` : `<span>${escape(initials)}</span>`;
 
   root.innerHTML = `
     <div class="owner-shell">
@@ -70,22 +73,13 @@ export function renderMyListing(root = document.querySelector('#app')) {
       <div class="owner-main">
         <main class="portfolio-page">
           <header class="portfolio-topbar">
-            <div class="topbar-left">
-              <a class="brand" href="#/owner/dashboardOwner">DormHive</a>
-            </div>
+            <div class="topbar-left"></div>
             <label class="search-bar" aria-label="Search my listings, inquiries, tenants">
               <span>⌕</span>
               <input type="search" placeholder="Search my listings, inquiries, tenants..." />
             </label>
             <div class="topbar-right">
-              <button class="top-icon" aria-label="Notifications">🔔</button>
-              <div class="profile-identity">
-                <div class="avatar">${escape(initials)}</div>
-                <div>
-                  <strong>${escape(profileName)}</strong>
-                  <span>Property Owner</span>
-                </div>
-              </div>
+              ${renderOwnerProfileCard()}
             </div>
           </header>
 
@@ -295,10 +289,15 @@ export function renderMyListing(root = document.querySelector('#app')) {
   const stepBackButtons = root.querySelectorAll('.step-back');
   const MAP_ZOOM = 17;
   const MAP_DEFAULT_CENTER = { latitude: 14.5242, longitude: 121.0562 };
+  
+  // Property cache for reliable data retrieval
+  const propertyCache = new Map();
+  
   let leafletMap = null;
   let leafletMarker = null;
   let leafletLoadingPromise = null;
   let activePage = 1;
+  let workflowPropertyId = null;
   let workflowTitle = '';
   let workflowPrice = 0;
   let currentFormStep = 1;
@@ -433,7 +432,9 @@ export function renderMyListing(root = document.querySelector('#app')) {
     }
     if (step === 3) {
       const imageField = propertyForm.elements.image;
-      if (!imageField?.files?.length) {
+      const isEditing = !!propertyForm.dataset.editingPropertyId;
+      // Only require image when creating new property, not when editing
+      if (!isEditing && !imageField?.files?.length) {
         setFormMessage('Please upload a property image.');
         return false;
       }
@@ -457,6 +458,12 @@ export function renderMyListing(root = document.querySelector('#app')) {
     locationPreview.textContent = 'Detected address will appear here after selecting the location.';
     locationCoords.textContent = '';
     locationNextButton.disabled = true;
+    // Reset editing state
+    propertyForm.dataset.editingPropertyId = null;
+    const modalHeader = propertyModal.querySelector('.property-modal-header h2');
+    const submitBtn = propertyForm.querySelector('button[type="submit"]');
+    modalHeader.textContent = 'Create a listing';
+    submitBtn.textContent = 'Create Listing & Set Location';
   };
 
   const loadLeafletAssets = () => {
@@ -630,9 +637,15 @@ export function renderMyListing(root = document.querySelector('#app')) {
     event.preventDefault();
     if (!validateStep(3)) return;
     const formData = new FormData(propertyForm);
+    const editingPropertyId = propertyForm.dataset.editingPropertyId;
+    const isEditing = !!editingPropertyId;
+    
     try {
-      const response = await fetch(`${API}/properties`, {
-        method: 'POST',
+      const url = isEditing ? `${API}/properties/${editingPropertyId}` : `${API}/properties`;
+      const method = isEditing ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
         headers: authHeaders(),
         body: formData
       });
@@ -644,9 +657,12 @@ export function renderMyListing(root = document.querySelector('#app')) {
           setTimeout(() => location.assign('#/login'), 800);
           return;
         }
-        throw new Error(body.message ?? 'Unable to create property.');
+        throw new Error(body.message ?? (isEditing ? 'Unable to update property.' : 'Unable to create property.'));
       }
-      setFormMessage('Property created successfully. Listing is now pending admin approval.', 'success');
+      const successMessage = isEditing 
+        ? 'Property updated successfully. Changes are now pending admin approval.' 
+        : 'Property created successfully. Listing is now pending admin approval.';
+      setFormMessage(successMessage, 'success');
       setTimeout(() => {
         closeModal();
         load();
@@ -658,10 +674,13 @@ export function renderMyListing(root = document.querySelector('#app')) {
 
 
   const renderRows = (items = []) => {
+    propertyCache.clear();
     const rows = items.map((item) => {
       const rate = Math.min(100, Math.max(35, Math.round((Number(item.max_occupants ?? 1) / 4) * 100)));
       const occupancy = `${rate}% (${Math.min(Number(item.max_occupants ?? 1), 4)}/${Math.max(Number(item.max_occupants ?? 1), 4)})`;
       const image = normalizePropertyImage(item);
+      // Store property in cache for reliable retrieval
+      propertyCache.set(String(item.id), item);
       return `
         <tr>
           <td>${image ? `<img class="property-thumb" src="${escape(image)}" alt="${escape(item.title || 'Property photo')}" />` : '<div class="thumb-placeholder"></div>'}</td>
@@ -680,15 +699,153 @@ export function renderMyListing(root = document.querySelector('#app')) {
           </td>
           <td>0 inquiries</td>
           <td>
-            <a href="#/owner/inquiries" class="manage-link">Manage</a>
-            <button class="action-chip">Edit</button>
-            <button class="action-chip">View</button>
+            <a href="#/owner/inquiries?propertyId=${escape(String(item.id ?? ''))}" class="manage-link" data-property-id="${escape(String(item.id ?? ''))}">Manage</a>
+            <button type="button" class="action-chip edit-property" data-property-id="${escape(String(item.id ?? ''))}">Edit</button>
+            <button type="button" class="action-chip view-property" data-property-id="${escape(String(item.id ?? ''))}">View</button>
           </td>
         </tr>`;
     });
     portfolioBody.innerHTML = rows.join('') || '<tr><td colspan="7" class="empty-row">No listings yet for this account.</td></tr>';
     portfolioBody.querySelectorAll('.progress-track span').forEach((bar) => {
       bar.style.setProperty('--rate', `${bar.dataset.rate}%`);
+    });
+  };
+
+  // Event delegation for Edit and View buttons
+  portfolioBody.addEventListener('click', (event) => {
+    const editBtn = event.target.closest('.edit-property');
+    const viewBtn = event.target.closest('.view-property');
+    
+    if (editBtn) {
+      event.preventDefault();
+      try {
+        const propertyId = String(editBtn.dataset.propertyId);
+        const propertyData = propertyCache.get(propertyId);
+        if (!propertyData) {
+          console.error('Property not found in cache:', propertyId);
+          setFormMessage('Unable to find property data. Please try again.');
+          return;
+        }
+        loadPropertyForEdit(propertyData);
+      } catch (error) {
+        console.error('Error loading property for edit:', error);
+        setFormMessage('Unable to load property for editing.');
+      }
+    }
+    
+    if (viewBtn) {
+      event.preventDefault();
+      try {
+        const propertyId = String(viewBtn.dataset.propertyId);
+        const propertyData = propertyCache.get(propertyId);
+        if (!propertyData) {
+          console.error('Property not found in cache:', propertyId);
+          setFormMessage('Unable to find property data. Please try again.');
+          return;
+        }
+        showPropertyDetails(propertyData);
+      } catch (error) {
+        console.error('Error loading property details:', error);
+        setFormMessage('Unable to load property details.');
+      }
+    }
+  });
+
+  const loadPropertyForEdit = (propertyData) => {
+    // Populate the form with existing property data
+    const form = propertyForm;
+    form.elements.title.value = propertyData.title || '';
+    form.elements.roomType.value = propertyData.room_type || '';
+    form.elements.monthlyRent.value = propertyData.monthly_rent || '';
+    form.elements.maxOccupants.value = propertyData.max_occupants || '';
+    form.elements.availableSlots.value = propertyData.available_slots || '';
+    form.elements.genderPreference.value = propertyData.gender_preference || '';
+    form.elements.address.value = propertyData.address || '';
+    form.elements.municipality.value = propertyData.municipality || '';
+    form.elements.barangay.value = propertyData.barangay || '';
+    form.elements.latitude.value = propertyData.latitude || '';
+    form.elements.longitude.value = propertyData.longitude || '';
+    form.elements.description.value = propertyData.description || '';
+    
+    // Set amenities
+    const amenitiesCheckboxes = form.querySelectorAll('input[name="amenities"]');
+    const propertyAmenities = normalizeAmenities(propertyData);
+    amenitiesCheckboxes.forEach((checkbox) => {
+      checkbox.checked = propertyAmenities.includes(checkbox.value.toLowerCase());
+    });
+    
+    // Update modal title and button text for edit mode
+    const modalHeader = propertyModal.querySelector('.property-modal-header h2');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    modalHeader.textContent = 'Edit Property Listing';
+    submitBtn.textContent = 'Update Listing';
+    form.dataset.editingPropertyId = propertyData.id;
+    
+    // Show modal and start from step 1
+    propertyModal.hidden = false;
+    showFormStep(1);
+  };
+
+  const showPropertyDetails = (propertyData) => {
+    const detailsModal = document.createElement('div');
+    detailsModal.className = 'property-details-modal';
+    detailsModal.innerHTML = `
+      <div class="property-details-card">
+        <div class="property-details-header">
+          <h2>${escape(propertyData.title || 'Property Details')}</h2>
+          <button type="button" class="modal-close">×</button>
+        </div>
+        <div class="property-details-content">
+          <div class="details-section">
+            <label>Address</label>
+            <p>${escape([propertyData.address, propertyData.barangay, propertyData.municipality].filter(Boolean).join(', ') || 'No address')}</p>
+          </div>
+          <div class="details-section">
+            <label>Property Type</label>
+            <p>${escape(String(propertyData.room_type || 'N/A').replaceAll('_', ' '))}</p>
+          </div>
+          <div class="details-section">
+            <label>Monthly Rent</label>
+            <p>₱${Number(propertyData.monthly_rent ?? 0).toLocaleString()}</p>
+          </div>
+          <div class="details-section">
+            <label>Max Occupants</label>
+            <p>${propertyData.max_occupants || 'N/A'}</p>
+          </div>
+          <div class="details-section">
+            <label>Available Slots</label>
+            <p>${propertyData.available_slots || 'N/A'}</p>
+          </div>
+          <div class="details-section">
+            <label>Gender Preference</label>
+            <p>${escape(String(propertyData.gender_preference || 'Any').replaceAll('_', ' '))}</p>
+          </div>
+          <div class="details-section">
+            <label>Amenities</label>
+            <div class="amenities-list">
+              ${renderAmenitiesChips(propertyData) || '<span>None</span>'}
+            </div>
+          </div>
+          <div class="details-section">
+            <label>Description</label>
+            <p>${escape(propertyData.description || 'No description provided')}</p>
+          </div>
+        </div>
+        <div class="property-details-actions">
+          <button type="button" class="btn-secondary close-details">Close</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.append(detailsModal);
+    
+    // Handle close button
+    detailsModal.querySelector('.modal-close').addEventListener('click', () => detailsModal.remove());
+    detailsModal.querySelector('.close-details').addEventListener('click', () => detailsModal.remove());
+    
+    // Close on backdrop click
+    detailsModal.addEventListener('click', (event) => {
+      if (event.target === detailsModal) detailsModal.remove();
     });
   };
 
@@ -707,6 +864,7 @@ export function renderMyListing(root = document.querySelector('#app')) {
       }
       const items = (body.data ?? []).filter((item) => Number(item.owner_id) === Number(account.id));
       renderRows(items);
+      await updateListingCountsInSidebar();
     } catch (error) {
       portfolioBody.innerHTML = `<tr><td colspan="7" class="empty-row">${escape(error.message)}</td></tr>`;
     }

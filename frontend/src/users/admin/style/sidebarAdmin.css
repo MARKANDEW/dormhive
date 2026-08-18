@@ -72,6 +72,23 @@
   background: rgba(255,255,255,0.28);
 }
 
+.admin-shell > .admin-nav .privacy-toggle {
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 0.8rem;
+  padding: 0.8rem 0.9rem;
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.admin-shell > .admin-nav .privacy-toggle.active {
+  background: #d8b457;
+  color: #1a1a1a;
+  border-color: transparent;
+}
+
 .admin-shell > .admin-nav .logout {
   margin-top: auto;
   border: 0;
@@ -81,6 +98,26 @@
   color: #fff;
   cursor: pointer;
   font: inherit;
+}
+
+.privacy-reveal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  margin-left: 0.35rem;
+  border: 1px solid rgba(120, 92, 28, 0.2);
+  border-radius: 999px;
+  background: #f8f0dc;
+  color: #5d4312;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.privacy-reveal svg {
+  width: 0.8rem;
+  height: 0.8rem;
 }
 
 .admin-shell > .admin-main {

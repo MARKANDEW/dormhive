@@ -8,6 +8,7 @@ const router = Router();
 router.use(authenticate);
 router.get('/', controller.list);
 router.get('/:id', controller.get);
+router.get('/:id/ticket', controller.ticket);
 router.post('/', authorize('tenant'), validate(['propertyId', 'moveInDate', 'occupants']), controller.create);
 router.patch('/:id/status', validate(['status']), controller.updateStatus);
 export default router;

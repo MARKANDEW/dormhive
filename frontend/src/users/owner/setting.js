@@ -1,13 +1,24 @@
-import { ensureOwnerSidebarStyles, renderOwnerSidebar } from './sidebarOwner.js';
+import { ensureOwnerSidebarStyles, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
+const API_BASE = API.replace(/\/api\/v1\/?$/, '');
 const getUser = () => JSON.parse(localStorage.getItem('dormhive.user') ?? '{}');
 const saveUser = (nextUser = {}) => {
   const currentUser = getUser();
   const mergedUser = { ...currentUser, ...nextUser };
+  if (nextUser.avatar_url !== undefined) mergedUser.avatar_url = nextUser.avatar_url;
   localStorage.setItem('dormhive.user', JSON.stringify(mergedUser));
   return mergedUser;
 };
+
+function resolveImageUrl(value = '') {
+  const url = String(value || '').trim();
+  if (!url) return '';
+  if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+  if (/^https?:\/\//i.test(url)) return url;
+  const normalized = url.replace(/^\.\//, '').replace(/^\/+/, '');
+  return `${API_BASE}/${normalized}`;
+}
 
 function css() {
   if (!document.querySelector('[data-owner-style="setting"]')) {
@@ -34,11 +45,11 @@ function buildAvatarSvg() {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
-export function renderSetting(root = document.querySelector('#app')) {
+export async function renderSetting(root = document.querySelector('#app')) {
   if (!root) throw new Error('Owner settings page requires #app.');
   css();
   ensureOwnerSidebarStyles();
-  const user = getUser();
+  let user = getUser();
   const displayName = (user.first_name || user.last_name) ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : user.name || 'Alexander J. Reyes';
   const displayEmail = user.email || 'mr.reyes@dormhive.com';
 
@@ -64,7 +75,10 @@ export function renderSetting(root = document.querySelector('#app')) {
                   <button type="button" class="avatar-edit" aria-label="Edit profile photo">✎</button>
                 </div>
                 <div class="user-name">${displayName}</div>
-                <button type="button" class="edit-profile">Edit Profile</button>
+                <div class="profile-actions">
+                  <button type="button" class="discard-profile" hidden>Discard</button>
+                  <button type="button" class="edit-profile">Edit Profile</button>
+                </div>
               </div>
             </aside>
 
@@ -123,9 +137,20 @@ export function renderSetting(root = document.querySelector('#app')) {
   const securityView = root.querySelector('.security-view');
   const tabs = root.querySelectorAll('.tab');
   const editProfileButton = root.querySelector('.edit-profile');
+  const discardProfileButton = root.querySelector('.discard-profile');
   const avatarEditButton = root.querySelector('.avatar-edit');
+  const avatarImage = root.querySelector('.avatar-wrap img');
   let avatarInput = root.querySelector('input[type="file"]');
   const notice = root.querySelector('.notice');
+  let isEditMode = false;
+  let pendingAvatarFile = null;
+  let profileSnapshot = {
+    first_name: user.first_name ?? '',
+    last_name: user.last_name ?? '',
+    phone: user.phone ?? '',
+    avatar_url: user.avatar_url ?? '',
+    name: user.name ?? ''
+  };
   
   if (!avatarInput) {
     avatarInput = document.createElement('input');
@@ -148,14 +173,59 @@ export function renderSetting(root = document.querySelector('#app')) {
     element.className = `notice ${state}`;
   }
 
+  function syncAvatarDisplay(avatarValue = user.avatar_url || '') {
+    const nextValue = String(avatarValue || '').trim();
+    const src = nextValue
+      ? (nextValue.startsWith('blob:') || nextValue.startsWith('data:') || /^https?:\/\//i.test(nextValue)
+        ? nextValue
+        : resolveImageUrl(nextValue))
+      : buildAvatarSvg();
+    avatarImage.src = src;
+    avatarImage.alt = `Portrait of ${displayName}`;
+  }
+
+  function restoreProfileSnapshot(snapshot = profileSnapshot) {
+    profileForm.querySelector('#owner-profile-first').value = snapshot.first_name ?? '';
+    profileForm.querySelector('#owner-profile-last').value = snapshot.last_name ?? '';
+    profileForm.querySelector('#owner-profile-phone').value = snapshot.phone ?? '';
+    document.querySelector('.user-name').textContent = (snapshot.first_name || snapshot.last_name)
+      ? `${snapshot.first_name || ''} ${snapshot.last_name || ''}`.trim()
+      : snapshot.name || 'Alexander J. Reyes';
+    syncAvatarDisplay(snapshot.avatar_url || user.avatar_url || '');
+    pendingAvatarFile = null;
+    if (avatarInput) avatarInput.value = '';
+  }
+
   function setEditState(enabled) {
+    isEditMode = enabled;
     const inputs = profileForm.querySelectorAll('input');
     inputs.forEach((el) => {
       if (el.id !== 'owner-profile-email') el.readOnly = !enabled;
     });
     editProfileButton.textContent = enabled ? 'Save Profile' : 'Edit Profile';
+    discardProfileButton.hidden = !enabled;
     avatarEditButton.hidden = !enabled;
+    if (enabled) {
+      profileSnapshot = {
+        first_name: profileForm.querySelector('#owner-profile-first').value || user.first_name || '',
+        last_name: profileForm.querySelector('#owner-profile-last').value || user.last_name || '',
+        phone: profileForm.querySelector('#owner-profile-phone').value || user.phone || '',
+        avatar_url: user.avatar_url ?? '',
+        name: user.name || ''
+      };
+      profileForm.querySelector('#owner-profile-first').focus();
+    } else {
+      profileSnapshot = {
+        first_name: user.first_name ?? '',
+        last_name: user.last_name ?? '',
+        phone: user.phone ?? '',
+        avatar_url: user.avatar_url ?? '',
+        name: user.name ?? ''
+      };
+    }
   }
+
+  avatarEditButton.hidden = true;
 
   function setActiveTab(tabName) {
     const isProfile = tabName === 'profile';
@@ -163,6 +233,7 @@ export function renderSetting(root = document.querySelector('#app')) {
     profileView.hidden = !isProfile;
     securityView.hidden = isProfile;
     editProfileButton.hidden = !isProfile;
+    discardProfileButton.hidden = !isProfile || !isEditMode;
     notice.hidden = true;
   }
 
@@ -170,33 +241,86 @@ export function renderSetting(root = document.querySelector('#app')) {
     tab.addEventListener('click', () => setActiveTab(tab.dataset.tab));
   });
 
-  editProfileButton.addEventListener('click', () => {
-    const isCurrentlyReadOnly = profileForm.querySelector('#owner-profile-first').readOnly;
-    setEditState(isCurrentlyReadOnly);
+  discardProfileButton.addEventListener('click', () => {
+    restoreProfileSnapshot(profileSnapshot);
+    setEditState(false);
+    displayNotice(notice, 'Changes discarded.', 'error');
+    setTimeout(() => {
+      notice.hidden = true;
+      notice.textContent = '';
+    }, 1800);
+  });
+
+  editProfileButton.addEventListener('click', async () => {
+    if (!isEditMode) {
+      setEditState(true);
+      return;
+    }
+
+    const payload = {
+      first_name: profileForm.querySelector('#owner-profile-first').value.trim(),
+      last_name: profileForm.querySelector('#owner-profile-last').value.trim(),
+      phone: profileForm.querySelector('#owner-profile-phone').value.trim(),
+      name: [profileForm.querySelector('#owner-profile-first').value.trim(), profileForm.querySelector('#owner-profile-last').value.trim()].filter(Boolean).join(' ')
+    };
+
+    if (!payload.first_name || !payload.last_name) {
+      displayNotice(notice, 'First name and last name are required.', 'error');
+      return;
+    }
+
+    if (payload.phone && !/^\+?[0-9\s().-]{7,20}$/.test(payload.phone.trim())) {
+      displayNotice(notice, 'Please provide a valid phone number.', 'error');
+      return;
+    }
+
+    try {
+      let currentAvatarUrl = user.avatar_url ?? '';
+
+      if (pendingAvatarFile) {
+        const formData = new FormData();
+        formData.append('avatar', pendingAvatarFile);
+        const avatarRes = await fetch(`${API}/users/${user.id}/avatar`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
+          body: formData
+        });
+        const avatarData = await avatarRes.json().catch(() => ({}));
+        if (!avatarRes.ok) throw new Error(avatarData.message || 'Upload failed');
+
+        currentAvatarUrl = avatarData.data?.avatar_url || avatarData.avatar_url || currentAvatarUrl;
+        user = saveUser({ ...user, ...avatarData.data, avatar_url: currentAvatarUrl });
+        syncAvatarDisplay(currentAvatarUrl);
+        pendingAvatarFile = null;
+        if (avatarInput) avatarInput.value = '';
+      }
+
+      const res = await fetch(`${API}/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
+        body: JSON.stringify({ ...payload, avatar_url: currentAvatarUrl })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Profile update failed');
+
+      user = saveUser({ ...user, ...data.data, ...payload, avatar_url: currentAvatarUrl || data.data?.avatar_url || user.avatar_url || '' });
+      displayNotice(notice, 'Profile saved.', 'success');
+      setEditState(false);
+      document.querySelector('.user-name').textContent = payload.name || 'Alexander J. Reyes';
+      syncAvatarDisplay(user.avatar_url || currentAvatarUrl || '');
+    } catch (err) {
+      displayNotice(notice, err.message || 'Failed to update profile.', 'error');
+    }
   });
 
   avatarEditButton.addEventListener('click', () => avatarInput.click());
 
-  avatarInput.addEventListener('change', async (e) => {
+  avatarInput.addEventListener('change', (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const formData = new FormData();
-    formData.append('avatar', file);
-    try {
-      const res = await fetch(`${API}/users/${user.id}/avatar`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
-        body: formData
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Upload failed');
-      user = saveUser(data.data);
-      location.reload();
-    } catch (err) {
-      notice.textContent = err.message || 'Failed to upload avatar.';
-      notice.className = 'notice error';
-      notice.hidden = false;
-    }
+    pendingAvatarFile = file;
+    const previewUrl = URL.createObjectURL(file);
+    syncAvatarDisplay(previewUrl);
   });
 
   securityForm.addEventListener('submit', async (e) => {
@@ -242,11 +366,11 @@ export function renderSetting(root = document.querySelector('#app')) {
       const res = await fetch(`${API}/users/${user.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
-        body: JSON.stringify({ first_name: first, last_name: last, name: [first, last].filter(Boolean).join(' '), phone })
+        body: JSON.stringify({ first_name: first, last_name: last, name: [first, last].filter(Boolean).join(' '), phone, avatar_url: user.avatar_url || '' })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Profile update failed');
-      user = saveUser(data.data);
+      user = saveUser({ ...user, ...data.data, avatar_url: user.avatar_url || data.data?.avatar_url || '' });
       displayNotice(notice, 'Profile updated successfully.', 'success');
       setEditState(false);
     } catch (err) {
@@ -254,22 +378,8 @@ export function renderSetting(root = document.querySelector('#app')) {
     }
   });
 
-  function displayNotice(element, text, state = 'error') {
-    if (!element) return;
-    element.hidden = false;
-    element.textContent = text;
-    element.className = `notice ${state}`;
-  }
-
-  if (!avatarInput) {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.hidden = true;
-    input.className = 'avatar-input';
-    root.querySelector('.avatar-wrap').appendChild(input);
-    avatarInput = input;
-  }
+  syncAvatarDisplay(user.avatar_url || '');
+  await updateListingCountsInSidebar();
 }
 
 

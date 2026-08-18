@@ -77,6 +77,7 @@ const saveUser = (nextUser = {}) => {
   const mergedUser = { ...currentUser, ...nextUser };
   if (nextUser.avatar_url !== undefined) mergedUser.avatar_url = nextUser.avatar_url;
   localStorage.setItem('dormhive.user', JSON.stringify(mergedUser));
+  window.dispatchEvent(new CustomEvent('dormhive-user-updated', { detail: mergedUser }));
   return mergedUser;
 };
 
@@ -90,6 +91,7 @@ async function refreshTenantUserFromServer(userId) {
     if (!response.ok || !body?.data) return getUser();
     const latestUser = { ...getUser(), ...body.data };
     localStorage.setItem('dormhive.user', JSON.stringify(latestUser));
+    window.dispatchEvent(new CustomEvent('dormhive-user-updated', { detail: latestUser }));
     return latestUser;
   } catch {
     return getUser();
@@ -164,7 +166,10 @@ export async function renderSetting(root = document.querySelector('#app')) {
                   <input class="avatar-input" type="file" accept="image/*" hidden>
                 </div>
                 <div class="user-name">${displayName}</div>
-                <button type="button" class="edit-profile">Edit Profile</button>
+                <div class="profile-actions">
+                  <button type="button" class="discard-profile" hidden>Discard</button>
+                  <button type="button" class="edit-profile">Edit Profile</button>
+                </div>
               </div>
             </aside>
 
@@ -232,6 +237,7 @@ export async function renderSetting(root = document.querySelector('#app')) {
   const lastInput = profileForm.querySelector('#tenant-profile-last');
   const phoneInput = profileForm.querySelector('#tenant-profile-phone');
   const editProfileButton = root.querySelector('.edit-profile');
+  const discardProfileButton = root.querySelector('.discard-profile');
   const profileNotice = root.querySelector('[data-notice="profile"]');
   const securityNotice = root.querySelector('[data-notice="security"]');
   const avatarInput = root.querySelector('.avatar-input');
@@ -241,6 +247,13 @@ export async function renderSetting(root = document.querySelector('#app')) {
   const profileCaption = root.querySelector('.user-name');
   let isEditMode = false;
   let pendingAvatarFile = null;
+  let profileSnapshot = {
+    first_name: user.first_name ?? '',
+    last_name: user.last_name ?? '',
+    phone: user.phone ?? '',
+    avatar_url: user.avatar_url ?? '',
+    name: user.name ?? ''
+  };
 
   function syncAvatarDisplay(avatarValue = user.avatar_url || '') {
     const nextValue = String(avatarValue || '').trim();
@@ -264,13 +277,41 @@ export async function renderSetting(root = document.querySelector('#app')) {
     });
   }
 
+  function restoreProfileSnapshot(snapshot = profileSnapshot) {
+    firstInput.value = snapshot.first_name ?? '';
+    lastInput.value = snapshot.last_name ?? '';
+    phoneInput.value = snapshot.phone ?? '';
+    profileCaption.textContent = (snapshot.first_name || snapshot.last_name)
+      ? `${snapshot.first_name || ''} ${snapshot.last_name || ''}`.trim()
+      : snapshot.name || 'Tenant User';
+    syncAvatarDisplay(snapshot.avatar_url || '');
+    pendingAvatarFile = null;
+    avatarInput.value = '';
+  }
+
   function setEditState(enabled) {
     isEditMode = enabled;
     editProfileButton.textContent = enabled ? 'Save Profile' : 'Edit Profile';
+    discardProfileButton.hidden = !enabled;
     avatarEditButton.hidden = !enabled;
     setProfileEditable(enabled);
     if (enabled) {
+      profileSnapshot = {
+        first_name: firstInput.value || user.first_name || '',
+        last_name: lastInput.value || user.last_name || '',
+        phone: phoneInput.value || user.phone || '',
+        avatar_url: user.avatar_url || '',
+        name: user.name || ''
+      };
       firstInput.focus();
+    } else {
+      profileSnapshot = {
+        first_name: user.first_name ?? '',
+        last_name: user.last_name ?? '',
+        phone: user.phone ?? '',
+        avatar_url: user.avatar_url ?? '',
+        name: user.name ?? ''
+      };
     }
   }
 
@@ -286,10 +327,21 @@ export async function renderSetting(root = document.querySelector('#app')) {
     profileView.hidden = !isProfile;
     securityView.hidden = isProfile;
     editProfileButton.hidden = !isProfile;
+    discardProfileButton.hidden = !isProfile || !isEditMode;
   }
 
   tabs.forEach((tab) => {
     tab.addEventListener('click', () => setActiveTab(tab.dataset.tab));
+  });
+
+  discardProfileButton.addEventListener('click', () => {
+    restoreProfileSnapshot(profileSnapshot);
+    setEditState(false);
+    displayNotice(profileNotice, 'Changes discarded.', 'error');
+    setTimeout(() => {
+      profileNotice.hidden = true;
+      profileNotice.textContent = '';
+    }, 1800);
   });
 
   editProfileButton.addEventListener('click', async () => {
@@ -361,6 +413,13 @@ export async function renderSetting(root = document.querySelector('#app')) {
       user = refreshedUser;
       syncAvatarDisplay(refreshedUser.avatar_url || currentAvatarUrl || '');
       displayNotice(profileNotice, 'Profile saved.', 'success');
+      profileSnapshot = {
+        first_name: refreshedUser.first_name ?? '',
+        last_name: refreshedUser.last_name ?? '',
+        phone: refreshedUser.phone ?? '',
+        avatar_url: refreshedUser.avatar_url ?? '',
+        name: refreshedUser.name ?? ''
+      };
       setEditState(false);
       profileCaption.textContent = payload.name || 'Tenant User';
     } catch (error) {

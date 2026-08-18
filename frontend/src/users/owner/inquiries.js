@@ -1,4 +1,4 @@
-import { ensureOwnerSidebarStyles, renderOwnerSidebar } from './sidebarOwner.js';
+import { ensureOwnerSidebarStyles, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const auth = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
@@ -83,36 +83,54 @@ export function renderInquiries(root = document.querySelector('#app')) {
                   </table>
                 </div>
                 <div class="pagination">
-                  <button type="button">‹</button>
-                  <button type="button" class="active">1</button>
-                  <button type="button">›</button>
+                  <button type="button" data-page="prev" aria-label="Previous page">‹</button>
+                  <button type="button" data-page="1" class="active">1</button>
+                  <button type="button" data-page="2">2</button>
+                  <button type="button" data-page="3">3</button>
+                  <button type="button" data-page="next" aria-label="Next page">›</button>
                 </div>
               </section>
 
               <aside class="detail-shell">
-                <div class="detail-actions">
-                  <button type="button" class="reply-action">View / Reply</button>
-                  <button type="button" class="secondary-action">Schedule Viewing</button>
-                  <button type="button" class="danger-action">Archive</button>
-                </div>
-
-                <div class="message-thread">
-                  <div class="thread-header">
-                    <div>
-                      <h2 id="thread-title">Select an inquiry</h2>
-                      <p id="thread-property">Property details will appear here.</p>
-                    </div>
-                  </div>
-                  <div id="thread-messages" class="thread-messages"></div>
-                  <form id="reply-form" class="reply-form">
-                    <input id="reply-input" type="text" placeholder="Reply" autocomplete="off" />
-                    <button type="submit" aria-label="Send reply">➤</button>
-                  </form>
+                <div id="tenant-detail-panel" class="tenant-detail-panel">
+                  <div class="detail-placeholder">Select a tenant row to view inquiry details.</div>
                 </div>
               </aside>
             </div>
           </section>
         </main>
+      </div>
+    </div>
+    
+    <div id="schedule-modal" class="schedule-modal" hidden>
+      <div class="schedule-modal-overlay"></div>
+      <div class="schedule-modal-content">
+        <div class="schedule-modal-header">
+          <h2>Schedule a Viewing</h2>
+          <button type="button" class="close-button" aria-label="Close">✕</button>
+        </div>
+        <div class="schedule-modal-body">
+          <div class="detail-row">
+            <label>Tenant</label>
+            <p id="schedule-tenant-name">—</p>
+          </div>
+          <div class="detail-row">
+            <label>Property</label>
+            <p id="schedule-property-name">—</p>
+          </div>
+          <div class="detail-row">
+            <label for="schedule-date">Date</label>
+            <input type="date" id="schedule-date" />
+          </div>
+          <div class="detail-row">
+            <label for="schedule-time">Time</label>
+            <input type="time" id="schedule-time" />
+          </div>
+        </div>
+        <div class="schedule-modal-footer">
+          <button type="button" class="secondary-btn cancel-btn">Cancel</button>
+          <button type="button" class="primary-btn save-btn">Schedule Viewing</button>
+        </div>
       </div>
     </div>`;
 
@@ -123,17 +141,42 @@ export function renderInquiries(root = document.querySelector('#app')) {
     selected: null,
     search: '',
     statusFilter: 'all',
-    propertyFilter: 'all'
+    propertyFilter: 'all',
+    page: 1,
+    pageSize: 8
   };
 
   const tbody = root.querySelector('#inquiries-rows');
   const searchInput = root.querySelector('#inquiry-search');
   const propertyFilter = root.querySelector('#property-filter');
-  const threadTitle = root.querySelector('#thread-title');
-  const threadProperty = root.querySelector('#thread-property');
-  const threadMessages = root.querySelector('#thread-messages');
-  const replyForm = root.querySelector('#reply-form');
-  const replyInput = root.querySelector('#reply-input');
+  const detailPanel = root.querySelector('#tenant-detail-panel');
+  const paginationButtons = root.querySelectorAll('.pagination button[data-page]');
+
+  const scheduleModal = root.querySelector('#schedule-modal');
+  const scheduleCloseBtn = scheduleModal.querySelector('.close-button');
+  const scheduleCancelBtn = scheduleModal.querySelector('.cancel-btn');
+  const scheduleSaveBtn = scheduleModal.querySelector('.save-btn');
+  const scheduleTenantName = scheduleModal.querySelector('#schedule-tenant-name');
+  const schedulePropertyName = scheduleModal.querySelector('#schedule-property-name');
+  const scheduleDate = scheduleModal.querySelector('#schedule-date');
+  const scheduleTime = scheduleModal.querySelector('#schedule-time');
+  
+  let schedulingBooking = null;
+
+  const getCurrentUser = () => { try { return JSON.parse(localStorage.getItem('dormhive.user') ?? '{}'); } catch { return {}; } };
+
+  const getVisibleBookings = () => {
+    const query = state.search.trim().toLowerCase();
+    return state.bookings.filter((booking) => {
+      const matchesSearch = !query || `${booking.tenant_name ?? ''} ${booking.property_title ?? ''} ${booking.message ?? ''}`.toLowerCase().includes(query);
+      const matchesStatus = state.statusFilter === 'all'
+        || (state.statusFilter === 'new' && String(booking.status ?? '').toLowerCase() === 'pending')
+        || (state.statusFilter === 'pending' && String(booking.status ?? '').toLowerCase() === 'pending')
+        || (state.statusFilter === 'replied' && String(booking.status ?? '').toLowerCase() === 'approved');
+      const matchesProperty = state.propertyFilter === 'all' || String(booking.property_id) === String(state.propertyFilter);
+      return matchesSearch && matchesStatus && matchesProperty;
+    });
+  };
 
   const renderPropertyOptions = () => {
     const options = ['<option value="all">All Properties</option>'];
@@ -141,23 +184,91 @@ export function renderInquiries(root = document.querySelector('#app')) {
       options.push(`<option value="${property.id}">${esc(property.title || 'Untitled property')}</option>`);
     }
     propertyFilter.innerHTML = options.join('');
+    propertyFilter.value = state.propertyFilter;
+  };
+
+  const renderPagination = (visible = getVisibleBookings()) => {
+    const totalPages = Math.max(1, Math.ceil(visible.length / state.pageSize));
+    if (state.page > totalPages) state.page = totalPages;
+
+    const pageNumbers = [1, 2, 3].map((n) => (n <= totalPages ? n : null)).filter((n) => n !== null);
+    paginationButtons.forEach((button) => {
+      const pageValue = button.dataset.page;
+      if (pageValue === 'prev') button.disabled = state.page <= 1;
+      else if (pageValue === 'next') button.disabled = state.page >= totalPages;
+      else {
+        const pageNumber = Number(pageValue);
+        button.hidden = !pageNumbers.includes(pageNumber);
+        button.textContent = String(pageNumber);
+        button.classList.toggle('active', state.page === pageNumber);
+      }
+    });
+  };
+
+  const renderDetailPanel = () => {
+    if (!detailPanel) return;
+    if (!state.selected) {
+      detailPanel.innerHTML = '<div class="detail-placeholder">Select a tenant row to view inquiry details.</div>';
+      return;
+    }
+
+    const booking = state.selected;
+    const latestMessage = booking.message || 'No additional message yet.';
+    const info = statusInfo(booking.status);
+
+    detailPanel.innerHTML = `
+      <div class="detail-header">
+        <div>
+          <p class="detail-kicker">Inquiry Details</p>
+          <h3>${esc(booking.tenant_name || 'Unknown tenant')}</h3>
+        </div>
+        <span class="badge ${info.className}">${esc(info.label)}</span>
+      </div>
+
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span class="detail-label">Tenant</span>
+          <strong>${esc(booking.tenant_name || 'Unknown tenant')}</strong>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Property</span>
+          <strong>${esc(booking.property_title || 'Unknown property')}</strong>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Move-in Date</span>
+          <strong>${esc(formatDate(booking.move_in_date || booking.created_at))}</strong>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Inquiry Date</span>
+          <strong>${esc(formatDate(booking.created_at))}</strong>
+        </div>
+      </div>
+
+      <div class="detail-actions">
+        <button type="button" class="primary-btn schedule-panel-action">Schedule Viewing</button>
+        <button type="button" class="accept-action">Accept Tenant</button>
+        <button type="button" class="danger-btn archive-panel-action">Archive</button>
+      </div>
+    `;
+
+    const schedulePanelAction = detailPanel.querySelector('.schedule-panel-action');
+    const acceptPanelAction = detailPanel.querySelector('.accept-action');
+    const archivePanelAction = detailPanel.querySelector('.archive-panel-action');
+
+    schedulePanelAction?.addEventListener('click', () => openScheduleModal(booking));
+    acceptPanelAction?.addEventListener('click', () => acceptTenant());
+    archivePanelAction?.addEventListener('click', () => archiveBooking(booking));
   };
 
   const renderRows = () => {
-    const query = state.search.trim().toLowerCase();
+    const visible = getVisibleBookings();
+    const totalPages = Math.max(1, Math.ceil(visible.length / state.pageSize));
+    if (state.page > totalPages) state.page = totalPages;
 
-    const visible = state.bookings.filter((booking) => {
-      const info = statusInfo(booking.status);
-      const matchesSearch = !query || `${booking.tenant_name ?? ''} ${booking.property_title ?? ''} ${booking.message ?? ''}`.toLowerCase().includes(query);
-      const matchesStatus = state.statusFilter === 'all'
-        || (state.statusFilter === 'new' && info.label === 'New Inquiry')
-        || (state.statusFilter === 'pending' && booking.status === 'pending')
-        || (state.statusFilter === 'replied' && booking.status === 'approved');
-      const matchesProperty = state.propertyFilter === 'all' || String(booking.property_id) === state.propertyFilter;
-      return matchesSearch && matchesStatus && matchesProperty;
-    });
+    const offset = (state.page - 1) * state.pageSize;
+    const pageItems = visible.slice(offset, offset + state.pageSize);
 
-    tbody.innerHTML = visible.map((booking) => {
+    tbody.innerHTML = pageItems.map((booking) => {
       const info = statusInfo(booking.status);
       const selectedClass = state.selected?.id === booking.id ? 'selected' : '';
       return `
@@ -168,11 +279,14 @@ export function renderInquiries(root = document.querySelector('#app')) {
           <td><span class="badge ${info.className}">${esc(info.label)}</span></td>
           <td>${esc(booking.message || 'No message provided.')}</td>
           <td>
-            <button type="button" class="table-action" data-booking-id="${booking.id}">Reply</button>
+            <div class="actions-group">
+              <button type="button" class="table-action reply-action" data-booking-id="${booking.id}" data-action="reply" title="Reply">Reply</button>
+            </div>
           </td>
-        </tr>
-      `;
+        </tr>`;
     }).join('') || '<tr><td colspan="6" class="empty-row">No inquiries found.</td></tr>';
+
+    renderPagination(visible);
 
     tbody.querySelectorAll('tr[data-booking-id]').forEach((row) => {
       row.addEventListener('click', (event) => {
@@ -183,76 +297,147 @@ export function renderInquiries(root = document.querySelector('#app')) {
       });
     });
 
-    tbody.querySelectorAll('.table-action').forEach((button) => {
+    tbody.querySelectorAll('.reply-action').forEach((button) => {
       button.addEventListener('click', (event) => {
         event.stopPropagation();
         const id = Number(button.dataset.bookingId);
         const booking = state.bookings.find((item) => item.id === id);
-        if (booking) selectBooking(booking);
+        if (booking) openReplyThread(booking);
       });
     });
+  };
+
+  const getConversationForBooking = (booking) => {
+    const current = getCurrentUser();
+    return state.conversations.find((conversation) =>
+      Number(conversation.tenant_id) === Number(booking.tenant_id) &&
+      Number(conversation.owner_id) === Number(current.id) &&
+      Number(conversation.property_id) === Number(booking.property_id)
+    ) || null;
+  };
+
+  const focusBooking = (booking) => {
+    if (!booking) return null;
+    state.selected = booking;
+    renderRows();
+    renderDetailPanel();
+    return booking;
   };
 
   const selectBooking = async (booking) => {
     state.selected = booking;
     renderRows();
+    renderDetailPanel();
+  };
 
-    threadTitle.textContent = booking.tenant_name || 'Unknown tenant';
-    threadProperty.textContent = booking.property_title || 'Unknown property';
-
-    const conversation = state.conversations.find((item) =>
-      Number(item.tenant_id) === Number(booking.tenant_id) &&
-      Number(item.owner_id) === Number(currentUser().id) &&
-      Number(item.property_id) === Number(booking.property_id)
-    );
-
-    if (conversation) {
-      try {
-        const response = await fetch(`${API}/messages/conversations/${conversation.id}`, { headers: auth() });
-        const body = await response.json();
-        if (!response.ok) throw new Error(body.message || 'Unable to load conversation history.');
-        const items = Array.isArray(body.data) ? body.data : [];
-        threadMessages.innerHTML = items.length
-          ? items.map((message) => `
-              <div class="bubble ${message.sender_id === currentUser().id ? 'mine' : 'their'}">
-                <div class="bubble-head"><strong>${message.sender_id === currentUser().id ? 'You' : 'Tenant'}</strong><span>${formatDate(message.created_at)}</span></div>
-                <p>${esc(message.body || 'No message text.')}</p>
-              </div>
-            `).join('')
-          : '<p class="empty-message">No message thread available for this inquiry yet.</p>';
-      } catch (error) {
-        threadMessages.innerHTML = `<p class="empty-message">${esc(error.message)}</p>`;
-      }
-    } else {
-      threadMessages.innerHTML = `
-        <div class="bubble their">
-          <div class="bubble-head"><strong>Owner note</strong><span>${formatDate(booking.created_at)}</span></div>
-          <p>${esc(booking.message || 'No message provided.')}</p>
-        </div>`;
+  const acceptTenant = async () => {
+    if (!state.selected) return;
+    try {
+      const response = await fetch(`${API}/bookings/${state.selected.id}/status`, {
+        method: 'PATCH',
+        headers: auth(),
+        body: JSON.stringify({ status: 'approved' })
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.message || 'Unable to accept tenant.');
+      state.bookings = state.bookings.map((booking) => booking.id === state.selected.id ? { ...booking, status: 'approved' } : booking);
+      state.selected = state.bookings.find((booking) => booking.id === state.selected.id) || null;
+      renderRows();
+      renderDetailPanel();
+      if (state.selected) await renderThread(state.selected);
+      await updateListingCountsInSidebar();
+      alert('Tenant accepted successfully! They will now appear in Active Tenants.');
+    } catch (error) {
+      alert(error.message);
     }
   };
 
-  const sendReply = async (event) => {
-    event.preventDefault();
-    if (!state.selected) return;
-    const body = replyInput.value.trim();
-    if (!body) return;
+  const archiveBooking = async (booking) => {
+    if (!booking) return;
+    try {
+      const response = await fetch(`${API}/bookings/${booking.id}/status`, {
+        method: 'PATCH',
+        headers: auth(),
+        body: JSON.stringify({ status: 'rejected' })
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.message || 'Unable to archive inquiry.');
+      state.bookings = state.bookings.map((b) => b.id === booking.id ? { ...b, status: 'rejected' } : b);
+      renderRows();
+      renderDetailPanel();
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
+  const openReplyThread = (booking) => {
+    const activeBooking = focusBooking(booking) || booking;
+    if (!activeBooking) return;
+
+    localStorage.setItem('dormhive.activeTenantSelection', JSON.stringify({
+      tenantId: activeBooking.tenant_id,
+      propertyId: activeBooking.property_id,
+      tenantName: activeBooking.tenant_name || 'Tenant',
+      propertyTitle: activeBooking.property_title || 'Property'
+    }));
+
+    location.hash = '#/owner/message';
+  };
+
+  const openScheduleModal = (booking) => {
+    const activeBooking = focusBooking(booking) || state.bookings.find((item) => Number(item.id) === Number(booking?.id)) || booking;
+    if (!activeBooking) return;
+
+    schedulingBooking = activeBooking;
+    state.selected = activeBooking;
+    scheduleTenantName.textContent = activeBooking.tenant_name || 'Unknown tenant';
+    schedulePropertyName.textContent = activeBooking.property_title || 'Unknown property';
+
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    scheduleDate.value = tomorrow.toISOString().split('T')[0];
+    scheduleTime.value = '10:00';
+
+    scheduleModal.hidden = false;
+    document.body.classList.add('schedule-modal-open');
+  };
+  
+  const closeScheduleModal = () => {
+    scheduleModal.hidden = true;
+    schedulingBooking = null;
+    scheduleDate.value = '';
+    scheduleTime.value = '';
+    document.body.classList.remove('schedule-modal-open');
+  };
+
+
+
+  const scheduleViewing = async () => {
+    const targetBooking = schedulingBooking || state.selected;
+    if (!targetBooking) return;
+
+    const dateValue = scheduleDate.value.trim();
+    const timeValue = scheduleTime.value.trim();
+
+    if (!dateValue || !timeValue) {
+      alert('Please select both date and time.');
+      return;
+    }
+
+    const scheduledDateTime = new Date(`${dateValue}T${timeValue}`);
+    const message = `Viewing scheduled for ${scheduledDateTime.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}.`;
 
     try {
-      let conversation = state.conversations.find((item) =>
-        Number(item.tenant_id) === Number(state.selected.tenant_id) &&
-        Number(item.owner_id) === Number(currentUser().id) &&
-        Number(item.property_id) === Number(state.selected.property_id)
-      );
+      let conversation = getConversationForBooking(targetBooking);
       if (!conversation) {
         const createResponse = await fetch(`${API}/messages/conversations`, {
           method: 'POST',
           headers: auth(),
           body: JSON.stringify({
-            bookingId: state.selected.id,
-            tenantId: state.selected.tenant_id,
-            ownerId: currentUser().id,
-            propertyId: state.selected.property_id
+            bookingId: targetBooking.id,
+            tenantId: targetBooking.tenant_id,
+            ownerId: getCurrentUser().id,
+            propertyId: targetBooking.property_id
           })
         });
         const createBody = await createResponse.json();
@@ -264,13 +449,14 @@ export function renderInquiries(root = document.querySelector('#app')) {
       const response = await fetch(`${API}/messages`, {
         method: 'POST',
         headers: auth(),
-        body: JSON.stringify({ conversationId: conversation.id, body })
+        body: JSON.stringify({ conversationId: conversation.id, body: message })
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.message || 'Unable to send the message.');
+      if (!response.ok) throw new Error(result.message || 'Unable to schedule viewing.');
 
-      replyInput.value = '';
-      await selectBooking(state.selected);
+      alert('Viewing scheduled successfully! Tenant has been notified.');
+      closeScheduleModal();
+      renderRows();
     } catch (error) {
       alert(error.message);
     }
@@ -292,22 +478,31 @@ export function renderInquiries(root = document.querySelector('#app')) {
       if (!propertyResponse.ok) throw new Error(propertyBody.message || 'Unable to load properties.');
       if (!conversationResponse.ok) throw new Error(conversationBody.message || 'Unable to load conversations.');
 
-      state.bookings = Array.isArray(bookingBody.data) ? bookingBody.data : [];
+      const currentUserId = Number(getCurrentUser().id);
+      state.bookings = (Array.isArray(bookingBody.data) ? bookingBody.data : [])
+        .filter((booking) => Number(booking.owner_id) === currentUserId || Number(booking.property_owner_id) === currentUserId)
+        .map((booking) => ({
+          ...booking,
+          tenant_name: booking.tenant_name || [booking.first_name, booking.last_name].filter(Boolean).join(' ') || 'Unknown tenant',
+          property_title: booking.property_title || 'Unknown property'
+        }));
       state.properties = Array.isArray(propertyBody.data) ? propertyBody.data : [];
       state.conversations = Array.isArray(conversationBody.data) ? conversationBody.data : [];
 
       renderPropertyOptions();
       renderRows();
+      renderDetailPanel();
       if (state.bookings[0]) selectBooking(state.bookings[0]);
+      await updateListingCountsInSidebar();
     } catch (error) {
-      threadTitle.textContent = 'Unable to load inquiries';
-      threadProperty.textContent = error.message;
-      threadMessages.innerHTML = '<p class="empty-message">Please sign in again with a valid owner session.</p>';
+      const msgArea = root.querySelector('.inquiries-table tbody');
+      if (msgArea) msgArea.innerHTML = `<tr><td colspan="6" class="empty-row">Error: ${esc(error.message)}</td></tr>`;
     }
   };
 
   searchInput.addEventListener('input', (event) => {
     state.search = event.target.value;
+    state.page = 1;
     renderRows();
   });
 
@@ -316,16 +511,60 @@ export function renderInquiries(root = document.querySelector('#app')) {
       root.querySelectorAll('[data-filter-status] .pill').forEach((pill) => pill.classList.remove('active'));
       button.classList.add('active');
       state.statusFilter = button.dataset.status;
+      state.page = 1;
       renderRows();
     });
   });
 
   propertyFilter.addEventListener('change', (event) => {
     state.propertyFilter = event.target.value;
+    state.page = 1;
     renderRows();
   });
 
-  replyForm.addEventListener('submit', sendReply);
+  paginationButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const pageValue = button.dataset.page;
+      if (pageValue === 'prev') {
+        if (state.page > 1) {
+          state.page -= 1; renderRows();
+        }
+      } else if (pageValue === 'next') {
+        const totalPages = Math.max(1, Math.ceil(getVisibleBookings().length / state.pageSize));
+        if (state.page < totalPages) {
+          state.page += 1; renderRows();
+        }
+      } else {
+        const nextPage = Number(pageValue);
+        if (Number.isFinite(nextPage) && nextPage >= 1) {
+          state.page = nextPage; renderRows();
+        }
+      }
+    });
+  });
+
+  scheduleCloseBtn.addEventListener('click', closeScheduleModal);
+  scheduleCancelBtn.addEventListener('click', closeScheduleModal);
+  scheduleSaveBtn.addEventListener('click', scheduleViewing);
+  
+  scheduleModal.querySelector('.schedule-modal-overlay')?.addEventListener('click', closeScheduleModal);
+
+  detailPanel.addEventListener('click', (event) => {
+    const actionButton = event.target.closest('.accept-action');
+    if (actionButton && state.selected) {
+      acceptTenant();
+    }
+
+    const archiveButton = event.target.closest('.archive-panel-action');
+    if (archiveButton && state.selected) {
+      archiveBooking(state.selected);
+    }
+
+    const scheduleButton = event.target.closest('.schedule-panel-action');
+    if (scheduleButton && state.selected) {
+      openScheduleModal(state.selected);
+    }
+  });
 
   root.querySelector('.logout')?.addEventListener('click', () => {
     localStorage.clear();

@@ -1,6 +1,6 @@
 .owner-shell {
   display: grid;
-  grid-template-columns: 18rem minmax(0, 1fr);
+  grid-template-columns: 250px minmax(0, 1fr);
   min-height: 100vh;
   background: linear-gradient(180deg, #fff8e8 0%, #fff3d3 100%);
   width: 100%;
@@ -76,7 +76,7 @@
     position: fixed;
     left: 0;
     top: 0;
-    width: 18rem;
+    width: 250px;
     transform: translateX(-105%);
     transition: .2s;
     z-index: 5;
@@ -90,11 +90,6 @@
 /* High-specificity overrides to ensure this file is the single source of truth
    for owner sidebar styles. These rules use !important and specific selectors
    so duplicate sidebar CSS in other files won't visually conflict. */
-.owner-shell > .owner-sidebar,
-.owner-shell .owner-sidebar,
-.owner-shell .owner-sidebar * {
-  /* Keep cascade but ensure our values apply */
-}
 
 .owner-shell > .owner-sidebar {
   position: sticky !important;

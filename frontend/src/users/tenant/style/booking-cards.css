@@ -1,41 +1,134 @@
-.booking-card--row{
-	display:flex;
-	align-items:center;
-	gap:16px;
-	background:#fff;
-	border:1px solid #e6eee9;
-	border-radius:12px;
-	padding:14px;
-	box-shadow:0 6px 18px rgba(20,60,45,.04);
-	width:100%;
+.booking-card--row {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid #e7dfd4;
+  border-radius: 18px;
+  padding: 18px 16px 16px;
+  box-shadow: 0 10px 25px rgba(52, 38, 27, 0.04);
 }
-.booking-thumb{
-	flex:0 0 120px;
-	height:88px;
-	border-radius:8px;
-	overflow:hidden;
-	background:#f3f6f4;
-	box-shadow:0 2px 6px rgba(20,60,45,.06) inset;
+
+.booking-thumb {
+  width: 100%;
+  height: 150px;
+  margin-bottom: 14px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #f0ece8;
 }
-.booking-thumb img{width:100%;height:100%;object-fit:cover;display:block}
-.booking-info{flex:1;min-width:0}
-.booking-title-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
-.booking-title-row h3{margin:0;font-size:1.05rem;font-weight:700;color:#4e3420}
-.pill{font-size:.78rem;padding:.25rem .6rem;border-radius:999px;font-weight:800;display:inline-flex;align-items:center}
-.pill--green{background:#dff6ef;color:#8e5d0d;border:1px solid rgba(11,118,88,.08)}
-.pill--amber{background:#fff7e6;color:#8a5b0a;border:1px solid rgba(138,91,10,.06)}
-.pill--grey{background:#f2f4f3;color:#65776f;border:1px solid rgba(101,119,111,.04)}
-.booking-meta{display:flex;gap:18px;margin-top:8px;color:#556a63;font-size:.92rem;flex-wrap:wrap}
-.booking-meta div strong{color:#4e3420}
-.booking-actions{display:flex;gap:8px;align-items:center}
-.btn{padding:.45rem .85rem;border-radius:8px;border:1px solid rgba(20,60,45,.06);background:#fff;color:#4e3420;cursor:pointer;font-weight:700}
-.btn--filled{background:#c79f2f;color:#fff;border:0}
-.btn--secondary{background:#fff;color:#1e5b9a;border:1px solid #dbeefc}
-.btn--danger{background:#fff;color:#9b1e1e;border:1px solid #f4cfcf}
-.booking-actions .btn{min-width:120px}
-.empty-state{grid-column:1/-1;background:#fff;border:1px solid #e6eee9;border-radius:12px;padding:18px;color:#65776f}
-@media(max-width:900px){
-	.booking-card--row{flex-direction:column;align-items:stretch}
-	.booking-thumb{width:100%;height:160px}
-	.booking-actions{flex-direction:row;justify-content:flex-end;gap:8px}
+
+.booking-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
+
+.booking-info {
+  width: 100%;
+}
+
+.booking-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.booking-title-row h3 {
+  margin: 0;
+  color: #352f2d;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.pill--green {
+  background: #dff3ea;
+  color: #267a5d;
+}
+
+.pill--amber {
+  background: #f7e8c9;
+  color: #8d6523;
+}
+
+.pill--grey {
+  background: #f0efee;
+  color: #6b625d;
+}
+
+.booking-meta {
+  display: grid;
+  gap: 8px;
+  color: #675f5a;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.booking-meta > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.booking-meta strong {
+  color: #2f2a29;
+  font-weight: 700;
+}
+
+.booking-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.btn {
+  flex: 1;
+  height: 42px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #d1a35f 0%, #b57d35 100%);
+  color: #fff;
+  font-size: 0.96rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.btn--secondary {
+  background: linear-gradient(180deg, #c89c4d 0%, #ad7d39 100%);
+}
+
+.btn--danger {
+  background: linear-gradient(180deg, #f0c77a 0%, #bd8d36 100%);
+}
+
+.empty-state {
+  padding: 18px 20px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #5f5853;
+  border: 1px solid #e5dfd8;
+}
+
+@media (max-width: 900px) {
+  .booking-actions {
+    flex-direction: column;
+  }
+}
+

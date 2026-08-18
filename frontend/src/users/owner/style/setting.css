@@ -138,17 +138,40 @@ button, input {
   color: #1f2d2b;
 }
 
-.edit-profile {
-  margin-top: 0.8rem;
+.profile-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
   width: 100%;
-  border: 0;
+  margin-top: 0.8rem;
+}
+
+.discard-profile,
+.edit-profile {
   border-radius: 12px;
-  padding: 0.85rem 1rem;
-  background: #0b5d4a;
-  color: #ffffff;
+  padding: 0.8rem 1.1rem;
   font-weight: 700;
   font-size: 1rem;
   cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.discard-profile {
+  border: 1px solid #c8c0af;
+  background: #f7f4ef;
+  color: #1d2d2b;
+}
+
+.discard-profile:hover,
+.edit-profile:hover {
+  transform: translateY(-1px);
+}
+
+.edit-profile {
+  border: 0;
+  background: #0b5d4a;
+  color: #ffffff;
   box-shadow: 0 8px 18px rgba(11, 93, 74, 0.18);
 }
 
@@ -156,7 +179,8 @@ button, input {
   background: #0a4a39;
 }
 
-.edit-profile[hidden] {
+.edit-profile[hidden],
+.discard-profile[hidden] {
   display: none;
 }
 

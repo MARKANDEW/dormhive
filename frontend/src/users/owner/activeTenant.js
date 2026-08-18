@@ -1,7 +1,8 @@
 import { createModal, openModal } from '../../components/modal.js';
-import { ensureOwnerSidebarStyles, renderOwnerSidebar } from './sidebarOwner.js';
+import { ensureOwnerSidebarStyles, renderOwnerProfileCard, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
+const apiBase = API.replace(/\/api\/v1\/?$/, '');
 const session = () => { try { return JSON.parse(localStorage.getItem('dormhive.user')) ?? {}; } catch { return {}; } };
 const auth = () => {
   const token = localStorage.getItem('dormhive.accessToken') ?? '';
@@ -9,9 +10,18 @@ const auth = () => {
 };
 const esc = (v = '') => { const e = document.createElement('span'); e.textContent = v; return e.innerHTML; };
 const initials = (name = '') => name.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '').join('') || 'O';
+const resolveAvatarUrl = (value = '') => {
+  const url = String(value || '').trim();
+  if (!url) return '';
+  if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+  if (/^https?:\/\//i.test(url)) return url;
+  return `${apiBase}${url.startsWith('/') ? '' : '/'}${url}`;
+};
 
 function css() {
-  if (!document.querySelector('[data-owner-style="tenants"]')) {
+  document.querySelectorAll('[data-owner-style="tenants"]').forEach((node) => node.remove());
+  const existing = document.querySelector('[data-owner-style="tenants"]');
+  if (!existing) {
     const l = document.createElement('link');
     l.rel = 'stylesheet';
     l.href = new URL('./style/activeTenant.css', import.meta.url);
@@ -27,6 +37,11 @@ function tenantStatus(entry) {
   return { label: 'Overdue', className: 'status-overdue' };
 }
 
+function isActiveTenant(entry) {
+  const status = String(entry?.status ?? '').toLowerCase();
+  return status === 'approved' || status === 'pending';
+}
+
 function unitLabel(entry) {
   return entry.unit || entry.property_title || 'Unit Unassigned';
 }
@@ -34,11 +49,23 @@ function unitLabel(entry) {
 function formatLeaseEnd(entry) {
   const raw = entry.move_out_date ?? entry.move_in_date ?? null;
   if (!raw) return '—';
-  return new Date(raw).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+  const date = new Date(raw); if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+}
+
+function normalizeTenantEntry(entry = {}) {
+  const tenantName = entry.tenant_name || [entry.first_name, entry.last_name].filter(Boolean).join(' ') || 'Tenant';
+  return {
+    ...entry,
+    tenant_name: tenantName,
+    property_title: entry.property_title || entry.title || 'Property',
+    unit: entry.unit || entry.property_title || 'Unit Unassigned'
+  };
 }
 
 export function renderActiveTenant(root = document.querySelector('#app')) {
   if (!root) throw new Error('Active tenants page requires #app.');
+  root.replaceChildren();
   css();
   ensureOwnerSidebarStyles();
   const user = session();
@@ -50,26 +77,13 @@ export function renderActiveTenant(root = document.querySelector('#app')) {
       ${renderOwnerSidebar('activeTenant')}
       <div class="owner-main">
         <header class="owner-topbar">
-          <div class="topbar-left">
-            <button class="menu" aria-label="Toggle menu">☰</button>
-            <div class="brand-lockup">
-              <span class="brand-badge">DormHive</span>
-            </div>
-          </div>
+          <div class="topbar-left"></div>
           <label class="search-bar" aria-label="Global search">
             <span>⌕</span>
             <input type="search" placeholder="Global Search" />
           </label>
           <div class="topbar-right">
-            <button class="top-icon" aria-label="Notifications">🔔<span class="notification-badge">3</span></button>
-            <button class="top-icon" aria-label="Language">🌐</button>
-            <div class="profile-identity">
-              <div class="avatar">${esc(initials(profileName))}</div>
-              <div>
-                <strong>${esc(profileName)}</strong>
-                <span>${esc(profileRole)}</span>
-              </div>
-            </div>
+            ${renderOwnerProfileCard()}
           </div>
         </header>
 
@@ -113,9 +127,6 @@ export function renderActiveTenant(root = document.querySelector('#app')) {
         </main>
       </div>
     </div>`;
-
-  const shell = root.querySelector('.owner-shell');
-  root.querySelector('.menu').addEventListener('click', () => shell.classList.toggle('nav-open'));
 
   const tbody = root.querySelector('.tenant-table-body');
   const searchInput = root.querySelector('#tenant-search');
@@ -163,6 +174,12 @@ export function renderActiveTenant(root = document.querySelector('#app')) {
     if (!entry) return;
 
     if (button.dataset.action === 'message') {
+      localStorage.setItem('dormhive.activeTenantSelection', JSON.stringify({
+        tenantId: entry.tenant_id,
+        propertyId: entry.property_id,
+        tenantName: entry.tenant_name || 'Tenant',
+        propertyTitle: entry.property_title || 'Property'
+      }));
       location.hash = '#/owner/message';
       return;
     }
@@ -194,7 +211,7 @@ export function renderActiveTenant(root = document.querySelector('#app')) {
           <p><strong>Current status:</strong> ${esc(tenantStatus(entry).label)}</p>
           <p><strong>Monthly rent:</strong> ${esc(entry.monthly_rent ? `₱${Number(entry.monthly_rent).toLocaleString('en-US')}` : '—')}</p>
           <p><strong>Last update:</strong> ${esc(new Date(entry.updated_at ?? entry.created_at ?? Date.now()).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }))}</p>
-          <p class="tenant-action-note">This payment record is linked to the current approved booking and can be extended once a payment endpoint is wired.</p>
+          <p class="tenant-action-note">This payment record is linked to the current active booking and can be extended once a payment endpoint is wired.</p>
         </div>
       `
     });
@@ -205,10 +222,15 @@ export function renderActiveTenant(root = document.querySelector('#app')) {
     .then(async (r) => {
       const b = await r.json();
       if (!r.ok) throw new Error(b.message ?? 'Unable to load active tenants.');
-      allRows = Array.isArray(b.data) ? b.data.filter((item) => item.status === 'approved') : [];
+      allRows = Array.isArray(b.data)
+        ? b.data
+            .filter((item) => isActiveTenant(item))
+            .map((item) => normalizeTenantEntry(item))
+        : [];
       renderRows();
       const loadingCell = tbody.querySelector('.status');
       if (loadingCell) loadingCell.remove();
+      await updateListingCountsInSidebar();
     })
     .catch((error) => {
       tbody.innerHTML = `<tr><td colspan="5" class="empty">${esc(error.message)}</td></tr>`;

@@ -164,16 +164,40 @@ input {
   color: #1f2d2b;
 }
 
-.edit-profile {
+.profile-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
   margin-top: 0.8rem;
-  border: 0;
+  width: 100%;
+}
+
+.discard-profile,
+.edit-profile {
   border-radius: 12px;
-  padding: 0.8rem 1.25rem;
-  background: #0b5d4a;
-  color: #fff;
+  padding: 0.8rem 1.1rem;
   font-weight: 700;
   cursor: pointer;
   min-width: 140px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.discard-profile {
+  border: 1px solid #c8c0af;
+  background: #f7f4ef;
+  color: #1d2d2b;
+}
+
+.discard-profile:hover,
+.edit-profile:hover {
+  transform: translateY(-1px);
+}
+
+.edit-profile {
+  border: 0;
+  background: #0b5d4a;
+  color: #fff;
 }
 
 .edit-profile:hover {

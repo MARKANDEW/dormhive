@@ -1,4 +1,5 @@
 import { ensureAdminSidebarStyles, renderAdminSidebar } from './sidebarAdmin.js';
+import { applyAdminPrivacy } from './privacy.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const headers = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
@@ -246,9 +247,10 @@ export function renderListingModeration(root = document.querySelector('#app')) {
     detailOwner.textContent = `Owner: ${row.owner_name || row.owner_id || 'Unknown owner'}`;
     detailStatus.textContent = String(row.status || 'pending').replaceAll('_', ' ');
     detailExtra.innerHTML = `
-      <p>Type: ${esc(String(row.room_type || 'Unknown').replaceAll('_', ' '))}</p>
-      <p>Rent: ${esc(formatCurrency(row.monthly_rent))}</p>
+      <p data-privacy-mask="detail">Type: ${esc(String(row.room_type || 'Unknown').replaceAll('_', ' '))}</p>
+      <p data-privacy-mask="stat">Rent: ${esc(formatCurrency(row.monthly_rent))}</p>
       <p>Submitted: ${esc(formatDate(row.created_at))}</p>`;
+    applyAdminPrivacy(root);
     const imageUrl = resolveImageUrl(row.image_url);
     detailPhotos.innerHTML = imageUrl
       ? `<div class="thumb" style="background-image:url('${imageUrl}')"></div>` + Array.from({ length: 5 }, () => '<div class="thumb"></div>').join('')
@@ -269,13 +271,15 @@ export function renderListingModeration(root = document.querySelector('#app')) {
       <tr class="${selected?.id === row.id ? 'selected' : ''}">
         <td><input type="checkbox" data-id="${row.id}" /></td>
         <td><div class="thumbnail" ${getThumbStyles(row)}></div></td>
-        <td>${esc(row.title || 'Untitled property')}</td>
-        <td>${esc(row.owner_name || 'Unknown owner')}</td>
-        <td>${esc(String(row.room_type || 'Unknown').replaceAll('_', ' '))}</td>
-        <td>${esc(formatCurrency(row.monthly_rent))}</td>
+        <td data-privacy-mask="detail">${esc(row.title || 'Untitled property')}</td>
+        <td data-privacy-mask="name">${esc(row.owner_name || 'Unknown owner')}</td>
+        <td data-privacy-mask="detail">${esc(String(row.room_type || 'Unknown').replaceAll('_', ' '))}</td>
+        <td data-privacy-mask="stat">${esc(formatCurrency(row.monthly_rent))}</td>
         <td>${esc(formatDate(row.created_at))}</td>
         <td class="action-icons"><button type="button" aria-label="View details">🔎</button></td>
       </tr>`).join('') || '<tr><td colspan="8" class="empty-row">No matching listings found.</td></tr>';
+
+    applyAdminPrivacy(root);
 
     tbody.querySelectorAll('tr').forEach((rowEl) => {
       rowEl.addEventListener('click', (event) => {
@@ -380,6 +384,15 @@ export function renderListingModeration(root = document.querySelector('#app')) {
     modalOccupants.textContent = selected.max_occupants ? `Max occupants: ${esc(String(selected.max_occupants))}` : '';
     modalGender.textContent = selected.gender_preference ? `Gender preference: ${esc(String(selected.gender_preference).replaceAll('_', ' '))}` : '';
     modalDescription.textContent = selected.description ? `Description: ${esc(selected.description)}` : 'No description provided.';
+    modalAddress.setAttribute('data-privacy-mask', 'detail');
+    modalLocation.setAttribute('data-privacy-mask', 'detail');
+    modalOwner.setAttribute('data-privacy-mask', 'name');
+    modalType.setAttribute('data-privacy-mask', 'detail');
+    modalRent.setAttribute('data-privacy-mask', 'stat');
+    modalOccupants.setAttribute('data-privacy-mask', 'stat');
+    modalGender.setAttribute('data-privacy-mask', 'detail');
+    modalDescription.setAttribute('data-privacy-mask', 'detail');
+    applyAdminPrivacy(modal);
     const image = resolveImageUrl(selected.image_url);
     modalHero.style.backgroundImage = image ? `url('${image}')` : 'linear-gradient(135deg,#d7efe5,#f3f6f4)';
     const rawAmenities = selected.amenities;

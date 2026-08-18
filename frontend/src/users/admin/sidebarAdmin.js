@@ -1,3 +1,5 @@
+import { getAdminPrivacyMode, setAdminPrivacyMode } from './privacy.js';
+
 const glyphs = {
   dashboardAdmin: '⌂',
   userManagement: '☉',
@@ -28,6 +30,9 @@ export function ensureAdminSidebarStyles() {
 }
 
 export function renderAdminSidebar(active = 'dashboardAdmin') {
+  const privacyOn = getAdminPrivacyMode();
+  const privacyLabel = privacyOn ? 'Privacy: ON' : 'Privacy: OFF';
+
   return `
     <aside class="admin-nav">
       <a class="admin-logo" href="#/admin/dashboardAdmin">DormHive <small>ADMIN</small></a>
@@ -37,6 +42,9 @@ export function renderAdminSidebar(active = 'dashboardAdmin') {
           <span>${label}</span>
         </a>
       `).join('')}
+      <button type="button" class="privacy-toggle ${privacyOn ? 'active' : ''}" data-privacy-toggle>
+        ${privacyLabel}
+      </button>
       <button type="button" class="logout">Sign out</button>
     </aside>`;
 }
@@ -46,6 +54,15 @@ document.addEventListener('click', (event) => {
   if (menuButton) {
     const shell = menuButton.closest('.admin-shell');
     if (shell) shell.classList.toggle('nav-open');
+    return;
+  }
+
+  const privacyToggleButton = event.target.closest('[data-privacy-toggle]');
+  if (privacyToggleButton) {
+    const nextValue = !getAdminPrivacyMode();
+    setAdminPrivacyMode(nextValue);
+    privacyToggleButton.textContent = nextValue ? 'Privacy: ON' : 'Privacy: OFF';
+    privacyToggleButton.classList.toggle('active', nextValue);
     return;
   }
 
