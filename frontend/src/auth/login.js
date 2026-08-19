@@ -1,7 +1,8 @@
 const API_BASE_URL = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 
 function loadStylesheet() {
-  if (document.querySelector('link[data-dormhive-auth="split"]')) return;
+  const existing = document.querySelector('link[data-dormhive-auth="split"]');
+  if (existing) return existing.sheet ? Promise.resolve() : new Promise((resolve) => existing.addEventListener('load', resolve, { once: true }));
   const link = document.createElement('link');
   link.rel = 'stylesheet';
   link.href = new URL('./style/split-auth.css', import.meta.url).href;
@@ -14,6 +15,10 @@ function loadStylesheet() {
     icons.dataset.dormhiveAuth = 'boxicons';
     document.head.append(icons);
   }
+  return new Promise((resolve) => {
+    link.addEventListener('load', resolve, { once: true });
+    link.addEventListener('error', resolve, { once: true });
+  });
 }
 
 function redirectForRole(role) {
@@ -27,9 +32,9 @@ function showMessage(element, message) {
   element.hidden = false;
 }
 
-export function renderLogin(root = document.querySelector('#app')) {
+export async function renderLogin(root = document.querySelector('#app')) {
   if (!root) throw new Error('Login page requires an element with id "app".');
-  loadStylesheet();
+  await loadStylesheet();
   root.innerHTML = `
     <div class="container">
       <a class="auth-brand" href="../index.html">DormHive</a>

@@ -13,7 +13,8 @@ export function currentUser() { try { return JSON.parse(localStorage.getItem('do
 export function redirectForRole(role) { return home[role] || '/'; }
 export function navigate(path, replace = false) { const target = `#${path.startsWith('/') ? path : `/${path}`}`; history[replace ? 'replaceState' : 'pushState']({}, '', target); return renderRoute(); }
 function routeLocation() { const hash = location.hash.replace(/^#/, ''); const [path, search = ''] = (hash || '/').split('?'); return { path: path || '/', search: search ? `?${search}` : '' }; }
-export async function renderRoute() { const { path, search } = routeLocation(); const user = currentUser(); const publicRoutes = ['/', '/login', '/register']; if (path === '/' || path === '/login') { if (user) return navigate(redirectForRole(user.role), true); }
+let routeRenderId = 0;
+export async function renderRoute() { const renderId = ++routeRenderId; const { path, search } = routeLocation(); const user = currentUser(); const publicRoutes = ['/', '/login', '/register']; if (path === '/' || path === '/login') { if (user) return navigate(redirectForRole(user.role), true); }
   const route = routes.find(([url]) => url === path);
   if (!route) return navigate(redirectForRole(user?.role), true);
   if (!user && !publicRoutes.includes(path)) return navigate('/login', true);
@@ -21,7 +22,8 @@ export async function renderRoute() { const { path, search } = routeLocation(); 
   window.DORMHIVE_ROUTE_SEARCH = search;
   try {
     const module = await import(route[2]);
-    module[route[3]](ROOT());
+    await module[route[3]](ROOT());
+    if (renderId !== routeRenderId) return;
     if (path.startsWith('/admin/')) applyAdminPrivacy(ROOT());
   } catch (error) {
     ROOT().textContent = `Unable to load this page: ${error.message}`;
