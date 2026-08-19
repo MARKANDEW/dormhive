@@ -1,6 +1,7 @@
 import { ensureOwnerSidebarStyles, renderOwnerProfileCard, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
+const API_ORIGIN = API.replace(/\/api\/v1\/?$/, '');
 const headers = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
 const esc = (value = '') => { const span = document.createElement('span'); span.textContent = value; return span.innerHTML; };
 const user = () => { try { return JSON.parse(localStorage.getItem('dormhive.user') ?? '{}'); } catch { return {}; } };
@@ -15,6 +16,15 @@ const renderMessageBody = (value = '') => {
   }
   return esc(text || 'No message text.');
 };
+const avatarUrl = (value = '') => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (/^(data:|blob:|https?:\/\/)/i.test(raw)) return raw;
+  return `${API_ORIGIN}${raw.startsWith('/') ? '' : '/'}${raw}`;
+};
+const participantAvatar = (item = {}) => item.participant_avatar_url
+  ? `<img src="${esc(avatarUrl(item.participant_avatar_url))}" alt="${esc(item.participant_name ?? 'Conversation')} avatar" />`
+  : esc(initials(item.participant_name ?? 'Conversation'));
 
 function css() {
   if (!document.querySelector('[data-owner-style="dashboard"]')) {
@@ -156,7 +166,7 @@ export function renderMessage(root = document.querySelector('#app')) {
     list.innerHTML = filtered.length
       ? filtered.map((item) => `
         <button class="conversation-item ${state.selected?.id === item.id ? 'active' : ''}" data-id="${item.id}" type="button">
-          <div class="avatar-chip">${esc((item.participant_name ?? 'U').split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase())}</div>
+          <div class="avatar-chip">${participantAvatar(item)}</div>
           <div class="conversation-main">
             <div class="conversation-head">
               <strong>${esc(item.participant_name ?? 'Conversation')}</strong>

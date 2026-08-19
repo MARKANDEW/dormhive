@@ -109,18 +109,32 @@ function displayNotice(element, text, state = 'error') {
 }
 
 function css() {
-  if (!document.querySelector('[data-tenant-style="setting"]')) {
-    const l = document.createElement('link');
-    l.rel = 'stylesheet';
-    l.href = new URL('./style/setting.css', import.meta.url);
-    l.dataset.tenantStyle = 'setting';
-    document.head.append(l);
-  }
+  const existing = document.querySelector('[data-tenant-style="setting"]');
+  if (existing) return existing.sheet ? Promise.resolve() : new Promise((resolve) => existing.addEventListener('load', resolve, { once: true }));
+
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = new URL('./style/setting.css', import.meta.url);
+  link.dataset.tenantStyle = 'setting';
+  document.head.append(link);
+  return new Promise((resolve) => {
+    link.addEventListener('load', resolve, { once: true });
+    link.addEventListener('error', resolve, { once: true });
+  });
+}
+
+function ensureSettingLayoutStyles() {
+  if (document.querySelector('[data-tenant-style="setting-layout"]')) return;
+  const style = document.createElement('style');
+  style.dataset.tenantStyle = 'setting-layout';
+  style.textContent = 'html:has(.tenant-settings),body:has(.tenant-settings),#app:has(.tenant-settings),.tenant-page-main.tenant-settings{background:linear-gradient(180deg,#fef1d7 0%,#f8faf8 100%) !important}';
+  document.head.append(style);
 }
 
 export async function renderSetting(root = document.querySelector('#app')) {
   if (!root) throw new Error('Tenant settings page requires #app.');
-  css();
+  await css();
+  ensureSettingLayoutStyles();
   ensureTenantSidebarStyles();
   let user = getUser();
   if (!user || !user.id || user.role !== 'tenant') {

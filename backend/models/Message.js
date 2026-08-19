@@ -1,7 +1,7 @@
 import { query } from '../config/database.js';
 
 export async function conversationsFor(user) {
-  return query(`SELECT c.*, CASE WHEN c.tenant_id=? THEN COALESCE(CONCAT_WS(' ', o.first_name, o.last_name), o.name) ELSE COALESCE(CONCAT_WS(' ', t.first_name, t.last_name), t.name) END participant_name, (SELECT m.body FROM messages m WHERE m.conversation_id=c.id ORDER BY m.created_at DESC LIMIT 1) last_message, (SELECT COUNT(*) FROM messages m WHERE m.conversation_id=c.id AND m.sender_id<>? AND m.read_at IS NULL) unread_count FROM conversations c JOIN users t ON t.id=c.tenant_id JOIN users o ON o.id=c.owner_id WHERE c.tenant_id=? OR c.owner_id=? ORDER BY c.updated_at DESC`, [user.id, user.id, user.id, user.id]);
+  return query(`SELECT c.*, CASE WHEN c.tenant_id=? THEN COALESCE(CONCAT_WS(' ', o.first_name, o.last_name), o.name) ELSE COALESCE(CONCAT_WS(' ', t.first_name, t.last_name), t.name) END participant_name, CASE WHEN c.tenant_id=? THEN o.avatar_url ELSE t.avatar_url END participant_avatar_url, (SELECT m.body FROM messages m WHERE m.conversation_id=c.id ORDER BY m.created_at DESC LIMIT 1) last_message, (SELECT COUNT(*) FROM messages m WHERE m.conversation_id=c.id AND m.sender_id<>? AND m.read_at IS NULL) unread_count FROM conversations c JOIN users t ON t.id=c.tenant_id JOIN users o ON o.id=c.owner_id WHERE c.tenant_id=? OR c.owner_id=? ORDER BY c.updated_at DESC`, [user.id, user.id, user.id, user.id, user.id]);
 }
 
 export async function conversationFor(id, user) {

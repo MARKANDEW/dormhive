@@ -18,20 +18,31 @@ input {
   font: inherit;
 }
 
-.tenant-page-main {
-  min-height: 100vh;
-  padding: 2rem 2rem 3rem;
+.tenant-page-main.tenant-settings {
+  height: 100vh;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  width: 100%;
+  margin: 0;
+  padding: 2rem !important;
   background: linear-gradient(180deg, #fef1d7 0%, #f8faf8 100%);
 }
 
 .tenant-settings {
-  width: min(92%, 1040px);
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
 }
 
 .settings-card {
+  width: min(100%, 1040px);
   max-width: 1040px;
-  margin: 2rem auto;
+  min-height: 490px;
+  flex-shrink: 0;
+  margin: 0 auto;
   background: #fff;
   box-shadow: 0 24px 50px rgba(15, 23, 42, 0.08);
   border: 1px solid #e9dec8;
@@ -56,6 +67,7 @@ input {
   display: flex;
   gap: 2.25rem;
   align-items: flex-start;
+  min-height: 330px;
 }
 
 .profile-side {
@@ -283,6 +295,15 @@ input {
 }
 
 @media (max-width: 760px) {
+  .tenant-page-main {
+    align-items: flex-start;
+  }
+
+  .tenant-settings {
+    width: 100%;
+    max-width: none;
+  }
+
   .settings-body {
     flex-direction: column;
   }
@@ -296,6 +317,7 @@ input {
   }
 
   .settings-card {
+    min-height: 0;
     padding: 1.25rem;
   }
 }

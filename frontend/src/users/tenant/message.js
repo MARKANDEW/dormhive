@@ -25,13 +25,14 @@ const tenantFullName = (user = {}) => {
   return combined || String(user.name ?? 'Tenant').trim() || 'Tenant';
 };
 const currentUser = () => { try { return JSON.parse(localStorage.getItem('dormhive.user') ?? '{}'); } catch { return {}; } };
+const participantAvatar = (item = {}) => item.participant_avatar_url ? `<img src="${escape(getUserAvatarUrl({ avatar_url: item.participant_avatar_url }, item.participant_name ?? 'Conversation'))}" alt="${escape(item.participant_name ?? 'Conversation')} avatar" />` : escape((item.participant_name ?? 'C').split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase());
 
 export function renderMessage(root = document.querySelector('#app')) {
   if (!root) throw new Error('Messages page requires #app.');
   dashboardStyle();
   ensureTenantSidebarStyles();
   style();
-  root.innerHTML = `<div class="dh-app">${renderTenantSidebar('message')}<main class="tenant-page-main"><section class="messages-page"><header><a class="brand" href="#/tenant/dashboardTenant">DormHive</a><div class="tenant-profile-chip" aria-label="Tenant profile"><span class="tenant-avatar"></span><span class="tenant-name">Tenant</span></div></header><section class="messages-layout"><aside class="conversation-list"><h1>Messages</h1><p class="status" role="status">Loading conversations…</p><div class="conversations"></div></aside><section class="thread"><div class="thread-header"><h2>Select a conversation</h2></div><div class="message-list"><p class="empty-state">Choose a conversation to view messages.</p></div><form class="composer" hidden><div class="composer-tools"><label class="upload-button" title="Send a photo" aria-label="Send a photo"><input class="image-input" type="file" accept="image/*" hidden><span>＋</span></label><div class="composer-input-wrapper"><div class="attachment-strip hidden"><div class="attachment-item"><img class="attachment-preview" src="" alt="Selected attachment preview"><button type="button" class="remove-attachment" aria-label="Remove selected photo">×</button></div></div><label class="sr-only" for="message-text">Message</label><textarea id="message-text" placeholder="Write a message" maxlength="2000"></textarea></div><button type="submit">Send</button></div></form></section></section></section></main></div>`;
+  root.innerHTML = `<div class="dh-app">${renderTenantSidebar('message')}<main class="tenant-page-main"><section class="messages-page"><header class="owner-topbar"><div class="topbar-left"></div><label class="search-bar" aria-label="Search conversations"><span>⌕</span><input type="search" placeholder="Search my listings, inquiries, tenants..." /></label><div class="topbar-right"><a class="brand" href="#/tenant/dashboardTenant">DormHive</a><div class="tenant-profile-chip" aria-label="Tenant profile"><span class="tenant-avatar"></span><span class="tenant-name">Tenant</span></div></div></header><section class="messages-layout inbox-layout"><aside class="conversation-list inbox-sidebar"><div class="sidebar-title-row"><h1>Inbox</h1></div><p class="status" role="status">Loading conversations…</p><div class="conversations conversation-list"></div></aside><section class="thread chat-pane"><div class="thread-header chat-header"><div class="contact-meta"><div id="conversation-avatar" class="avatar-chip large">T</div><div><h2>Select a conversation</h2><span class="property-tag">Property details will appear here.</span></div></div><div class="chat-actions"><button class="icon-button" type="button" aria-label="Video call">📹</button><button class="icon-button" type="button" aria-label="Profile">👤</button></div></div><div class="message-list messages"><p class="empty-state">Choose a conversation to view messages.</p></div><form class="composer" hidden><div class="composer-tools"><label class="upload-button" title="Send a photo" aria-label="Send a photo"><input class="image-input" type="file" accept="image/*" hidden><span>＋</span></label><div class="composer-input-wrapper"><div class="attachment-strip hidden"><div class="attachment-item"><img class="attachment-preview" src="" alt="Selected attachment preview"><button type="button" class="remove-attachment" aria-label="Remove selected photo">×</button></div></div><label class="sr-only" for="message-text">Message</label><textarea id="message-text" placeholder="Type your message here..." maxlength="2000"></textarea></div><button type="submit">Send</button></div></form></section></section></section></main></div>`;
   root.querySelector('.logout').addEventListener('click', () => { localStorage.clear(); location.assign('#/login'); });
 
   const syncTenantProfileChip = async () => {
@@ -55,6 +56,7 @@ export function renderMessage(root = document.querySelector('#app')) {
   const list = root.querySelector('.message-list');
   const form = root.querySelector('.composer');
   const heading = root.querySelector('.thread-header h2');
+  const conversationAvatar = root.querySelector('#conversation-avatar');
   const imageInput = form.querySelector('.image-input');
   const attachmentStrip = form.querySelector('.attachment-strip');
   const attachmentPreview = form.querySelector('.attachment-preview');
@@ -90,7 +92,7 @@ export function renderMessage(root = document.querySelector('#app')) {
 
   const renderThreads = () => {
     conversations.innerHTML = state.conversations.length
-      ? state.conversations.map((item) => `<button class="conversation ${state.selected?.id === item.id ? 'is-active' : ''}" data-id="${item.id}"><strong>${escape(item.participant_name ?? 'Conversation')}</strong><span>${escape(item.last_message ?? 'No messages yet')}</span></button>`).join('')
+      ? state.conversations.map((item) => `<button class="conversation conversation-item ${state.selected?.id === item.id ? 'is-active active' : ''}" data-id="${item.id}"><div class="avatar-chip">${participantAvatar(item)}</div><div class="conversation-main"><div class="conversation-head"><strong>${escape(item.participant_name ?? 'Conversation')}</strong></div><div class="conversation-meta"><span>Conversation</span><span class="preview">${escape(item.last_message ?? 'No messages yet')}</span></div></div></button>`).join('')
       : '<p class="empty-state">No conversations yet.</p>';
     conversations.querySelectorAll('button').forEach((button) => button.addEventListener('click', () => select(button.dataset.id)));
   };
@@ -102,6 +104,7 @@ export function renderMessage(root = document.querySelector('#app')) {
       if (!response.ok) throw new Error(body.message);
       state.selected = state.conversations.find((item) => String(item.id) === String(id));
       heading.textContent = state.selected?.participant_name ?? 'Conversation';
+      if (conversationAvatar && state.selected) conversationAvatar.innerHTML = participantAvatar(state.selected);
       list.innerHTML = body.data.map((item) => `<article class="message ${item.sender_id === currentUser().id ? 'is-mine' : ''}"><div class="bubble-body">${renderMessageBody(item.body)}</div><time>${new Date(item.created_at).toLocaleString()}</time></article>`).join('') || '<p class="empty-state">Start the conversation.</p>';
       list.querySelectorAll('.message-attachment img').forEach((img) => { img.style.cursor = 'pointer'; img.addEventListener('click', () => openPhotoViewer(img.src)); });
       form.hidden = false;
@@ -178,6 +181,8 @@ export function renderMessage(root = document.querySelector('#app')) {
     renderThreads();
     if (propertyId) {
       createOrSelectConversationForProperty(propertyId).then(openConversation).catch((error) => { status.textContent = error.message; });
+    } else if (state.conversations[0]) {
+      select(state.conversations[0].id);
     }
   }).catch((error) => { status.textContent = error.message; });
 }

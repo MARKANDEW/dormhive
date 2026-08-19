@@ -12,7 +12,14 @@ const resolveImageUrl = (value = '') => {
   if (/^https?:\/\//i.test(url)) return url;
   return `${apiBase}${url.startsWith('/') ? '' : '/'}${url}`;
 };
-const getPropertyImageUrl = (property = {}) => resolveImageUrl(property.image_url || property.cover_image || property.imageUrl || (Array.isArray(property.images) && property.images[0]) || '');
+const getPropertyImageUrl = (property = {}, booking = {}) => {
+  let images = property.images ?? booking.images;
+  if (typeof images === 'string') {
+    try { images = JSON.parse(images); } catch { images = [images]; }
+  }
+  const source = property.image_url || property.cover_image || property.imageUrl || booking.image_url || booking.cover_image || booking.imageUrl || (Array.isArray(images) && images[0]) || '';
+  return resolveImageUrl(source);
+};
 const tenantFullName = (user = {}) => {
   const firstName = String(user.first_name ?? user.firstName ?? '').trim();
   const lastName = String(user.last_name ?? user.lastName ?? '').trim();
@@ -45,25 +52,25 @@ function dashboardStyle() {
 }
 
 function style() {
-  if (!document.querySelector('[data-tenant-style="booking"]')) {
-    const tag = document.createElement('link');
-    tag.rel = 'stylesheet';
-    tag.href = new URL('./style/booking.css', import.meta.url);
-    tag.dataset.tenantStyle = 'booking';
-    document.head.append(tag);
-    const extra = document.createElement('link');
-    extra.rel = 'stylesheet';
-    extra.href = new URL('./style/booking-cards.css', import.meta.url);
-    extra.dataset.tenantStyle = 'booking-cards';
-    document.head.append(extra);
-  }
+  const existing = document.querySelector('[data-tenant-style="booking"]');
+  if (existing) return existing.sheet ? Promise.resolve() : new Promise((resolve) => existing.addEventListener('load', resolve, { once: true }));
+
+  const tag = document.createElement('link');
+  tag.rel = 'stylesheet';
+  tag.href = new URL('./style/booking.css', import.meta.url);
+  tag.dataset.tenantStyle = 'booking';
+  document.head.append(tag);
+  return new Promise((resolve) => {
+    tag.addEventListener('load', resolve, { once: true });
+    tag.addEventListener('error', resolve, { once: true });
+  });
 }
 
-export function renderBooking(root = document.querySelector('#app')) {
+export async function renderBooking(root = document.querySelector('#app')) {
   if (!root) throw new Error('Booking page requires #app.');
   dashboardStyle();
   ensureTenantSidebarStyles();
-  style();
+  await style();
 
   const syncBookingProfile = () => {
     const user = session();
@@ -79,7 +86,7 @@ export function renderBooking(root = document.querySelector('#app')) {
   root.innerHTML = `
     <div class="dh-app">
       ${renderTenantSidebar('booking')}
-      <main class="tenant-page-main">
+      <main class="tenant-page-main tenant-bookings">
         <section class="booking-overview-page">
           <div class="page-title-row">
             <div class="page-header-copy">
@@ -228,7 +235,7 @@ export function renderBooking(root = document.querySelector('#app')) {
       const pill = statusPill(isPast(booking) ? 'past' : booking.status);
       const dateRange = [booking.move_in_date, booking.move_out_date].filter(Boolean).map(formatDate).join(' - ');
       const price = booking.monthly_rent ? `P${Number(booking.monthly_rent).toLocaleString('en-PH')}` : '';
-      const image = getPropertyImageUrl(property || {});
+      const image = getPropertyImageUrl(property || {}, booking);
       return `
         <article class="booking-card--row">
           <div class="booking-thumb">
@@ -247,8 +254,7 @@ export function renderBooking(root = document.querySelector('#app')) {
           </div>
           <div class="booking-actions">
             ${booking.status === 'approved' ? `<button class="btn" data-action="e-ticket" data-id="${booking.id}">View E-Ticket</button><button class="btn btn--secondary" data-action="contact" data-property="${property?.id ?? booking.property_id}">Contact Landlord</button>` : ''}
-            ${booking.status === 'pending' ? `<button class="btn" data-action="details" data-id="${booking.id}">View Details</button><button class="btn btn--danger" data-action="cancel" data-id="${booking.id}">Cancel Request</button>` : ''}
-            ${isPast(booking) && booking.status !== 'pending' ? `<button class="btn" data-action="details" data-id="${booking.id}">View Details</button>` : ''}
+            ${booking.status === 'pending' ? `<button class="btn btn--danger" data-action="cancel" data-id="${booking.id}">Cancel Request</button>` : ''}
           </div>
         </article>
       `;
@@ -301,9 +307,6 @@ export function renderBooking(root = document.querySelector('#app')) {
           } catch (error) {
             alert(error.message);
           }
-        } else if (action === 'details') {
-          // navigate to booking details page (if exists)
-          location.hash = `#/tenant/bookingDetails?bookingId=${id}`;
         }
       });
     });
@@ -373,8 +376,8 @@ export function renderBooking(root = document.querySelector('#app')) {
       if (!bookingsResponse.ok) throw new Error(bookingBody.message || 'Unable to load bookings.');
       if (!propertiesResponse.ok) throw new Error(propertyBody.message || 'Unable to load properties.');
 
-      state.bookings = Array.isArray(bookingBody.data) ? bookingBody.data : demoBookings;
-      state.properties = Array.isArray(propertyBody.data) ? propertyBody.data : demoProperties;
+      state.bookings = Array.isArray(bookingBody.data) ? bookingBody.data : [];
+      state.properties = Array.isArray(propertyBody.data) ? propertyBody.data : [];
       renderCards();
 
       const targetProperty = state.properties.find((item) => String(item.id) === String(propertyId)) || (propertyId ? null : demoProperty);
@@ -384,8 +387,8 @@ export function renderBooking(root = document.querySelector('#app')) {
         await loadPropertyPreview(propertyId);
       }
     } catch (error) {
-      state.bookings = demoBookings;
-      state.properties = demoProperties;
+      state.bookings = [];
+      state.properties = [];
       renderCards();
       requestStatus.textContent = error.message || 'Unable to load booking data.';
       await loadPropertyPreview(propertyId);

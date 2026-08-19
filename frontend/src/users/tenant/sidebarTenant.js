@@ -54,3 +54,16 @@ export function renderTenantSidebar(activePage = 'dashboardTenant') {
     <button class="logout">Sign out</button>
   </aside>`;
 }
+
+document.addEventListener('click', (event) => {
+  const link = event.target.closest('.dh-sidebar a[href^="#/tenant/"]');
+  if (!link) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const target = link.getAttribute('href');
+  if (window.location.hash === target) {
+    window.dispatchEvent(new Event('hashchange'));
+    return;
+  }
+  window.location.hash = target;
+}, true);

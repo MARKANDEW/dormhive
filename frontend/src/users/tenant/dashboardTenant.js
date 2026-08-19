@@ -39,6 +39,12 @@ function loadStyle() {
     link.dataset.tenantStyle = 'dashboard';
     document.head.append(link);
   }
+  if (!document.querySelector('[data-tenant-style="dashboard-font"]')) {
+    const style = document.createElement('style');
+    style.dataset.tenantStyle = 'dashboard-font';
+    style.textContent = '.dh-dashboard{font-family:Inter,ui-sans-serif,system-ui,sans-serif}.dh-dashboard .intro small,.dh-dashboard .intro h1,.dh-dashboard .intro p{color:#000}';
+    document.head.append(style);
+  }
   if (!document.querySelector('[data-tenant-style="amenities"]')) {
     const aLink = document.createElement('link');
     aLink.rel = 'stylesheet';
@@ -97,14 +103,6 @@ function loadStyle() {
     `;
     document.head.append(style);
   }
-}
-
-function cleanupDuplicateTenantSidebarStyles() {
-  document.querySelectorAll('link[data-tenant-sidebar-style], link[data-tenant-style="sidebar"], link[data-tenant-style="tenant-sidebar"]').forEach((link) => {
-    if (link.dataset.tenantSidebarStyle !== 'shared') {
-      link.remove();
-    }
-  });
 }
 
 function session() {
@@ -409,7 +407,6 @@ async function showNearbyListingsModal(properties = []) {
 
 export async function renderDashboardTenant(root = document.querySelector('#app')) {
   if (!root) throw new Error('Tenant dashboard requires #app.');
-  cleanupDuplicateTenantSidebarStyles();
   loadStyle();
   ensureTenantSidebarStyles();
 
