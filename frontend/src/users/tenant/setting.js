@@ -46,6 +46,7 @@ async function refreshTenantUserSession() {
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok || !body?.data) return currentUser;
+    if (localStorage.getItem('dormhive.accessToken') !== token || localStorage.getItem('dormhive.user') === null) return {};
     const latestUser = { ...currentUser, ...body.data };
     localStorage.setItem('dormhive.user', JSON.stringify(latestUser));
     return latestUser;
@@ -83,12 +84,14 @@ const saveUser = (nextUser = {}) => {
 
 async function refreshTenantUserFromServer(userId) {
   if (!userId) return getUser();
+  const token = localStorage.getItem('dormhive.accessToken') ?? '';
   try {
     const response = await fetch(`${API}/users/${userId}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` }
+      headers: { Authorization: `Bearer ${token}` }
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok || !body?.data) return getUser();
+    if (localStorage.getItem('dormhive.accessToken') !== token || localStorage.getItem('dormhive.user') === null) return {};
     const latestUser = { ...getUser(), ...body.data };
     localStorage.setItem('dormhive.user', JSON.stringify(latestUser));
     window.dispatchEvent(new CustomEvent('dormhive-user-updated', { detail: latestUser }));

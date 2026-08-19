@@ -191,6 +191,51 @@ form {
   margin: 0 8px;
 }
 
+.social-icons button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 10px;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 24px;
+  color: #333;
+  margin: 0 8px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+}
+
+.social-icons button:hover:not(:disabled) {
+  border-color: #7494ec;
+  color: #7494ec;
+}
+
+.social-icons button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.oauth-spinner {
+  display: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: oauth-spin 0.7s linear infinite;
+}
+
+.oauth-button.is-loading > i { display: none; }
+.oauth-button.is-loading .oauth-spinner { display: block; }
+
+@keyframes oauth-spin {
+  to { transform: rotate(360deg); }
+}
+
 .toggle-box {
   position: absolute;
   width: 100%;

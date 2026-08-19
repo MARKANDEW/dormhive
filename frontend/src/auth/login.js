@@ -1,4 +1,5 @@
 const API_BASE_URL = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
+import { bindOAuthButtons, oauthButtonsMarkup } from './oauth.js';
 
 function loadStylesheet() {
   const existing = document.querySelector('link[data-dormhive-auth="split"]');
@@ -39,17 +40,17 @@ export async function renderLogin(root = document.querySelector('#app')) {
     <div class="container">
       <a class="auth-brand" href="../index.html">DormHive</a>
       <div class="form-box login">
-        <form aria-labelledby="login-title">
+        <form aria-labelledby="login-title" autocomplete="off">
           <div class="form-inner">
             <h1 id="login-title">Login</h1>
             <p>Sign in to continue</p>
             <p class="auth-message" role="alert" hidden></p>
-            <div class="input-box"><input id="email" name="email" type="email" placeholder="Email" required><i class='bx bxs-envelope'></i></div>
-            <div class="input-box"><input id="password" name="password" type="password" placeholder="Password" required minlength="8"><i class='bx bxs-lock-alt'></i></div>
+            <div class="input-box"><input id="email" name="email" type="email" placeholder="Email" autocomplete="off" required><i class='bx bxs-envelope'></i></div>
+            <div class="input-box"><input id="password" name="password" type="password" placeholder="Password" autocomplete="new-password" required minlength="8"><i class='bx bxs-lock-alt'></i></div>
             <div class="forgot-link"><a href="#">Forgot Password?</a></div>
             <button class="btn auth-submit" type="submit">Login</button>
             <p>or login with social platforms</p>
-            <div class="social-icons"><a href="#"><i class='bx bxl-google'></i></a><a href="#"><i class='bx bxl-facebook'></i></a></div>
+            ${oauthButtonsMarkup()}
           </div>
         </form>
       </div>
@@ -72,6 +73,7 @@ export async function renderLogin(root = document.querySelector('#app')) {
             <div class="input-box"><input id="password_r" name="password" type="password" placeholder="Password" required minlength="8"><i class='bx bxs-lock-alt'></i></div>
             <div class="input-box"><input id="confirm_password" name="confirmPassword" type="password" placeholder="Confirm password" required minlength="8"><i class='bx bxs-lock-alt'></i></div>
             <label class="checkbox-label"><input name="terms" type="checkbox" required> I agree to the terms of service.</label>
+            ${oauthButtonsMarkup()}
             <button class="btn auth-submit" type="submit">Register</button>
           </div>
         </form>
@@ -101,6 +103,7 @@ export async function renderLogin(root = document.querySelector('#app')) {
   const loginSubmitButton = root.querySelector('.form-box.login .auth-submit');
   const registerSubmitButton = root.querySelector('.form-box.register .auth-submit');
   const phoneInput = root.querySelector('#phone_r');
+  bindOAuthButtons(root);
 
   const getPhoneDigits = (value = '') => String(value).replace(/\D/g, '').slice(0, 10);
   const normalizePhoneValue = (value = '') => getPhoneDigits(value);

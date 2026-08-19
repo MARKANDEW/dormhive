@@ -1,4 +1,5 @@
 const API_BASE_URL = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
+import { bindOAuthButtons, oauthButtonsMarkup } from './oauth.js';
 
 function loadStylesheet() {
   const existing = document.querySelector('link[data-dormhive-auth="split"]');
@@ -43,7 +44,7 @@ export async function renderRegister(root = document.querySelector('#app')) {
             <div class="forgot-link"><a href="#">Forgot Password?</a></div>
             <button class="btn auth-submit" type="submit">Login</button>
             <p>or login with social platforms</p>
-            <div class="social-icons"><a href="#"><i class='bx bxl-google'></i></a><a href="#"><i class='bx bxl-facebook'></i></a><a href="#"><i class='bx bxl-github'></i></a><a href="#"><i class='bx bxl-linkedin'></i></a></div>
+            ${oauthButtonsMarkup()}
           </div>
         </form>
       </div>
@@ -66,6 +67,7 @@ export async function renderRegister(root = document.querySelector('#app')) {
             <div class="input-box"><input id="password_r" name="password" type="password" placeholder="Password" required minlength="8"><i class='bx bxs-lock-alt'></i></div>
             <div class="input-box"><input id="confirm_password" name="confirmPassword" type="password" placeholder="Confirm password" required minlength="8"><i class='bx bxs-lock-alt'></i></div>
             <label class="checkbox-label"><input name="terms" type="checkbox" required> I agree to the terms of service.</label>
+            ${oauthButtonsMarkup()}
             <button class="btn auth-submit" type="submit">Register</button>
           </div>
         </form>
@@ -93,6 +95,7 @@ export async function renderRegister(root = document.querySelector('#app')) {
   const message = root.querySelector('.auth-message');
   const submitButton = root.querySelector('.auth-submit');
   const phoneInput = root.querySelector('#phone_r');
+  bindOAuthButtons(root);
 
   const getPhoneDigits = (value = '') => String(value).replace(/\D/g, '').slice(0, 10);
 
