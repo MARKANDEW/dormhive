@@ -5,10 +5,13 @@ import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import path from 'node:path';
-import apiRoutes from './routes/index.js';
-import { errorHandler, notFound } from './middleware/errorHandler.js';
+import { fileURLToPath } from 'node:url';
+import apiRoutes from './core/routes/index.js';
+import { errorHandler, notFound } from './core/middleware/errorHandler.js';
 
 const app = express();
+const backendDirectory = path.dirname(fileURLToPath(import.meta.url));
+const uploadsDirectory = path.join(backendDirectory, 'core', 'uploads');
 const port = Number.parseInt(process.env.PORT ?? '5000', 10);
 const allowedOrigins = (process.env.CLIENT_URL ?? 'http://localhost:3000')
   .split(',')
@@ -44,7 +47,7 @@ app.use('/api', rateLimit({
   standardHeaders: 'draft-7',
   legacyHeaders: false
 }));
-app.use('/uploads', express.static(path.resolve('uploads')));
+app.use('/uploads', express.static(uploadsDirectory));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false }));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));

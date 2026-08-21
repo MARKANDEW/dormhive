@@ -22,9 +22,13 @@ const avatarUrl = (value = '') => {
   if (/^(data:|blob:|https?:\/\/)/i.test(raw)) return raw;
   return `${API_ORIGIN}${raw.startsWith('/') ? '' : '/'}${raw}`;
 };
-const participantAvatar = (item = {}) => item.participant_avatar_url
-  ? `<img src="${esc(avatarUrl(item.participant_avatar_url))}" alt="${esc(item.participant_name ?? 'Conversation')} avatar" />`
-  : esc(initials(item.participant_name ?? 'Conversation'));
+const renderAvatar = (name = 'User', image = '') => {
+  const source = avatarUrl(image);
+  return source
+    ? `<img src="${esc(source)}" alt="${esc(name)} avatar" onerror="this.replaceWith(document.createTextNode('${esc(initials(name))}'))" />`
+    : esc(initials(name));
+};
+const participantAvatar = (item = {}) => renderAvatar(item.participant_name ?? 'Conversation', item.participant_avatar_url);
 
 function css() {
   if (!document.querySelector('[data-owner-style="dashboard"]')) {
@@ -198,12 +202,14 @@ export function renderMessage(root = document.querySelector('#app')) {
 
       chatTitle.textContent = state.selected.participant_name ?? 'Conversation';
       chatProperty.textContent = getPropertyTitle(state.selected.property_id);
-      chatAvatar.textContent = initials(state.selected.participant_name ?? 'Conversation');
+      chatAvatar.innerHTML = renderAvatar(state.selected.participant_name ?? 'Conversation', state.selected.participant_avatar_url);
 
       messages.innerHTML = (Array.isArray(body.data) ? body.data : []).map((message) => `
         <article class="message-bubble ${message.sender_id === Number(user().id) ? 'mine' : 'their'}">
           <div class="bubble-meta">
-            <div class="avatar-chip tiny">${message.sender_id === Number(user().id) ? initials(user().name || 'You') : initials(state.selected.participant_name ?? 'Tenant')}</div>
+            <div class="avatar-chip tiny">${message.sender_id === Number(user().id)
+              ? renderAvatar(user().name || 'You', user().avatar_url)
+              : renderAvatar(state.selected.participant_name ?? 'Tenant', state.selected.participant_avatar_url)}</div>
             <span>${esc(message.sender_id === Number(user().id) ? 'You' : state.selected.participant_name ?? 'Tenant')}</span>
           </div>
           <div class="bubble-body">${renderMessageBody(message.body)}</div>

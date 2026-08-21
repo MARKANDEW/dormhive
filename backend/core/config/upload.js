@@ -1,8 +1,9 @@
 import multer from 'multer';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const uploadBaseDir = path.resolve('uploads');
+const uploadBaseDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'uploads');
 
 function createUploadMiddleware(subfolderResolver) {
   return multer({

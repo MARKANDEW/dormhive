@@ -4,6 +4,7 @@
   min-height: 100vh;
   background: linear-gradient(180deg, #fff8e8 0%, #fff3d3 100%);
   width: 100%;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 .owner-shell > .owner-sidebar {

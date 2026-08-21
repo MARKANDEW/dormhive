@@ -105,7 +105,7 @@ export function renderSupportTickets(root = document.querySelector('#app')) {
           </header>
 
           <div class="support-content">
-            <aside class="support-sidebar">
+            <section class="support-filters" aria-label="Ticket filters">
               <div class="search-wrap">
                 <span class="search-icon">⌕</span>
                 <input id="ticket-search" type="text" placeholder="Search tickets, users, or FAQs..." />
@@ -113,17 +113,17 @@ export function renderSupportTickets(root = document.querySelector('#app')) {
 
               <div class="filter-group">
                 <h3>Status</h3>
-                <label class="filter-option"><input type="checkbox" value="open" checked /> Open</label>
-                <label class="filter-option"><input type="checkbox" value="pending" checked /> Pending</label>
-                <label class="filter-option"><input type="checkbox" value="resolved" checked /> Resolved</label>
-                <label class="filter-option"><input type="checkbox" value="closed" checked /> Closed</label>
+                <label class="filter-option"><input class="status-filter" type="checkbox" value="open" checked /> Open</label>
+                <label class="filter-option"><input class="status-filter" type="checkbox" value="pending" checked /> Pending</label>
+                <label class="filter-option"><input class="status-filter" type="checkbox" value="resolved" checked /> Resolved</label>
+                <label class="filter-option"><input class="status-filter" type="checkbox" value="closed" checked /> Closed</label>
               </div>
 
               <div class="filter-group">
                 <h3>Priority</h3>
-                <label class="filter-option"><input type="checkbox" value="high" checked /> High</label>
-                <label class="filter-option"><input type="checkbox" value="medium" checked /> Medium</label>
-                <label class="filter-option"><input type="checkbox" value="low" checked /> Low</label>
+                <label class="filter-option"><input class="priority-filter" type="checkbox" value="high" checked /> High</label>
+                <label class="filter-option"><input class="priority-filter" type="checkbox" value="medium" checked /> Medium</label>
+                <label class="filter-option"><input class="priority-filter" type="checkbox" value="low" checked /> Low</label>
               </div>
 
               <div class="filter-group">
@@ -136,7 +136,7 @@ export function renderSupportTickets(root = document.querySelector('#app')) {
                   <option value="90">Last 90 days</option>
                 </select>
               </div>
-            </aside>
+            </section>
 
             <section class="support-main-panel">
               <div class="support-table-head">
@@ -157,8 +157,8 @@ export function renderSupportTickets(root = document.querySelector('#app')) {
 
   const listEl = root.querySelector('#support-tickets-list');
   const searchInput = root.querySelector('#ticket-search');
-  const statusCheckboxes = root.querySelectorAll('.filter-option input[type="checkbox"][value]');
-  const priorityCheckboxes = root.querySelectorAll('.filter-option input[type="checkbox"][value]');
+  const statusCheckboxes = root.querySelectorAll('.status-filter');
+  const priorityCheckboxes = root.querySelectorAll('.priority-filter');
   const dateRangeFilter = root.querySelector('#date-range-filter');
 
   const getFilteredTickets = () => {

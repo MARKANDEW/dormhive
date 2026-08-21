@@ -6,7 +6,8 @@ import {
   countByRole,
   countByStatus,
   totalCount,
-} from '../../frontend/src/users/admin/analyticsUtils.js';
+} from '../../../frontend/src/users/admin/analyticsUtils.js';
+import { buildActivityFeed } from '../../../frontend/src/users/admin/analyticsUtils.js';
 
 test('buildDashboardMetrics totals are computed from aggregated analytics rows', () => {
   const metrics = buildDashboardMetrics({
@@ -41,4 +42,30 @@ test('buildDashboardMetrics totals are computed from aggregated analytics rows',
 test('countByRole and countByStatus return zero for missing groups', () => {
   assert.equal(countByRole([{ role: 'tenant', count: 4 }], 'owner'), 0);
   assert.equal(countByStatus([{ status: 'approved', count: 7 }], 'pending'), 0);
+});
+
+test('recent user profile updates use updated_at in the activity feed', () => {
+  const now = Date.now();
+  const activities = buildActivityFeed([
+    {
+      name: 'Updated Tenant',
+      email: 'tenant@example.com',
+      role: 'tenant',
+      status: 'active',
+      created_at: new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      updated_at: new Date(now - 2 * 60 * 1000).toISOString()
+    },
+    {
+      name: 'Older Owner',
+      email: 'owner@example.com',
+      role: 'owner',
+      status: 'active',
+      created_at: new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      updated_at: new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString()
+    }
+  ]);
+
+  assert.equal(activities[0].title, 'User profile updated');
+  assert.match(activities[0].time, /^2 mins? ago$/);
+  assert.equal(activities[1].title, 'New user registered');
 });

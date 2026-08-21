@@ -1,5 +1,5 @@
 import { ensureAdminSidebarStyles, renderAdminSidebar } from './sidebarAdmin.js';
-import { buildDashboardMetrics } from './analyticsUtils.js';
+import { buildActivityFeed, buildDashboardMetrics } from './analyticsUtils.js';
 import { createModal, openModal } from '../../components/modal.js';
 import { showToast } from '../../components/toast.js';
 import { applyAdminPrivacy } from './privacy.js';
@@ -14,81 +14,11 @@ const esc = (v = '') => {
 };
 const validRoles = ['tenant', 'owner', 'admin'];
 
-function formatTimeAgo(timestamp) {
-  if (!timestamp) return 'unknown';
-  const now = new Date();
-  const date = new Date(timestamp);
-  const seconds = Math.floor((now - date) / 1000);
-  if (seconds < 60) return 'just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} min${minutes > 1 ? 's' : ''} ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-  const days = Math.floor(hours / 24);
-  return `${days} day${days > 1 ? 's' : ''} ago`;
-}
-
 function formatDate(value) {
   if (!value) return '—';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '—';
   return date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
-}
-
-function buildActivityFeed(users = [], properties = [], bookings = []) {
-  const activities = [];
-  properties.forEach((prop) => {
-    if (prop.status === 'approved') {
-      activities.push({
-        icon: 'shield',
-        title: 'Property approved',
-        detail: `[${prop.title || 'Property'}]`,
-        time: formatTimeAgo(prop.updated_at),
-        timestamp: new Date(prop.updated_at || prop.created_at).getTime()
-      });
-    }
-    if (prop.status === 'rejected') {
-      activities.push({
-        icon: 'alert',
-        title: 'Property rejected',
-        detail: `[${prop.title || 'Property'}]`,
-        time: formatTimeAgo(prop.updated_at),
-        timestamp: new Date(prop.updated_at || prop.created_at).getTime()
-      });
-    }
-  });
-  bookings.forEach((booking) => {
-    if (booking.status === 'approved') {
-      activities.push({
-        icon: 'user',
-        title: 'Booking approved',
-        detail: `[${booking.tenant_name || 'Tenant'}]`,
-        time: formatTimeAgo(booking.updated_at),
-        timestamp: new Date(booking.updated_at || booking.created_at).getTime()
-      });
-    }
-    if (booking.status === 'rejected') {
-      activities.push({
-        icon: 'alert',
-        title: 'Booking rejected',
-        detail: `[${booking.tenant_name || 'Tenant'}]`,
-        time: formatTimeAgo(booking.updated_at),
-        timestamp: new Date(booking.updated_at || booking.created_at).getTime()
-      });
-    }
-  });
-  users.forEach((user) => {
-    if (user.status === 'active' || user.status === 'suspended') {
-      activities.push({
-        icon: user.status === 'suspended' ? 'alert' : 'user',
-        title: user.status === 'suspended' ? 'User suspended' : 'New user registered',
-        detail: `[${user.name || user.email}]`,
-        time: formatTimeAgo(user.created_at),
-        timestamp: new Date(user.created_at).getTime()
-      });
-    }
-  });
-  return activities.sort((a, b) => b.timestamp - a.timestamp).slice(0, 10);
 }
 
 const fallbackUsers = [
