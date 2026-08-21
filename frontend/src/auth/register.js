@@ -64,8 +64,8 @@ export async function renderRegister(root = document.querySelector('#app')) {
               <i class='bx bxs-phone'></i>
             </div>
             <div class="input-box"><select id="role" name="role" required><option value="tenant">I want to</option><option value="tenant">Find a rental</option><option value="owner">List a property</option></select></div>
-            <div class="input-box"><input id="password_r" name="password" type="password" placeholder="Password" required minlength="8"><i class='bx bxs-lock-alt'></i></div>
-            <div class="input-box"><input id="confirm_password" name="confirmPassword" type="password" placeholder="Confirm password" required minlength="8"><i class='bx bxs-lock-alt'></i></div>
+            <div class="input-box"><input id="password_r" name="password" type="password" placeholder="Password" required minlength="8"><button class="password-toggle" type="button" aria-label="Show password" aria-pressed="false"><i class='bx bx-show' aria-hidden="true"></i></button></div>
+            <div class="input-box"><input id="confirm_password" name="confirmPassword" type="password" placeholder="Confirm password" required minlength="8"><button class="password-toggle" type="button" aria-label="Show password" aria-pressed="false"><i class='bx bx-show' aria-hidden="true"></i></button></div>
             <label class="checkbox-label"><input name="terms" type="checkbox" required> I agree to the terms of service.</label>
             ${oauthButtonsMarkup()}
             <button class="btn auth-submit" type="submit">Register</button>
@@ -96,6 +96,17 @@ export async function renderRegister(root = document.querySelector('#app')) {
   const submitButton = root.querySelector('.auth-submit');
   const phoneInput = root.querySelector('#phone_r');
   bindOAuthButtons(root);
+
+  root.querySelectorAll('.password-toggle').forEach((toggle) => {
+    toggle.addEventListener('click', () => {
+      const passwordInput = toggle.parentElement.querySelector('input');
+      const isVisible = passwordInput.type === 'text';
+      passwordInput.type = isVisible ? 'password' : 'text';
+      toggle.setAttribute('aria-label', isVisible ? 'Show password' : 'Hide password');
+      toggle.setAttribute('aria-pressed', String(!isVisible));
+      toggle.querySelector('i').className = isVisible ? 'bx bx-show' : 'bx bx-hide';
+    });
+  });
 
   const getPhoneDigits = (value = '') => String(value).replace(/\D/g, '').slice(0, 10);
 
