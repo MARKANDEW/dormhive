@@ -1,9 +1,11 @@
 ﻿import { ensureOwnerSidebarStyles, renderOwnerProfileCard, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
 
-const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
+const API = (window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1').replace(/\/$/, '');
 const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
 const user = () => JSON.parse(localStorage.getItem('dormhive.user') ?? '{}');
 const apiBase = API.replace(/\/api\/v1\/?$/, '');
+const MAX_PROPERTY_PHOTO_SIZE = 2 * 1024 * 1024;
+const SUPPORTED_PROPERTY_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
 const DEFAULT_IMAGE_PLACEHOLDER = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 300"><rect width="500" height="300" fill="#ecf5ef"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#4a7160" font-family="Inter,Arial,sans-serif" font-size="28">No image available</text></svg>');
 const resolveImageUrl = (value = '') => {
   const url = String(value || '').trim();
@@ -212,14 +214,17 @@ export function renderMyListing(root = document.querySelector('#app')) {
                       </div>
                     </div>
                     <div class="media-dropzone">
-                      <input id="property-image" name="image" type="file" accept="image/*" hidden>
+                      <input id="property-image" name="images" type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml" multiple hidden>
                       <label for="property-image" class="media-dropzone-label">
-                        <span class="dropzone-icon">📸</span>
-                        <span>Drag &amp; drop a photo here</span>
-                        <span class="dropzone-hint">or click to browse</span>
+                        <span class="dropzone-icon" aria-hidden="true">☁</span>
+                        <strong>Drag files to upload</strong>
+                        <span class="dropzone-or">or</span>
+                        <span class="browse-files">Browse Files</span>
+                        <span class="dropzone-hint">JPG, PNG, GIF, WEBP or SVG up to 2 MB each</span>
                       </label>
-                      <div class="media-upload-status" aria-live="polite">No photo selected yet.</div>
+                      <div class="media-upload-status" aria-live="polite">Select as many photos as you need</div>
                     </div>
+                    <div class="media-file-list" aria-live="polite"></div>
                     <div class="form-grid">
                       <label class="full-span">Description (optional)<textarea name="description" rows="4" placeholder="Describe your property, house rules, and what makes it special..."></textarea></label>
                     </div>
@@ -277,6 +282,7 @@ export function renderMyListing(root = document.querySelector('#app')) {
   const mediaDropzone = root.querySelector('.media-dropzone');
   const imageInput = root.querySelector('#property-image');
   const uploadStatus = root.querySelector('.media-upload-status');
+  const mediaFileList = root.querySelector('.media-file-list');
   const closeButtons = root.querySelectorAll('.modal-close');
   const paginationButtons = root.querySelectorAll('.pagination button[data-page]');
   const mapContainer = root.querySelector('#property-map');
@@ -301,6 +307,7 @@ export function renderMyListing(root = document.querySelector('#app')) {
   let workflowTitle = '';
   let workflowPrice = 0;
   let currentFormStep = 1;
+  let selectedPhotos = [];
 
   const setFormMessage = (message, type = 'error') => {
     propertyFormMessage.hidden = false;
@@ -308,31 +315,62 @@ export function renderMyListing(root = document.querySelector('#app')) {
     propertyFormMessage.className = `form-message ${type === 'success' ? 'success' : ''}`;
   };
 
-  const updateUploadStatus = () => {
-    if (!imageInput || !uploadStatus) return;
-    if (imageInput.files.length) {
-      uploadStatus.textContent = `Selected photo: ${imageInput.files[0].name}`;
-      uploadStatus.classList.add('selected');
-    } else {
-      uploadStatus.textContent = 'Drag & drop a photo here or click to browse.';
-      uploadStatus.classList.remove('selected');
-    }
+  const formatFileSize = (bytes) => bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+
+  const renderUploadFiles = () => {
+    if (!mediaFileList) return;
+    mediaFileList.innerHTML = selectedPhotos.map((item) => `
+      <article class="media-file ${item.error ? 'is-error' : ''}" data-photo-id="${item.id}">
+        <img class="media-file-preview" src="${item.previewUrl}" alt="">
+        <div class="media-file-details">
+          <div class="media-file-heading"><strong title="${escape(item.file.name)}">${escape(item.file.name)}</strong><span>${formatFileSize(item.file.size)}</span></div>
+          <div class="media-progress-row"><div class="media-progress-track"><span style="width: ${item.progress}%"></span></div><strong class="media-progress-percent">${item.progress}%</strong></div>
+          <small class="media-file-status"><span class="media-file-status-icon">${item.error ? '!' : item.progress === 100 ? '✓' : '○'}</span>${escape(item.error || (item.progress === 100 ? 'Uploaded successfully' : item.uploading ? 'Uploading...' : 'Ready to upload'))}</small>
+        </div>
+        ${item.error ? `<button type="button" class="media-file-retry" data-photo-id="${item.id}">Retry</button>` : ''}
+        <button type="button" class="media-file-remove" data-photo-id="${item.id}" aria-label="Remove ${escape(item.file.name)}">&times;</button>
+      </article>`).join('');
+    uploadStatus.textContent = selectedPhotos.length === 1 ? '1 photo selected' : `${selectedPhotos.length} photos selected`;
+    uploadStatus.classList.toggle('selected', selectedPhotos.length > 0);
   };
 
-  const setDropFiles = (files) => {
-    if (!imageInput || !files?.length) return;
-    try {
-      const dataTransfer = new DataTransfer();
-      Array.from(files).slice(0, 1).forEach((file) => dataTransfer.items.add(file));
-      imageInput.files = dataTransfer.files;
-      updateUploadStatus();
-    } catch {
-      // if DataTransfer is not supported, fallback to manual selection via click
-    }
+  const syncInputFiles = () => {
+    if (!imageInput || typeof DataTransfer === 'undefined') return;
+    const dataTransfer = new DataTransfer();
+    selectedPhotos.forEach(({ file }) => dataTransfer.items.add(file));
+    imageInput.files = dataTransfer.files;
+  };
+
+  const addPhotos = (files) => {
+    const errors = [];
+    Array.from(files || []).forEach((file) => {
+      if (!SUPPORTED_PROPERTY_PHOTO_TYPES.includes(file.type)) {
+        errors.push(`${file.name}: unsupported file type.`);
+        return;
+      }
+      if (file.size > MAX_PROPERTY_PHOTO_SIZE) {
+        errors.push(`${file.name}: file exceeds the 2 MB limit.`);
+        return;
+      }
+      if (selectedPhotos.some((item) => item.file.name === file.name && item.file.size === file.size)) return;
+      const photo = { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, file, previewUrl: URL.createObjectURL(file), progress: 0, error: '', uploading: false, uploadedUrl: '' };
+      selectedPhotos.push(photo);
+      photo.uploadPromise = uploadPhoto(photo);
+    });
+    syncInputFiles();
+    renderUploadFiles();
+    if (errors.length) setFormMessage(errors.join(' '));
+  };
+
+  const resetPhotos = () => {
+    selectedPhotos.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+    selectedPhotos = [];
+    if (imageInput) imageInput.value = '';
+    renderUploadFiles();
   };
 
   if (imageInput) {
-    imageInput.addEventListener('change', updateUploadStatus);
+    imageInput.addEventListener('change', (event) => addPhotos(event.target.files));
   }
 
   if (mediaDropzone) {
@@ -356,12 +394,28 @@ export function renderMyListing(root = document.querySelector('#app')) {
       mediaDropzone.classList.remove('dragover');
       const files = event.dataTransfer?.files;
       if (files?.length) {
-        setDropFiles(files);
+        addPhotos(files);
       }
     });
   }
 
-  updateUploadStatus();
+  mediaFileList?.addEventListener('click', (event) => {
+    const retryButton = event.target.closest('.media-file-retry');
+    if (retryButton) {
+      const photo = selectedPhotos.find((item) => item.id === retryButton.dataset.photoId);
+      if (photo) photo.uploadPromise = uploadPhoto(photo);
+      return;
+    }
+    const button = event.target.closest('.media-file-remove');
+    if (!button) return;
+    const photo = selectedPhotos.find((item) => item.id === button.dataset.photoId);
+    if (photo) URL.revokeObjectURL(photo.previewUrl);
+    selectedPhotos = selectedPhotos.filter((item) => item.id !== button.dataset.photoId);
+    syncInputFiles();
+    renderUploadFiles();
+  });
+
+  renderUploadFiles();
 
   const updateStepIndicator = (step) => {
     const stepMarkers = formStepIndicator.querySelectorAll('.step-marker');
@@ -431,7 +485,7 @@ export function renderMyListing(root = document.querySelector('#app')) {
       return true;
     }
     if (step === 3) {
-      const imageField = propertyForm.elements.image;
+      const imageField = propertyForm.elements.images;
       const isEditing = !!propertyForm.dataset.editingPropertyId;
       // Only require image when creating new property, not when editing
       if (!isEditing && !imageField?.files?.length) {
@@ -446,7 +500,7 @@ export function renderMyListing(root = document.querySelector('#app')) {
   const closeModal = () => {
     propertyModal.hidden = true;
     propertyForm.reset();
-    updateUploadStatus();
+    resetPhotos();
     showFormStep(1);
     propertyFormMessage.hidden = true;
     propertyFormMessage.className = 'form-message';
@@ -459,7 +513,7 @@ export function renderMyListing(root = document.querySelector('#app')) {
     locationCoords.textContent = '';
     locationNextButton.disabled = true;
     // Reset editing state
-    propertyForm.dataset.editingPropertyId = null;
+    propertyForm.removeAttribute('data-editing-property-id');
     const modalHeader = propertyModal.querySelector('.property-modal-header h2');
     const submitBtn = propertyForm.querySelector('button[type="submit"]');
     modalHeader.textContent = 'Create a listing';
@@ -633,6 +687,60 @@ export function renderMyListing(root = document.querySelector('#app')) {
     });
   });
 
+  const uploadPhoto = (photo) => new Promise((resolve, reject) => {
+    photo.uploading = true;
+    photo.error = '';
+    photo.progress = 0;
+    renderUploadFiles();
+    const request = new XMLHttpRequest();
+    request.open('POST', `${API}/properties/uploads`);
+    request.timeout = 120000;
+    Object.entries(authHeaders()).forEach(([key, value]) => request.setRequestHeader(key, value));
+    request.upload.addEventListener('progress', (event) => {
+      if (!event.lengthComputable) return;
+      photo.progress = Math.round((event.loaded / event.total) * 100);
+      renderUploadFiles();
+    });
+    request.addEventListener('load', () => {
+      let body = {};
+      try { body = JSON.parse(request.responseText || '{}'); } catch {}
+      if (request.status >= 200 && request.status < 300) {
+        photo.progress = 100;
+        photo.uploading = false;
+        photo.uploadedUrl = body.data?.imageUrl ?? '';
+        renderUploadFiles();
+        resolve(body);
+      } else {
+        console.error('[property upload] server rejected file', {
+          file: photo.file.name,
+          status: request.status,
+          response: request.responseText
+        });
+        photo.uploading = false;
+        photo.error = `Upload failed (${request.status || 'no response'})`;
+        renderUploadFiles();
+        reject(Object.assign(new Error(body.message ?? 'Upload failed'), { status: request.status, body }));
+      }
+    });
+    request.addEventListener('error', () => {
+      console.error('[property upload] network error', { file: photo.file.name, url: request.responseURL, status: request.status });
+      photo.uploading = false;
+      photo.error = 'Upload failed (network error)';
+      renderUploadFiles();
+      reject(new Error('Upload failed'));
+    });
+    request.addEventListener('timeout', () => {
+      console.error('[property upload] timeout', { file: photo.file.name, url: request.responseURL });
+      photo.uploading = false;
+      photo.error = 'Upload failed (timeout)';
+      renderUploadFiles();
+      reject(new Error('Upload failed'));
+    });
+    const formData = new FormData();
+    formData.append('image', photo.file);
+    request.send(formData);
+  });
+
   propertyForm?.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!validateStep(3)) return;
@@ -644,20 +752,23 @@ export function renderMyListing(root = document.querySelector('#app')) {
       const url = isEditing ? `${API}/properties/${editingPropertyId}` : `${API}/properties`;
       const method = isEditing ? 'PUT' : 'POST';
       
-      const response = await fetch(url, {
-        method,
-        headers: authHeaders(),
-        body: formData
-      });
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        if (response.status === 401) {
-          clearSession();
-          setFormMessage('Your session has expired. Please sign in again.', 'error');
-          setTimeout(() => location.assign('#/login'), 800);
-          return;
-        }
-        throw new Error(body.message ?? (isEditing ? 'Unable to update property.' : 'Unable to create property.'));
+      formData.delete('images');
+      formData.delete('image');
+      const uploadResults = await Promise.allSettled(selectedPhotos.map((photo) => photo.uploadPromise));
+      if (uploadResults.some((result) => result.status === 'rejected' || !result.value?.data?.imageUrl)) {
+        setFormMessage('Some photos failed to upload. Retry them individually before closing this form.');
+        return;
+      }
+      formData.append('imageUrl', selectedPhotos[0]?.uploadedUrl ?? '');
+      formData.append('images', JSON.stringify(selectedPhotos.map((photo) => photo.uploadedUrl)));
+      const finalResponse = await fetch(url, { method, headers: authHeaders(), body: formData });
+      let responseBody = {};
+      try { responseBody = await finalResponse.json(); } catch {}
+      if (!finalResponse.ok) {
+        throw Object.assign(new Error(responseBody.message || 'Unable to save property.'), {
+          status: finalResponse.status,
+          body: responseBody
+        });
       }
       const successMessage = isEditing 
         ? 'Property updated successfully. Changes are now pending admin approval.' 
@@ -668,6 +779,12 @@ export function renderMyListing(root = document.querySelector('#app')) {
         load();
       }, 600);
     } catch (error) {
+      if (error.status === 401) {
+        clearSession();
+        setFormMessage('Your session has expired. Please sign in again.', 'error');
+        setTimeout(() => location.assign('#/login'), 800);
+        return;
+      }
       setFormMessage(error.message);
     }
   });

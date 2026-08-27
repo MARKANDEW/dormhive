@@ -225,7 +225,7 @@
           if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
           const marker = L.marker([lat, lng]).addTo(markers);
           const title = escapeHtml(item.title || item.property_title || item.name || 'Listing');
-          const content = `<strong>${title}</strong><br>${money(item.monthly_rent ?? 0)}<br>${escapeHtml(item.municipality || '')}`;
+          const content = `<strong>${title}</strong><br>${money(item.monthly_rent ?? 0)}<br>${escapeHtml(item.municipality || '')}<br><button type="button" class="map-property-details" data-property-id="${escapeHtml(item.id ?? '')}">View Details</button>`;
           marker.bindPopup(content);
           marker.on('click', () => {
             const statusEl = root.querySelector('#map-status');

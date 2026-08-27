@@ -29,7 +29,7 @@ export async function findById(id) {
 }
 
 export async function create(ownerId, input) {
-  const result = await query("INSERT INTO properties (owner_id, title, description, address, municipality, barangay, latitude, longitude, room_type, monthly_rent, max_occupants, available_slots, gender_preference, amenities, image_url, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')", [ownerId, input.title, input.description ?? null, input.address, input.municipality, input.barangay ?? null, input.latitude ?? null, input.longitude ?? null, input.roomType, input.monthlyRent, input.maxOccupants, input.availableSlots ?? null, input.genderPreference ?? null, input.amenities ?? null, input.imageUrl ?? null]);
+  const result = await query("INSERT INTO properties (owner_id, title, description, address, municipality, barangay, latitude, longitude, room_type, monthly_rent, max_occupants, available_slots, gender_preference, amenities, image_url, images, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')", [ownerId, input.title, input.description ?? null, input.address, input.municipality, input.barangay ?? null, input.latitude ?? null, input.longitude ?? null, input.roomType, input.monthlyRent, input.maxOccupants, input.availableSlots ?? null, input.genderPreference ?? null, input.amenities ?? null, input.imageUrl ?? null, JSON.stringify(input.images ?? [])]);
   return findById(result.insertId);
 }
 
@@ -49,8 +49,20 @@ export async function update(id, input) {
     gender_preference = COALESCE(?, gender_preference),
     amenities = COALESCE(?, amenities),
     image_url = COALESCE(?, image_url),
+    images = COALESCE(?, images),
     status = COALESCE(?, status)
-  WHERE id = ?`, [input.title ?? null, input.description ?? null, input.address ?? null, input.municipality ?? null, input.barangay ?? null, input.latitude ?? null, input.longitude ?? null, input.roomType ?? null, input.monthlyRent ?? null, input.maxOccupants ?? null, input.availableSlots ?? null, input.genderPreference ?? null, input.amenities ?? null, input.imageUrl ?? null, input.status ?? null, id]);
+  WHERE id = ?`, [input.title ?? null, input.description ?? null, input.address ?? null, input.municipality ?? null, input.barangay ?? null, input.latitude ?? null, input.longitude ?? null, input.roomType ?? null, input.monthlyRent ?? null, input.maxOccupants ?? null, input.availableSlots ?? null, input.genderPreference ?? null, input.amenities ?? null, input.imageUrl ?? null, input.images ? JSON.stringify(input.images) : null, input.status ?? null, id]);
+  return findById(id);
+}
+
+export async function appendImage(id, imageUrl) {
+  const property = await findById(id);
+  let images = [];
+  try {
+    images = Array.isArray(property?.images) ? property.images : JSON.parse(property?.images || '[]');
+  } catch {}
+  images.push(imageUrl);
+  await query('UPDATE properties SET image_url = COALESCE(image_url, ?), images = ? WHERE id = ?', [imageUrl, JSON.stringify(images), id]);
   return findById(id);
 }
 

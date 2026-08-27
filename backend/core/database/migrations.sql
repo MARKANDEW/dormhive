@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS properties (
   gender_preference ENUM('co-ed', 'male', 'female'),
   amenities JSON,
   image_url VARCHAR(255),
+  images JSON,
   status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -128,6 +129,7 @@ CREATE TABLE IF NOT EXISTS support_tickets (
 ALTER TABLE properties ADD COLUMN IF NOT EXISTS available_slots INT AFTER max_occupants;
 ALTER TABLE properties ADD COLUMN IF NOT EXISTS gender_preference ENUM('co-ed', 'male', 'female') AFTER available_slots;
 ALTER TABLE properties ADD COLUMN IF NOT EXISTS amenities JSON AFTER gender_preference;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS images JSON AFTER image_url;
 
 -- Add first_name and last_name to users for separate name storage
 ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name VARCHAR(100) AFTER name;

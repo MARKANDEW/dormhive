@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import mysql from 'mysql2/promise';
 
 const {
@@ -75,6 +76,7 @@ async function checkAndFixDatabase() {
           gender_preference ENUM('co-ed', 'male', 'female'),
           amenities JSON,
           image_url VARCHAR(255),
+          images JSON,
           status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -204,7 +206,8 @@ async function checkAndFixDatabase() {
       const requiredColumns = {
         'available_slots': 'INT',
         'gender_preference': "ENUM('co-ed', 'male', 'female')",
-        'amenities': 'JSON'
+        'amenities': 'JSON',
+        'images': 'JSON'
       };
       
       const missingColumns = Object.keys(requiredColumns).filter(col => !columnNames.includes(col));
@@ -215,7 +218,8 @@ async function checkAndFixDatabase() {
         const alterStatements = [
           "ALTER TABLE properties ADD COLUMN IF NOT EXISTS available_slots INT AFTER max_occupants",
           "ALTER TABLE properties ADD COLUMN IF NOT EXISTS gender_preference ENUM('co-ed', 'male', 'female') AFTER available_slots",
-          "ALTER TABLE properties ADD COLUMN IF NOT EXISTS amenities JSON AFTER gender_preference"
+          "ALTER TABLE properties ADD COLUMN IF NOT EXISTS amenities JSON AFTER gender_preference",
+          "ALTER TABLE properties ADD COLUMN IF NOT EXISTS images JSON AFTER image_url"
         ];
         
         for (const sql of alterStatements) {

@@ -1,6 +1,15 @@
 import * as notifications from '../models/Notification.js';
 import * as properties from '../models/Property.js';
 
+const parseImages = (value) => {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== 'string' || !value.trim()) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [value];
+  } catch { return [value]; }
+};
+
 export async function list(request, response, next) {
   try {
     const page = Math.max(1, Number(request.query.page) || 1);
@@ -29,6 +38,7 @@ export async function get(request, response, next) {
 
 export async function create(request, response, next) {
   try {
+    const uploadedFiles = [...(request.files?.images ?? []), ...(request.files?.image ?? [])];
     const amenitiesRaw = request.body.amenities;
     const amenities = Array.isArray(amenitiesRaw)
       ? JSON.stringify(amenitiesRaw)
@@ -37,7 +47,8 @@ export async function create(request, response, next) {
         : null;
     const input = {
       ...request.body,
-      imageUrl: request.file ? `/uploads/properties/${request.file.filename}` : request.body.imageUrl ?? null,
+      imageUrl: uploadedFiles[0] ? `/uploads/properties/${uploadedFiles[0].filename}` : request.body.imageUrl ?? null,
+      images: uploadedFiles.length ? uploadedFiles.map((file) => `/uploads/properties/${file.filename}`) : parseImages(request.body.images),
       availableSlots: Number(request.body.availableSlots ?? request.body.available_slots ?? 0) || null,
       genderPreference: request.body.genderPreference ?? request.body.gender_preference ?? null,
       amenities
@@ -48,6 +59,7 @@ export async function create(request, response, next) {
 
 export async function update(request, response, next) {
   try {
+    const uploadedFiles = [...(request.files?.images ?? []), ...(request.files?.image ?? [])];
     const property = await properties.findById(request.params.id);
     if (!property) return response.status(404).json({ message: 'Property not found.' });
     if (property.owner_id !== request.user.id && request.user.role !== 'admin') return response.status(403).json({ message: 'Permission denied.' });
@@ -64,7 +76,8 @@ export async function update(request, response, next) {
 
     const input = {
       ...request.body,
-      imageUrl: request.file ? `/uploads/properties/${request.file.filename}` : request.body.imageUrl ?? null,
+      imageUrl: uploadedFiles[0] ? `/uploads/properties/${uploadedFiles[0].filename}` : request.body.imageUrl ?? null,
+      images: uploadedFiles.length ? uploadedFiles.map((file) => `/uploads/properties/${file.filename}`) : parseImages(request.body.images),
       availableSlots: Number(request.body.availableSlots ?? request.body.available_slots ?? 0) || null,
       genderPreference: request.body.genderPreference ?? request.body.gender_preference ?? null,
       amenities
@@ -72,6 +85,33 @@ export async function update(request, response, next) {
 
     response.json({ data: await properties.update(request.params.id, input) });
   } catch (error) { next(error); }
+}
+
+export async function addImage(request, response, next) {
+  try {
+    const property = await properties.findById(request.params.id);
+    if (!property) return response.status(404).json({ message: 'Property not found.' });
+    if (property.owner_id !== request.user.id && request.user.role !== 'admin') return response.status(403).json({ message: 'Permission denied.' });
+    if (!request.file) return response.status(422).json({ message: 'An image is required.' });
+    const imageUrl = `/uploads/properties/${request.file.filename}`;
+    const updated = await properties.appendImage(request.params.id, imageUrl);
+    response.status(201).json({ data: updated });
+  } catch (error) { next(error); }
+}
+
+export function uploadImage(request, response) {
+  console.info('[property upload] received', {
+    userId: request.user?.id,
+    role: request.user?.role,
+    field: request.file?.fieldname,
+    originalName: request.file?.originalname,
+    size: request.file?.size,
+    path: request.file?.path
+  });
+  if (!request.file) return response.status(422).json({ message: 'An image is required.' });
+  const imageUrl = `/uploads/properties/${request.file.filename}`;
+  console.info('[property upload] stored', { imageUrl, filename: request.file.filename });
+  response.status(201).json({ data: { imageUrl, fileId: request.file.filename } });
 }
 
 export async function remove(request, response, next) {
