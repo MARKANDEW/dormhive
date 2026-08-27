@@ -2,7 +2,8 @@ import { renderMapPanelShell, initLeafletMap, updateLeafletMarkers } from '../..
 import { ensureTenantSidebarStyles, renderTenantSidebar } from './sidebarTenant.js';
 import { getUserAvatarUrl, refreshTenantUserSession } from './setting.js';
 import { createModal, openModal } from '../../components/modal.js';
-import { getApiErrorMessage, readApiResponse } from '../../services/api.js';
+import { api as apiClient, getApiErrorMessage, readApiResponse } from '../../services/api.js';
+import { markNotificationRead } from '../../services/notificationSystem.js';
 
 const API_URL = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const apiBase = API_URL.replace(/\/api\/v1\/?$/, '');
@@ -29,8 +30,9 @@ function tenantFullName(user = {}) {
   return combined || String(user.name ?? 'Tenant').trim() || 'Tenant';
 }
 const money = (value = 0) => `PHP ${Number(value || 0).toLocaleString('en-PH')}`;
-const glyph = { grid: '&#9638;', chat: '&#9993;', calendar: '&#9783;', gear: '&#9881;', menu: '&#9776;', search: '&#9906;', bell: '&#9679;', pin: '&#9679;', heart: '&#9825;', home: '&#8962;', walk: '&#10148;', target: '&#8857;', layers: '&#9638;', arrow: '&#8594;', chevron: '&#8964;', wifi: '&#8976;', snow: '&#10052;', kitchen: '&#9832;', laundry: '&#8635;', car: '&#9670;' };
+const glyph = { grid: '&#9638;', calendar: '&#9783;', gear: '&#9881;', menu: '&#9776;', search: '&#9906;', pin: '&#9679;', heart: '&#9825;', home: '&#8962;', walk: '&#10148;', target: '&#8857;', layers: '&#9638;', arrow: '&#8594;', wifi: '&#8976;', snow: '&#10052;', kitchen: '&#9832;', laundry: '&#8635;', car: '&#9670;' };
 const icon = (name) => `<span class="icon">${glyph[name] ?? ''}</span>`;
+const formatNotificationDate = (value) => new Date(value ?? Date.now()).toLocaleDateString([], { month: 'short', day: 'numeric' });
 
 function loadStyle() {
   if (!document.querySelector('[data-tenant-style="dashboard"]')) {
@@ -52,6 +54,27 @@ function loadStyle() {
     aLink.href = new URL('./style/amenities.css', import.meta.url);
     aLink.dataset.tenantStyle = 'amenities';
     document.head.append(aLink);
+  }
+  if (!document.querySelector('[data-tenant-style="notifications"]')) {
+    const style = document.createElement('style');
+    style.dataset.tenantStyle = 'notifications';
+    style.textContent = `
+      .dh-dashboard .notification-menu { position: relative; }
+      .dh-dashboard .notification-trigger { position: relative; display: grid; place-items: center; width: 37px; height: 37px; border: 0; border-radius: 8px; background: transparent; color: #3d554e; cursor: pointer; }
+      .dh-dashboard .notification-trigger:hover { background: #eef6f3; }
+      .dh-dashboard .notification-trigger > span:first-child { font-size: 1.25rem; line-height: 1; filter: grayscale(1) brightness(.35); }
+      .dh-dashboard .notification-badge { position: absolute; top: 2px; right: 1px; min-width: 16px; height: 16px; display: grid; place-items: center; padding: 0 4px; border-radius: 999px; background: #ef4444; color: #fff; font-size: 10px; font-weight: 800; }
+      .dh-dashboard .notification-dropdown { position: absolute; top: calc(100% + .65rem); right: 0; z-index: 30; width: min(21rem, calc(100vw - 2rem)); overflow: hidden; border: 1px solid #dce6e2; border-radius: .8rem; background: #fff; box-shadow: 0 12px 30px rgba(20, 70, 55, .14); }
+      .dh-dashboard .notification-dropdown-header { display: flex; justify-content: space-between; gap: 1rem; padding: .85rem 1rem; border-bottom: 1px solid #dce6e2; }
+      .dh-dashboard .notification-dropdown-header span, .dh-dashboard .notification-empty, .dh-dashboard .notification-item time { color: #6d8179; font-size: .75rem; }
+      .dh-dashboard .notification-list { max-height: 20rem; overflow-y: auto; }
+      .dh-dashboard .notification-item { display: flex; align-items: flex-start; justify-content: space-between; gap: .8rem; width: 100%; padding: .85rem 1rem; border: 0; border-bottom: 1px solid #edf2ef; background: #fff; color: #1f3530; text-align: left; cursor: pointer; }
+      .dh-dashboard .notification-item:hover, .dh-dashboard .notification-item.is-unread { background: #f7fcf9; }
+      .dh-dashboard .notification-item-copy { display: grid; gap: .25rem; min-width: 0; }
+      .dh-dashboard .notification-item-copy span { overflow: hidden; color: #6a7c75; font-size: .78rem; line-height: 1.35; text-overflow: ellipsis; }
+      .dh-dashboard .notification-empty { margin: 0; padding: 1.1rem 1rem; text-align: center; }
+    `;
+    document.head.append(style);
   }
   // Add CSS for full-map-container modal
   if (!document.querySelector('style[data-tenant-modal-css]')) {
@@ -492,12 +515,19 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
             <input id="search" type="search" placeholder="Search by location, university, or landmark...">
           </label>
           <div class="top-actions">
-            <button type="button">${icon('bell')}<i></i></button>
-            <button class="message-link" type="button">${icon('chat')}</button>
+            <div class="notification-menu">
+              <button class="notification-trigger" type="button" aria-label="Notifications" aria-expanded="false">
+                <span aria-hidden="true">&#128276;</span>
+                <span class="notification-badge" hidden>0</span>
+              </button>
+              <div class="notification-dropdown" hidden>
+                <div class="notification-dropdown-header"><strong>Notifications</strong><span>Recent updates</span></div>
+                <div class="notification-list"><p class="notification-empty">No notifications yet.</p></div>
+              </div>
+            </div>
             <a class="profile" href="#/tenant/setting">
               <span class="profile-avatar">${user.avatar_url ? `<img src="${esc(getUserAvatarUrl(user, displayName))}" alt="${esc(displayName)} avatar" />` : `<b>${esc((displayName || 'T').split(' ').map((part) => part[0]).join('').slice(0,2).toUpperCase() || 'T')}</b>`}</span>
               <span class="profile-name">${esc(displayName)}</span>
-              ${icon('chevron')}
             </a>
           </div>
         </header>
@@ -585,6 +615,64 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
       </main>
     </div>
   `;
+
+  const notificationMenu = root.querySelector('.notification-menu');
+  const notificationTrigger = root.querySelector('.notification-trigger');
+  const notificationBadge = root.querySelector('.notification-badge');
+  const notificationDropdown = root.querySelector('.notification-dropdown');
+  const notificationList = root.querySelector('.notification-list');
+  let notifications = [];
+
+  const renderNotifications = () => {
+    const unreadCount = notifications.filter((item) => !item.read_at).length;
+    notificationBadge.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
+    notificationBadge.hidden = unreadCount === 0;
+    notificationList.innerHTML = notifications.length
+      ? notifications.slice(0, 6).map((item) => `
+          <button class="notification-item${item.read_at ? '' : ' is-unread'}" type="button" data-notification-id="${item.id}">
+            <span class="notification-item-copy"><strong>${esc(item.title || 'Notification')}</strong><span>${esc(item.message || '')}</span></span>
+            <time>${esc(formatNotificationDate(item.created_at))}</time>
+          </button>`).join('')
+      : '<p class="notification-empty">No notifications yet.</p>';
+  };
+
+  const loadNotifications = async () => {
+    try {
+      const response = await apiClient.notifications.list();
+      notifications = Array.isArray(response?.data) ? response.data : [];
+      renderNotifications();
+    } catch {
+      notificationList.innerHTML = '<p class="notification-empty">Notifications unavailable.</p>';
+    }
+  };
+
+  notificationTrigger.addEventListener('click', () => {
+    const isOpen = !notificationDropdown.hidden;
+    notificationDropdown.hidden = isOpen;
+    notificationTrigger.setAttribute('aria-expanded', String(!isOpen));
+  });
+  notificationList.addEventListener('click', async (event) => {
+    const item = event.target.closest('[data-notification-id]');
+    if (!item) return;
+    const notification = notifications.find((entry) => String(entry.id) === item.dataset.notificationId);
+    if (!notification || notification.read_at) return;
+    try {
+      await markNotificationRead(notification.id);
+      notification.read_at = new Date().toISOString();
+      renderNotifications();
+    } catch { /* Keep the item unread when the API request fails. */ }
+  });
+  document.addEventListener('click', (event) => {
+    if (!notificationMenu.contains(event.target)) {
+      notificationDropdown.hidden = true;
+      notificationTrigger.setAttribute('aria-expanded', 'false');
+    }
+  });
+  loadNotifications();
+  const notificationPoll = setInterval(() => {
+    if (!root.isConnected) return clearInterval(notificationPoll);
+    loadNotifications();
+  }, 15000);
 
   const state = { all: [] };
   const search = root.querySelector('#search');
