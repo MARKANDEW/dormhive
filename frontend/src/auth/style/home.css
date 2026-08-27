@@ -20,6 +20,7 @@ html,
 body {
   margin: 0;
   padding: 0;
+  scroll-behavior: smooth;
   font-family: Inter, "Segoe UI", sans-serif;
   background: #ffffff;
   color: var(--dh-ink);
@@ -216,6 +217,7 @@ a {
   letter-spacing: -0.04em;
   font-weight: 900;
   text-transform: uppercase;
+  scroll-margin-top: 84px;
 }
 
 .dh-about-copy {

@@ -4,6 +4,18 @@ export class ApiError extends Error {
   constructor(message, { status = 0, data = null } = {}) { super(message); this.name = 'ApiError'; this.status = status; this.data = data; }
 }
 
+export async function readApiResponse(response) {
+  const text = await response.text();
+  if (!text) return null;
+  try { return JSON.parse(text); } catch { return null; }
+}
+
+export function getApiErrorMessage(payload, fallback = 'Something went wrong. Please try again.') {
+  return payload && typeof payload === 'object' && typeof payload.message === 'string' && payload.message.trim()
+    ? payload.message
+    : fallback;
+}
+
 function readToken() { return localStorage.getItem('dormhive.accessToken'); }
 function setSession({ accessToken, user }) {
   if (accessToken) localStorage.setItem('dormhive.accessToken', accessToken);
@@ -36,12 +48,10 @@ export function createApiClient(baseUrl = API_BASE_URL) {
       headers: { Accept: 'application/json', ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(auth && token ? { Authorization: `Bearer ${token}` } : {}), ...headers },
       body: body === undefined ? undefined : JSON.stringify(body)
     });
-    const text = await response.text();
-    let payload = null;
-    try { payload = text ? JSON.parse(text) : null; } catch { payload = text; }
+    const payload = await readApiResponse(response);
     if (!response.ok) {
       if (response.status === 401) clearSession();
-      throw new ApiError(payload?.message ?? `Request failed (${response.status}).`, { status: response.status, data: payload });
+      throw new ApiError(getApiErrorMessage(payload, `Request failed (${response.status}).`), { status: response.status, data: payload });
     }
     return payload;
   }

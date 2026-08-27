@@ -45,7 +45,8 @@ app.use('/api', rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 300,
   standardHeaders: 'draft-7',
-  legacyHeaders: false
+  legacyHeaders: false,
+  handler: (_request, response) => response.status(429).json({ message: 'Too many requests. Please try again later.' })
 }));
 app.use('/uploads', express.static(uploadsDirectory));
 app.use(express.json({ limit: '1mb' }));

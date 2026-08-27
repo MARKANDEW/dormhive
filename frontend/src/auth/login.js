@@ -1,5 +1,8 @@
-const API_BASE_URL = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
+const API_BASE_URL = (window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1').replace(/\/$/, '');
 import { bindOAuthButtons, oauthButtonsMarkup } from './oauth.js';
+import { showToast } from '../components/toast.js';
+import { navigate } from '../../router.js';
+import { getApiErrorMessage, readApiResponse } from '../services/api.js';
 
 function loadStylesheet() {
   const existing = document.querySelector('link[data-dormhive-auth="split"]');
@@ -31,6 +34,13 @@ function showMessage(element, message) {
   element.textContent = message;
   element.className = 'auth-message auth-message--error';
   element.hidden = false;
+}
+
+function loginErrorMessage(response, body) {
+  if (response.status === 429) return 'Too many sign-in attempts. Please wait a few minutes and try again.';
+  if (!body && response.status >= 500) return 'The sign-in service is temporarily unavailable. Please try again.';
+  if (!body) return `Unable to sign in (request failed with status ${response.status}).`;
+  return getApiErrorMessage(body, 'Unable to sign in.');
 }
 
 export async function renderLogin(root = document.querySelector('#app')) {
@@ -156,13 +166,13 @@ export async function renderLogin(root = document.querySelector('#app')) {
     if (message) message.hidden = true;
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(new FormData(form))) });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.message ?? 'Unable to sign in.');
+      const body = await readApiResponse(response);
+      if (!response.ok) throw new Error(loginErrorMessage(response, body));
       localStorage.setItem('dormhive.accessToken', body.accessToken);
       localStorage.setItem('dormhive.user', JSON.stringify(body.user));
       redirectForRole(body.user.role);
     } catch (error) {
-      showMessage(message, error.message);
+      showMessage(message, error instanceof TypeError ? 'Unable to reach the sign-in service. Please check that the backend is running.' : error.message);
       loginSubmitButton.disabled = false;
       loginSubmitButton.textContent = 'Login';
     }
@@ -194,11 +204,10 @@ export async function renderLogin(root = document.querySelector('#app')) {
       if (message) message.hidden = true;
       try {
         const response = await fetch(`${API_BASE_URL}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        const body = await response.json();
-        if (!response.ok) throw new Error(body.message ?? 'Unable to create your account.');
-        localStorage.setItem('dormhive.accessToken', body.accessToken);
-        localStorage.setItem('dormhive.user', JSON.stringify(body.user));
-        redirectForRole(body.user.role);
+        const body = await readApiResponse(response);
+        if (!response.ok) throw new Error(getApiErrorMessage(body, 'Unable to create your account.'));
+        showToast({ message: 'Account created successfully!', type: 'success' });
+        navigate('/login', true);
       } catch (error) {
         showMessage(message, error.message);
         registerSubmitButton.disabled = false;

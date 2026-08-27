@@ -59,6 +59,18 @@ a {
     min-height: 100vh;
 }
 
+.owner-shell--dashboard {
+    height: 100vh;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+.owner-shell--dashboard > .owner-main {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+
 
 /* =========================
    TOP BAR
@@ -211,6 +223,88 @@ a {
 
     font-size: 0.6rem;
     font-weight: 800;
+}
+
+.notification-menu {
+    position: relative;
+}
+
+.notification-trigger span:first-child {
+    font-size: 1.1rem;
+    line-height: 1;
+    filter: grayscale(1) brightness(0.35);
+}
+
+.notification-dropdown {
+    position: absolute;
+    top: calc(100% + 0.7rem);
+    right: 0;
+    z-index: 30;
+    width: min(21rem, calc(100vw - 2rem));
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 0.8rem;
+    background: #fff;
+    box-shadow: 0 12px 30px rgba(20, 70, 55, 0.14);
+}
+
+.notification-dropdown-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.notification-dropdown-header span,
+.notification-empty,
+.notification-item time {
+    color: var(--muted);
+    font-size: 0.75rem;
+}
+
+.notification-list {
+    max-height: 20rem;
+    overflow-y: auto;
+}
+
+.notification-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.8rem;
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border: 0;
+    border-bottom: 1px solid #edf2ef;
+    background: #fff;
+    color: var(--text);
+    text-align: left;
+}
+
+.notification-item:hover,
+.notification-item.is-unread {
+    background: #f7fcf9;
+}
+
+.notification-item-copy {
+    display: grid;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.notification-item-copy span {
+    overflow: hidden;
+    color: #6a7c75;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+}
+
+.notification-empty {
+    margin: 0;
+    padding: 1.1rem 1rem;
+    text-align: center;
 }
 
 
@@ -1067,6 +1161,16 @@ a {
 /* =========================
    PERFORMANCE REPORT
 ========================= */
+
+.ui-modal:has(.report-container) {
+    width: min(92vw, 760px);
+    max-height: calc(100vh - 2rem);
+}
+
+.ui-modal:has(.report-container) .ui-modal__body {
+    max-height: calc(100vh - 9rem);
+    overflow-y: auto;
+}
 
 .report-container {
     display: flex;

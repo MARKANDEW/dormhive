@@ -60,7 +60,6 @@ body { background: #f7f9f8; }
   .composer { padding: 1rem; }
   .message-list { padding: 1rem; }
 }
-
 /* Match the owner inbox presentation while keeping tenant behavior. */
 .messages-page .owner-topbar {
   display: grid;
@@ -180,3 +179,4 @@ body { background: #f7f9f8; }
   .messages-page .search-bar { max-width: none; min-width: 0; }
   .messages-page .topbar-right { justify-content: flex-end; }
 }
+

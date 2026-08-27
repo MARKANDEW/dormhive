@@ -2,6 +2,7 @@ import { renderMapPanelShell, initLeafletMap, updateLeafletMarkers } from '../..
 import { ensureTenantSidebarStyles, renderTenantSidebar } from './sidebarTenant.js';
 import { getUserAvatarUrl, refreshTenantUserSession } from './setting.js';
 import { createModal, openModal } from '../../components/modal.js';
+import { getApiErrorMessage, readApiResponse } from '../../services/api.js';
 
 const API_URL = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const apiBase = API_URL.replace(/\/api\/v1\/?$/, '');
@@ -81,6 +82,9 @@ function loadStyle() {
         text-align: center;
       }
       .ui-modal:has(.full-map-container) {
+        position: fixed;
+        inset: 0;
+        margin: auto;
         width: min(95vw, 900px);
         max-height: 90vh;
         overflow: hidden;
@@ -119,8 +123,8 @@ async function api(path) {
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const response = await fetch(`${API_URL}${path}`, { headers });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.message ?? 'Unable to load listings.');
+  const body = await readApiResponse(response);
+  if (!response.ok) throw new Error(getApiErrorMessage(body, 'Unable to load listings.'));
   return body;
 }
 
@@ -180,8 +184,71 @@ function renderAmenitiesChips(item = {}) {
     .join('');
 }
 
+function propertyDetailsMarkup(property) {
+  const address = [property.address, property.barangay, property.municipality].filter(Boolean).join(', ');
+  const amenities = normalizeAmenities(property);
+  const maxOccupants = Number(property.max_occupants);
+  return `
+    <div class="property-detail-modal-content">
+      <img class="property-detail-modal-image" src="${esc(normalizePropertyImage(property) || DEFAULT_IMAGE_PLACEHOLDER)}" alt="${esc(property.title || 'Property')}" />
+      <div class="property-detail-modal-info">
+        <div class="property-detail-modal-heading">
+          <h3>${esc(property.title || 'Property')}</h3>
+          <strong>${money(property.monthly_rent)} / month</strong>
+        </div>
+        <div class="property-detail-modal-grid">
+          <p><span>Location</span><strong>${esc(address || 'Not specified')}</strong></p>
+          <p><span>Room type</span><strong>${esc(normalizeRoomType(property.room_type) || 'Not specified')}</strong></p>
+          <p><span>Occupancy</span><strong>${esc(maxOccupants ? `Up to ${maxOccupants} tenant${maxOccupants === 1 ? '' : 's'}` : 'Not specified')}</strong></p>
+          <p><span>Available slots</span><strong>${esc(property.available_slots ?? 'Not specified')}</strong></p>
+          <p><span>Gender preference</span><strong>${esc(normalizeGenderPreference(property.gender_preference) || 'Not specified')}</strong></p>
+          <p><span>Owner</span><strong>${esc(property.owner_name || 'Not specified')}</strong></p>
+        </div>
+        <p class="property-detail-modal-description">${esc(property.description || 'No description provided.')}</p>
+        <p class="property-detail-modal-amenities"><span>Amenities</span><strong>${esc(amenities.length ? amenities.map((item) => AMENITY_LABELS[item] ?? item.replace(/_/g, ' ')).join(', ') : 'None listed')}</strong></p>
+      </div>
+    </div>
+    <form class="dashboard-request-form">
+      <div class="dashboard-request-fields">
+        <label>Move-in Date<input type="date" name="moveInDate" required /></label>
+        <label>Move-out Date<input type="date" name="moveOutDate" /></label>
+        <label>Occupants<input type="number" name="occupants" min="1" value="1" required /></label>
+        <button type="button" class="dashboard-chat-owner">💬 Chat Owner</button>
+        <button type="submit" class="dashboard-send-request">📨 Send Request</button>
+      </div>
+      <p class="dashboard-request-status" role="status"></p>
+    </form>
+  `;
+}
+
 function locationText(item) {
   return [item.barangay, item.municipality, item.address].filter(Boolean).join(', ') || 'Manila';
+}
+
+function loadPropertyDetailsStyle() {
+  if (document.querySelector('[data-tenant-style="property-details"]')) return;
+  const style = document.createElement('style');
+  style.dataset.tenantStyle = 'property-details';
+  style.textContent = `
+    .ui-modal:has(.property-detail-modal-content) { position: fixed; inset: 0; margin: auto; width: min(94vw, 920px); max-height: calc(100vh - 2rem); }
+    .property-detail-modal-content { display: grid; grid-template-columns: minmax(220px, 38%) 1fr; gap: 1.25rem; }
+    .property-detail-modal-image { width: 100%; height: 230px; object-fit: cover; border-radius: .65rem; }
+    .property-detail-modal-heading { display: flex; justify-content: space-between; align-items: baseline; gap: .75rem; }
+    .property-detail-modal-heading h3 { margin: 0; font-size: 1.35rem; }
+    .property-detail-modal-heading strong { color: #9a6a24; white-space: nowrap; }
+    .property-detail-modal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem 1rem; margin-top: .9rem; }
+    .property-detail-modal-grid p, .property-detail-modal-amenities { display: grid; gap: .1rem; margin: 0; }
+    .property-detail-modal-grid span, .property-detail-modal-amenities span { color: #847871; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+    .property-detail-modal-description { margin: .9rem 0 .55rem; }
+    .dashboard-request-form { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e6d6b6; }
+    .dashboard-request-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto auto; gap: .65rem; align-items: end; }
+    .dashboard-request-fields label { display: grid; gap: .3rem; color: #443d39; font-size: .8rem; font-weight: 700; }
+    .dashboard-request-fields input { width: 100%; height: 42px; padding: 0 .65rem; border: 1px solid #d8d0c9; border-radius: .55rem; font: inherit; }
+    .dashboard-request-fields button { height: 42px; padding: 0 .8rem; border: 0; border-radius: .55rem; background: #b48421; color: #fff; font-weight: 700; cursor: pointer; white-space: nowrap; }
+    .dashboard-request-status { min-height: 1.2rem; margin: .55rem 0 0; color: #7b4b2d; font-size: .82rem; }
+    @media (max-width: 700px) { .property-detail-modal-content, .dashboard-request-fields { grid-template-columns: 1fr; } .property-detail-modal-image { height: 180px; } }
+  `;
+  document.head.append(style);
 }
 
 function mapQueryFor(item) {
@@ -208,7 +275,7 @@ function listingCard(item, index) {
         <div class="price"><strong>${money(item.monthly_rent)}</strong><small>/ month</small><span>${icon('walk')}${walkDistance} km</span></div>
         <div class="listing-actions">
           <button class="focus" data-id="${item.id}">View map</button>
-          <a href="#/tenant/booking?propertyId=${item.id}" class="action-btn">Request</a>
+          <button type="button" class="action-btn view-details" data-id="${item.id}">View Details</button>
           <a href="#/tenant/message?propertyId=${item.id}" class="action-btn secondary">Chat</a>
         </div>
       </div>
@@ -408,6 +475,7 @@ async function showNearbyListingsModal(properties = []) {
 export async function renderDashboardTenant(root = document.querySelector('#app')) {
   if (!root) throw new Error('Tenant dashboard requires #app.');
   loadStyle();
+  loadPropertyDetailsStyle();
   ensureTenantSidebarStyles();
 
   const user = await refreshTenantUserSession();
@@ -556,6 +624,53 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
   const selectedGenderFilters = () => Array.from(root.querySelectorAll('input[name="gender"]:checked')).map((input) => input.value.toLowerCase());
   const selectedAmenityFilters = () => Array.from(root.querySelectorAll('input[name="amenity"]:checked')).map((input) => input.value.toLowerCase());
 
+  const openPropertyDetails = async (listing) => {
+    let property = listing;
+    try {
+      const response = await api(`/properties/${encodeURIComponent(listing.id)}`);
+      property = response.data || listing;
+    } catch (error) {
+      console.warn('Unable to refresh property details:', error);
+    }
+
+    const modal = createModal({ title: property.title || 'Property Details', content: '', closeLabel: 'Close' });
+    modal.querySelector('.ui-modal__body').innerHTML = propertyDetailsMarkup(property);
+    const form = modal.querySelector('.dashboard-request-form');
+    const status = modal.querySelector('.dashboard-request-status');
+    const moveIn = form.querySelector('[name="moveInDate"]');
+    const moveOut = form.querySelector('[name="moveOutDate"]');
+    moveIn.min = new Date().toISOString().split('T')[0];
+    moveIn.addEventListener('change', () => { moveOut.min = moveIn.value; });
+    modal.querySelector('.dashboard-chat-owner').addEventListener('click', () => {
+      if (modal.open) modal.close();
+      modal.remove();
+      location.hash = `#/tenant/message?propertyId=${encodeURIComponent(property.id)}`;
+    });
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!form.reportValidity()) return;
+      if (moveOut.value && moveIn.value && moveOut.value < moveIn.value) {
+        status.textContent = 'Move-out date must be on or after the move-in date.';
+        return;
+      }
+      const formData = new FormData(form);
+      try {
+        const response = await fetch(`${API_URL}/bookings`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
+          body: JSON.stringify({ propertyId: Number(property.id), moveInDate: formData.get('moveInDate'), moveOutDate: formData.get('moveOutDate') || null, occupants: Number(formData.get('occupants') || 1), message: '' })
+        });
+        const body = await readApiResponse(response);
+        if (!response.ok) throw new Error(getApiErrorMessage(body, 'Unable to submit booking request.'));
+        status.textContent = 'Booking request sent successfully.';
+        form.reset();
+      } catch (error) {
+        status.textContent = error.message;
+      }
+    });
+    openModal(modal);
+  };
+
   const renderFeaturedCards = (items = []) => {
     if (!cards) return;
     if (!items.length) {
@@ -587,12 +702,19 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
             <div class="amenity-summary">${amenitySummary}</div>
             <div class="price"><strong>${money(item.monthly_rent)}</strong><small>/ month</small><span>${icon('walk')}${walkDistance} km</span></div>
             <div class="listing-actions">
-              <a href="#/tenant/booking?propertyId=${item.id}" class="action-btn">View Details</a>
+              <button type="button" class="action-btn view-details" data-id="${item.id}">View Details</button>
             </div>
           </div>
         </article>
       `;
     }).join('');
+
+    cards.querySelectorAll('.view-details').forEach((button) => {
+      button.addEventListener('click', () => {
+        const property = state.all.find((item) => String(item.id) === String(button.dataset.id));
+        if (property) openPropertyDetails(property);
+      });
+    });
   };
 
   const renderCards = () => {

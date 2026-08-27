@@ -9,11 +9,11 @@
 .dh-sidebar nav a:hover,
 .dh-sidebar nav .active { background: #9c7a28; color: #fff; }
 .dh-sidebar .icon { display: inline-grid; min-width: 16px; place-items: center; }
-.dh-sidebar .help { display: grid; gap: 5px; margin: auto 5px 12px; padding: 15px; border: 1px solid #315a51; border-radius: 12px; background: #1c4038; font-size: 12px; }
+.dh-sidebar .help { display: grid; gap: 5px; width: calc(100% - 10px); flex: 0 0 auto; margin: auto 5px 12px; padding: 15px; border: 1px solid #315a51; border-radius: 12px; background: #1c4038; font-size: 12px; }
 .dh-sidebar .help strong { color: #fff; }
 .dh-sidebar .help span { color: #aac3bd; }
 .dh-sidebar .help a { color: #d0a75f; font-weight: 700; text-decoration: none; }
-.dh-sidebar .logout { margin-top: 0; padding: 11px; border: 1px solid #416960; border-radius: 8px; background: transparent; color: #e7cda4; font-weight: 700; }
+.dh-sidebar .logout { width: 100%; flex: 0 0 auto; margin-top: 0; padding: 11px; border: 1px solid #416960; border-radius: 8px; background: transparent; color: #e7cda4; font-weight: 700; }
 
 @media (max-width: 900px) {
   .dh-app { grid-template-columns: 1fr; }

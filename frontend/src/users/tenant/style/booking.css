@@ -1,13 +1,42 @@
-﻿.tenant-page-main.tenant-bookings {
+﻿html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  overflow: hidden;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.tenant-page-main.tenant-bookings {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
   min-height: 100vh;
   background: #f4f3f2;
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
+.tenant-page-main.tenant-bookings::-webkit-scrollbar {
+  display: none;
+}
+
 .booking-overview-page {
-  max-width: 1180px;
+  width: 100%;
+  max-width: none;
   margin: 0 auto;
-  padding: 26px 0 40px;
+  padding: 26px clamp(24px, 4vw, 58px) 40px;
 }
 
 .page-title-row {
@@ -33,6 +62,7 @@
 .tab-row {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 12px;
   padding-bottom: 14px;
   border-bottom: 1px solid #e5dcd2;
@@ -41,6 +71,8 @@
 }
 
 .tab {
+  flex: 0 0 auto;
+  width: auto;
   padding: 10px 18px;
   border: 1px solid transparent;
   border-radius: 12px;
@@ -49,6 +81,11 @@
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
+}
+
+.tenant-page-main.tenant-bookings .tab-row .tab {
+  flex: 0 0 auto !important;
+  width: max-content !important;
 }
 
 .tab.active {
@@ -76,13 +113,14 @@
   box-shadow: 0 10px 30px rgba(56, 39, 23, 0.04);
   overflow: hidden;
   max-width: 1220px;
-  min-height: 300px;
+  height: fit-content;
+  min-height: 0;
 }
 
 .property-banner {
   flex: 0 0 470px;
-  min-height: 260px;
-  height: auto;
+  height: fit-content;
+  min-height: 0;
   overflow: hidden;
   background: #e9e1d8;
   border-radius: 30px 0 0 30px;
@@ -108,7 +146,7 @@
 }
 
 .request-panel-heading {
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 
 .request-panel-heading h2 {
@@ -122,11 +160,11 @@
 
 .property-summary {
   display: grid;
-  row-gap: 2px;
+  row-gap: 12px;
   color: #584f4a;
-  font-size: 1.02rem;
+  font-size: .92rem;
   font-weight: 500;
-  margin-top: 8px;
+  margin-top: 0;
 }
 
 .property-summary p {
@@ -134,17 +172,75 @@
   line-height: 1.45;
 }
 
+.property-detail-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: #312d2b;
+}
+
+.property-detail-heading h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.property-detail-heading strong {
+  color: #9a6a24;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.property-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 18px;
+}
+
+.property-detail-grid p {
+  display: grid;
+  gap: 2px;
+}
+
+.property-detail-grid span,
+.property-amenities span {
+  color: #847871;
+  font-size: .76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.property-detail-grid strong,
+.property-amenities strong {
+  color: #3f3733;
+  font-weight: 700;
+}
+
+.property-description {
+  color: #584f4a;
+  line-height: 1.45;
+}
+
+.property-amenities {
+  display: grid;
+  gap: 2px;
+}
+
 .request-form {
+  padding-top: 16px;
+  border-top: 1px solid #eee7e0;
   display: flex;
   align-items: flex-end;
-  gap: 16px;
+  gap: 12px;
   flex-wrap: wrap;
   justify-content: flex-start;
 }
 
 .request-grid-row {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   align-items: flex-end;
   flex: 1;
   min-width: 0;
@@ -160,7 +256,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   flex: 1 1 0;
   min-width: 0;
   margin-right: 0;
@@ -290,14 +386,17 @@
 
 .booking-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(390px, 100%), 390px));
+  justify-content: start;
   gap: 18px;
 }
 
 .booking-card--row {
   display: flex;
   flex-direction: column;
-  width: 100%;
+  width: 390px;
+  max-width: 100%;
+  min-height: 350px;
   padding: 18px 16px 16px;
   border: 1px solid #e7dfd4;
   border-radius: 18px;
@@ -414,6 +513,9 @@
 
   .property-request-card {
     flex-direction: column;
+    height: auto;
+    min-height: 0;
+    max-height: none;
   }
 
   .property-banner {
@@ -456,7 +558,8 @@
 
 @media (max-width: 720px) {
   .booking-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 390px);
+    justify-content: center;
   }
 
   .tab-row {

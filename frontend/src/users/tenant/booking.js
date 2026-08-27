@@ -40,16 +40,14 @@ const formatDate = (value) => {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
-
-function dashboardStyle() {
-  if (!document.querySelector('[data-tenant-style="dashboard"]')) {
-    const tag = document.createElement('link');
-    tag.rel = 'stylesheet';
-    tag.href = new URL('./style/dashboardTenant.css', import.meta.url);
-    tag.dataset.tenantStyle = 'dashboard';
-    document.head.append(tag);
-  }
-}
+const propertyAmenities = (value) => {
+  if (Array.isArray(value)) return value.filter(Boolean).map(String);
+  if (typeof value !== 'string' || !value.trim()) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter(Boolean).map(String) : [value];
+  } catch { return value.split(',').map((item) => item.trim()).filter(Boolean); }
+};
 
 function style() {
   const existing = document.querySelector('[data-tenant-style="booking"]');
@@ -68,9 +66,7 @@ function style() {
 
 export async function renderBooking(root = document.querySelector('#app')) {
   if (!root) throw new Error('Booking page requires #app.');
-  dashboardStyle();
-  ensureTenantSidebarStyles();
-  await style();
+  await Promise.all([ensureTenantSidebarStyles(), style()]);
 
   const syncBookingProfile = () => {
     const user = session();
@@ -102,44 +98,6 @@ export async function renderBooking(root = document.querySelector('#app')) {
             <button class="tab" type="button" data-view="pending">Pending Requests</button>
           </div>
 
-          <section class="property-request-panel" id="property-request-panel">
-            <div class="property-request-card">
-              <div class="property-banner" id="property-banner" aria-label="Property preview"></div>
-              <div class="property-request-body">
-                <div class="request-panel-heading">
-                  <h2>Request this property</h2>
-                  <div class="property-summary" id="property-summary"></div>
-                </div>
-
-                <form id="request-form" class="request-form">
-                  <div class="request-grid-row">
-                    <label class="field-group">
-                      <span>Move-in</span>
-                      <input id="moveInDate" type="date" name="moveInDate" required />
-                    </label>
-                    <label class="field-group">
-                      <span>Move-out</span>
-                      <input id="moveOutDate" type="date" name="moveOutDate" />
-                    </label>
-                    <label class="field-group small-field">
-                      <span>Occupants</span>
-                      <input type="number" name="occupants" min="1" value="1" required />
-                    </label>
-                    <button type="button" class="chat-owner-btn" id="chat-owner-btn">
-                      <span class="btn-icon">💬</span>
-                      Chat Owner
-                    </button>
-                  </div>
-                  <button type="submit" class="submit-request-btn">
-                    <span class="btn-icon">📨</span>
-                    Send Request
-                  </button>
-                </form>
-                <p class="request-status" id="request-status" aria-live="polite"></p>
-              </div>
-            </div>
-          </section>
-
           <div class="booking-grid" id="booking-grid"></div>
         </section>
       </main>
@@ -149,13 +107,6 @@ export async function renderBooking(root = document.querySelector('#app')) {
   window.addEventListener('dormhive-user-updated', syncBookingProfile);
 
   const grid = root.querySelector('#booking-grid');
-  const requestPanel = root.querySelector('#property-request-panel');
-  const requestSummary = root.querySelector('#property-summary');
-  const requestForm = root.querySelector('#request-form');
-  const requestStatus = root.querySelector('#request-status');
-  const moveInInput = root.querySelector('#moveInDate');
-  const moveOutInput = root.querySelector('#moveOutDate');
-  const chatOwnerBtn = root.querySelector('#chat-owner-btn');
   const tabs = root.querySelectorAll('.tab');
   const demoProperty = {
     id: 101,
@@ -322,50 +273,6 @@ export async function renderBooking(root = document.querySelector('#app')) {
   });
 
   const load = async () => {
-    const applyPropertyPreview = (property) => {
-      if (!property) return;
-      state.selectedProperty = property;
-      requestSummary.innerHTML = `
-        <p><strong>${escape(property.title || 'Property')}</strong></p>
-        <p>${escape(property.municipality || 'Location unavailable')}</p>
-        <p>${escape(property.room_type || 'Room type not specified')}</p>
-        <p>${escape(`PHP ${Number(property.monthly_rent || 0).toLocaleString('en-PH')} / month`)}</p>
-      `;
-      const banner = root.querySelector('#property-banner');
-      if (banner) {
-        const imageUrl = getPropertyImageUrl(property);
-        banner.innerHTML = imageUrl ? `<img src="${escape(imageUrl)}" alt="${escape(property.title || 'Property')}" />` : '';
-      }
-      requestPanel.classList.remove('hidden');
-    };
-
-    const loadPropertyPreview = async (targetId) => {
-      if (!targetId) {
-        applyPropertyPreview(demoProperty);
-        return;
-      }
-
-      try {
-        const response = await fetch(`${API_URL}/properties/${encodeURIComponent(targetId)}`, { headers: auth() });
-        const body = await response.json();
-        if (!response.ok) {
-          if (response.status === 401) {
-            requestStatus.textContent = 'Please sign in to view property details.';
-          } else {
-            requestStatus.textContent = body.message || 'Unable to load property details.';
-          }
-          applyPropertyPreview(demoProperty);
-          return;
-        }
-
-        const property = body.data || null;
-        applyPropertyPreview(property || demoProperty);
-      } catch (error) {
-        requestStatus.textContent = error.message || 'Unable to load property details.';
-        applyPropertyPreview(demoProperty);
-      }
-    };
-
     try {
       const [bookingsResponse, propertiesResponse] = await Promise.all([
         fetch(`${API_URL}/bookings`, { headers: auth() }),
@@ -380,94 +287,18 @@ export async function renderBooking(root = document.querySelector('#app')) {
       state.properties = Array.isArray(propertyBody.data) ? propertyBody.data : [];
       renderCards();
 
-      const targetProperty = state.properties.find((item) => String(item.id) === String(propertyId)) || (propertyId ? null : demoProperty);
-      if (targetProperty) {
-        applyPropertyPreview(targetProperty);
-      } else {
-        await loadPropertyPreview(propertyId);
-      }
     } catch (error) {
       state.bookings = [];
       state.properties = [];
       renderCards();
-      requestStatus.textContent = error.message || 'Unable to load booking data.';
-      await loadPropertyPreview(propertyId);
     }
   };
-
-  const updateMoveOutMin = () => {
-    if (!moveInInput || !moveOutInput) return;
-    if (moveInInput.value) {
-      moveOutInput.min = moveInInput.value;
-      if (moveOutInput.value && moveOutInput.value < moveInInput.value) {
-        moveOutInput.value = moveInInput.value;
-      }
-    } else {
-      moveOutInput.min = '';
-    }
-  };
-
-  moveInInput?.addEventListener('change', updateMoveOutMin);
-  moveOutInput?.addEventListener('change', () => {
-    if (moveInInput?.value && moveOutInput?.value && moveOutInput.value < moveInInput.value) {
-      moveOutInput.setCustomValidity('Move-out date must be on or after the move-in date.');
-      moveOutInput.reportValidity();
-    } else {
-      moveOutInput.setCustomValidity('');
-    }
-  });
-
-  chatOwnerBtn?.addEventListener('click', () => {
-    const propertyTarget = state.selectedProperty?.id ?? propertyId;
-    const target = propertyTarget ? `#/tenant/message?propertyId=${encodeURIComponent(propertyTarget)}` : '#/tenant/message';
-    location.hash = target;
-  });
 
   root.querySelector('.logout')?.addEventListener('click', () => {
     localStorage.clear();
     location.assign('#/login');
   });
 
-  requestForm.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    if (!state.selectedProperty) {
-      requestStatus.textContent = 'Property not loaded.';
-      return;
-    }
-
-    if (moveInInput?.value && moveOutInput?.value && moveOutInput.value < moveInInput.value) {
-      moveOutInput.setCustomValidity('Move-out date must be on or after the move-in date.');
-      moveOutInput.reportValidity();
-      return;
-    }
-
-    const formData = new FormData(requestForm);
-    const selectedPropertyId = Number(state.selectedProperty?.id ?? propertyId ?? 0);
-    if (!selectedPropertyId) {
-      requestStatus.textContent = 'Property information is missing.';
-      return;
-    }
-
-    const payload = {
-      propertyId: selectedPropertyId,
-      moveInDate: formData.get('moveInDate'),
-      moveOutDate: formData.get('moveOutDate') || null,
-      occupants: Number(formData.get('occupants') || 1),
-      message: ''
-    };
-
-    try {
-      const response = await fetch(`${API_URL}/bookings`, { method: 'POST', headers: auth(), body: JSON.stringify(payload) });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.message || 'Unable to submit booking request.');
-      state.bookings.unshift(body.data);
-      renderCards();
-      requestStatus.textContent = 'Booking request sent. You can follow it in your bookings list.';
-      requestForm.reset();
-    } catch (error) {
-      requestStatus.textContent = error.message;
-    }
-  });
 
   load();
 }

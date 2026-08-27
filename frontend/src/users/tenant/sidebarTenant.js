@@ -24,12 +24,17 @@ const glyph = {
 const icon = (name) => `<span class="icon">${glyph[name] ?? ''}</span>`;
 
 export function ensureTenantSidebarStyles() {
-  if (document.querySelector('[data-tenant-sidebar-style="shared"]')) return;
+  const existing = document.querySelector('[data-tenant-sidebar-style="shared"]');
+  if (existing) return existing.sheet ? Promise.resolve() : new Promise((resolve) => existing.addEventListener('load', resolve, { once: true }));
   const link = document.createElement('link');
   link.rel = 'stylesheet';
   link.href = new URL('./style/sidebarTenant.css', import.meta.url);
   link.dataset.tenantSidebarStyle = 'shared';
   document.head.append(link);
+  return new Promise((resolve) => {
+    link.addEventListener('load', resolve, { once: true });
+    link.addEventListener('error', resolve, { once: true });
+  });
 }
 
 export function renderTenantSidebar(activePage = 'dashboardTenant') {

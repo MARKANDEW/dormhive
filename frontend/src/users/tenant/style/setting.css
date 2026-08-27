@@ -87,7 +87,7 @@ input {
   width: 100%;
 }
 
-.tab {
+.tenant-settings .tab {
   flex: 1;
   border: 0;
   background: transparent;
@@ -99,11 +99,11 @@ input {
   font-size: 0.95rem;
 }
 
-.tab:hover {
+.tenant-settings .tab:hover {
   background: #e9e3d5;
 }
 
-.tab.active {
+.tenant-settings .tab.active {
   background: #d9b472;
   color: #1d1d1d;
   box-shadow: inset 0 0 0 1px rgba(118, 86, 13, 0.12);

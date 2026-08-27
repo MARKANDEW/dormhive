@@ -344,7 +344,6 @@ export function renderInquiries(root = document.querySelector('#app')) {
       state.selected = state.bookings.find((booking) => booking.id === state.selected.id) || null;
       renderRows();
       renderDetailPanel();
-      if (state.selected) await renderThread(state.selected);
       await updateListingCountsInSidebar();
       alert('Tenant accepted successfully! They will now appear in Active Tenants.');
     } catch (error) {

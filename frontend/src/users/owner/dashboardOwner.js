@@ -2,6 +2,8 @@ import { ensureOwnerSidebarStyles, renderOwnerProfileCard, renderOwnerSidebar, u
 import { initLeafletMap, updateLeafletMarkers } from '../../components/mapPanel.js';
 import { createModal, openModal } from '../../components/modal.js';
 import { showToast } from '../../components/toast.js';
+import { api, getApiErrorMessage, readApiResponse } from '../../services/api.js';
+import { markNotificationRead } from '../../services/notificationSystem.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const apiBase = API.replace(/\/api\/v1\/?$/, '');
@@ -21,6 +23,7 @@ const statusClass = {
   replied: 'status-replied',
   pending: 'status-pending'
 };
+const formatNotificationDate = (value) => new Date(value ?? Date.now()).toLocaleDateString([], { month: 'short', day: 'numeric' });
 
 // Ensure Leaflet is loaded
 async function ensureLeafletLoaded() {
@@ -46,7 +49,7 @@ async function ensureLeafletLoaded() {
   return Promise.resolve();
 }
 function css() { if (!document.querySelector('[data-owner-style="dashboard"]')) { const link = document.createElement('link'); link.rel = 'stylesheet'; link.href = new URL('./style/dashboardOwner.css', import.meta.url); link.dataset.ownerStyle = 'dashboard'; document.head.append(link); } }
-async function get(path) { const response = await fetch(`${API}${path}`, { headers: auth() }); const body = await response.json(); if (!response.ok) throw new Error(body.message ?? 'Request failed.'); return body; }
+async function get(path) { const response = await fetch(`${API}${path}`, { headers: auth() }); const body = await readApiResponse(response); if (!response.ok) throw new Error(getApiErrorMessage(body, 'Unable to load this information.')); return body; }
 function metricCard(label, value, note, icon, trend = false) {
   return `<article class="metric-card"><div class="metric-icon">${icon}</div><div><p>${label}</p><strong>${value}</strong><span>${note}${trend ? ' ↗' : ''}</span></div></article>`;
 }
@@ -291,7 +294,7 @@ export function renderDashboardOwner(root = document.querySelector('#app')) {
     .map((part) => part[0]?.toUpperCase() ?? '')
     .join('') || 'O';
   root.innerHTML = `
-    <div class="owner-shell">
+    <div class="owner-shell owner-shell--dashboard">
       ${renderOwnerSidebar('dashboardOwner')}
       <div class="owner-main">
         <header class="owner-topbar">
@@ -303,6 +306,16 @@ export function renderDashboardOwner(root = document.querySelector('#app')) {
             <input type="search" placeholder="Search my listings, inquiries, tenants..." />
           </label>
           <div class="topbar-right">
+            <div class="notification-menu">
+              <button class="top-icon notification-trigger" type="button" aria-label="Notifications" aria-expanded="false">
+                <span aria-hidden="true">&#128276;</span>
+                <span class="notification-badge" hidden>0</span>
+              </button>
+              <div class="notification-dropdown" hidden>
+                <div class="notification-dropdown-header"><strong>Notifications</strong><span>Recent updates</span></div>
+                <div class="notification-list"><p class="notification-empty">No notifications yet.</p></div>
+              </div>
+            </div>
             ${renderOwnerProfileCard()}
           </div>
         </header>
@@ -351,6 +364,64 @@ export function renderDashboardOwner(root = document.querySelector('#app')) {
   root.querySelector('.menu').addEventListener('click', () => shell.classList.toggle('nav-open'));
   root.querySelector('[data-route="#/owner/myListing"]').addEventListener('click', () => location.hash = '#/owner/myListing');
   root.querySelector('.logout').addEventListener('click', () => { localStorage.clear(); location.assign('#/login'); });
+
+  const notificationMenu = root.querySelector('.notification-menu');
+  const notificationTrigger = root.querySelector('.notification-trigger');
+  const notificationBadge = root.querySelector('.notification-badge');
+  const notificationDropdown = root.querySelector('.notification-dropdown');
+  const notificationList = root.querySelector('.notification-list');
+  let notifications = [];
+
+  const renderNotifications = () => {
+    const unreadCount = notifications.filter((item) => !item.read_at).length;
+    notificationBadge.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
+    notificationBadge.hidden = unreadCount === 0;
+    notificationList.innerHTML = notifications.length
+      ? notifications.slice(0, 6).map((item) => `
+          <button class="notification-item${item.read_at ? '' : ' is-unread'}" type="button" data-notification-id="${item.id}">
+            <span class="notification-item-copy"><strong>${escape(item.title || 'Notification')}</strong><span>${escape(item.message || '')}</span></span>
+            <time>${escape(formatNotificationDate(item.created_at))}</time>
+          </button>`).join('')
+      : '<p class="notification-empty">No notifications yet.</p>';
+  };
+
+  const loadNotifications = async () => {
+    try {
+      const response = await api.notifications.list();
+      notifications = Array.isArray(response?.data) ? response.data : [];
+      renderNotifications();
+    } catch {
+      notificationList.innerHTML = '<p class="notification-empty">Notifications unavailable.</p>';
+    }
+  };
+
+  notificationTrigger.addEventListener('click', () => {
+    const isOpen = !notificationDropdown.hidden;
+    notificationDropdown.hidden = isOpen;
+    notificationTrigger.setAttribute('aria-expanded', String(!isOpen));
+  });
+  notificationList.addEventListener('click', async (event) => {
+    const item = event.target.closest('[data-notification-id]');
+    if (!item) return;
+    const notification = notifications.find((entry) => String(entry.id) === item.dataset.notificationId);
+    if (!notification || notification.read_at) return;
+    try {
+      await markNotificationRead(notification.id);
+      notification.read_at = new Date().toISOString();
+      renderNotifications();
+    } catch { /* Keep the item unread when the API request fails. */ }
+  });
+  document.addEventListener('click', (event) => {
+    if (!notificationMenu.contains(event.target)) {
+      notificationDropdown.hidden = true;
+      notificationTrigger.setAttribute('aria-expanded', 'false');
+    }
+  });
+  loadNotifications();
+  const notificationPoll = setInterval(() => {
+    if (!root.isConnected) return clearInterval(notificationPoll);
+    loadNotifications();
+  }, 15000);
   
   // Store report and map data for later use
   let reportData = { properties: [], bookings: [], metrics: { occupancy: 0 } };

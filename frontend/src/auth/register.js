@@ -1,5 +1,8 @@
 const API_BASE_URL = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 import { bindOAuthButtons, oauthButtonsMarkup } from './oauth.js';
+import { showToast } from '../components/toast.js';
+import { navigate } from '../../router.js';
+import { getApiErrorMessage, readApiResponse } from '../services/api.js';
 
 function loadStylesheet() {
   const existing = document.querySelector('link[data-dormhive-auth="split"]');
@@ -173,11 +176,10 @@ export async function renderRegister(root = document.querySelector('#app')) {
     if (message) message.hidden = true;
     try {
       const response = await fetch(`${API_BASE_URL}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.message ?? 'Unable to create your account.');
-      localStorage.setItem('dormhive.accessToken', body.accessToken);
-      localStorage.setItem('dormhive.user', JSON.stringify(body.user));
-      window.location.assign('#' + (body.user.role === 'owner' ? '/owner/dashboardOwner' : '/tenant/dashboardTenant'));
+      const body = await readApiResponse(response);
+      if (!response.ok) throw new Error(getApiErrorMessage(body, 'Unable to create your account.'));
+      showToast({ message: 'Account created successfully!', type: 'success' });
+      navigate('/login', true);
     } catch (error) {
       showMessage(message, error.message);
       submitButton.disabled = false;
