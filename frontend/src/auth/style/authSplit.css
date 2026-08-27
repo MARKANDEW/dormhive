@@ -186,7 +186,7 @@ form {
 .btn {
   width: 100%;
   height: 48px;
-  background: #ab8016;
+  background: #645403;
   border-radius: 8px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   border: none;
@@ -236,6 +236,11 @@ form {
 
 .form-box.register .auth-submit {
   margin-top: 16px;
+  background: linear-gradient(to right, #DAA520 0%, #645403 100%);
+}
+
+.form-box.login .auth-submit {
+  background: linear-gradient(to right, #645403 0%, #DAA520 100%);
 }
 
 .social-icons button:disabled {
@@ -273,7 +278,7 @@ form {
   left: -250%;
   width: 300%;
   height: 100%;
-  background: #ab8016;
+  background: #DAA520;
   border-radius: 150px;
   z-index: 2;
   transition: 1.8s ease-in-out;
@@ -281,6 +286,7 @@ form {
 
 .container.active .toggle-box::before {
   left: 50%;
+  background: #645403;
 }
 
 .toggle-panel {
