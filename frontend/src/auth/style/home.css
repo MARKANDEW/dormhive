@@ -95,7 +95,9 @@ a {
   height: 7px;
   left: 5px;
   top: 5px;
-  box-shadow: 8px 0 rgba(255, 255, 255, 0.9), 4px 8px rgba(255, 255, 255, 0.9);
+  box-shadow:
+    8px 0 rgba(255, 255, 255, 0.9),
+    4px 8px rgba(255, 255, 255, 0.9);
 }
 
 .dh-brand-mark::after {
@@ -154,7 +156,10 @@ a {
   min-height: 425px;
   border-radius: 18px;
   overflow: hidden;
-  background: linear-gradient(180deg, rgba(25, 34, 38, 0.48), rgba(25, 34, 38, 0.28)), url('https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1600&q=80') center/cover no-repeat;
+  background:
+    linear-gradient(180deg, rgba(25, 34, 38, 0.48), rgba(25, 34, 38, 0.28)),
+    url("https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1600&q=80")
+      center/cover no-repeat;
   box-shadow: 0 10px 24px rgba(17, 24, 39, 0.12);
 }
 

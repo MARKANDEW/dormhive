@@ -726,6 +726,28 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
   const applyButton = root.querySelector('#apply-filters');
   const mapStatus = root.querySelector('#map-status');
   const mapFrame = root.querySelector('#tenant-map');
+  const renderSkeletonState = () => {
+    if (!cards) return;
+    const skeleton = document.createElement('div');
+    skeleton.className = 'dh-dashboard-skeleton';
+    skeleton.innerHTML = `
+      <div class="dh-dashboard-skeleton-card">
+        <span class="ui-skeleton-line" style="width:38%;height:0.8rem"></span>
+        <span class="ui-skeleton-line" style="width:100%;height:10.5rem"></span>
+        <span class="ui-skeleton-line" style="width:100%;height:0.8rem"></span>
+        <span class="ui-skeleton-line" style="width:70%;height:0.8rem"></span>
+      </div>
+      <div class="dh-dashboard-skeleton-card">
+        <span class="ui-skeleton-line" style="width:38%;height:0.8rem"></span>
+        <span class="ui-skeleton-line" style="width:100%;height:10.5rem"></span>
+        <span class="ui-skeleton-line" style="width:100%;height:0.8rem"></span>
+        <span class="ui-skeleton-line" style="width:70%;height:0.8rem"></span>
+      </div>
+    `;
+    cards.innerHTML = '';
+    cards.appendChild(skeleton);
+    if (mapStatus) mapStatus.textContent = 'Loading nearby listings...';
+  };
 
   const updateRangeNote = () => {
     maxPrice.value = String(range.value || 15000);
@@ -1019,6 +1041,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
   });
 
   const load = async () => {
+    renderSkeletonState();
     try {
       // Only load approved properties for tenants (Featured Listings and map markers)
       const response = await api('/properties?limit=100&status=approved');

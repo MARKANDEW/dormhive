@@ -1,1 +1,36 @@
-.ui-toast-host{position:fixed;z-index:1000;right:1rem;bottom:1rem;display:grid;gap:.5rem}.ui-toast{display:flex;align-items:center;gap:1rem;padding:.75rem 1rem;background:#1f2937;color:#fff;border-radius:.5rem;box-shadow:0 8px 20px #0003}.ui-toast button{margin-left:auto;border:0;background:transparent;color:inherit;font-size:1.2rem;cursor:pointer}.ui-toast--error{background:#b91c1c}.ui-toast--success{background:#a86310}.ui-toast.is-leaving{opacity:0;transition:opacity .18s}
+.ui-toast-host {
+  position: fixed;
+  z-index: 1000;
+  right: 1rem;
+  bottom: 1rem;
+  display: grid;
+  gap: 0.5rem;
+}
+.ui-toast {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: #1f2937;
+  color: #fff;
+  border-radius: 0.5rem;
+  box-shadow: 0 8px 20px #0003;
+}
+.ui-toast button {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+.ui-toast--error {
+  background: #b91c1c;
+}
+.ui-toast--success {
+  background: #a86310;
+}
+.ui-toast.is-leaving {
+  opacity: 0;
+  transition: opacity 0.18s;
+}

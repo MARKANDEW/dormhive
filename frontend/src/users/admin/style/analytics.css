@@ -1,1 +1,85 @@
-﻿@charset "UTF-8";:root{font-family:Inter,system-ui,sans-serif;color:#4a3720;background:#fff7e6}*{box-sizing:border-box}body{margin:0}.admin-analytics header{display:flex;justify-content:space-between;padding:1rem 5%;background:#fff;border-bottom:1px solid #e6d6b6}.brand{color:#b48421;font-weight:800;text-decoration:none}.admin-analytics section{width:min(92%,70rem);margin:2.5rem auto}.eyebrow{color:#b48421;font-size:.75rem;font-weight:800;letter-spacing:.1em}.status{color:#8a6b43}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin:1.5rem 0}.stats article,.chart{padding:1.25rem;border:1px solid #e6d6b6;border-radius:.7rem;background:#fff}.stats span{display:block;color:#8a6b43}.stats strong{font-size:2rem}.role-chart{display:grid;gap:1rem}.role-chart div{display:grid;grid-template-columns:6rem 1fr 2rem;gap:.5rem;align-items:center}.role-chart i{height:.7rem;overflow:hidden;border-radius:99px;background:#eef2f0}.role-chart b{display:block;height:100%;border-radius:inherit;background:#b48421;width:var(--progress,0%)}@media(max-width:550px){.stats{grid-template-columns:1fr}}
+﻿@charset "UTF-8";
+:root {
+  font-family: Inter, system-ui, sans-serif;
+  color: #4a3720;
+  background: #fff7e6;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+.admin-analytics header {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem 5%;
+  background: #fff;
+  border-bottom: 1px solid #e6d6b6;
+}
+.brand {
+  color: #b48421;
+  font-weight: 800;
+  text-decoration: none;
+}
+.admin-analytics section {
+  width: min(92%, 70rem);
+  margin: 2.5rem auto;
+}
+.eyebrow {
+  color: #b48421;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+.status {
+  color: #8a6b43;
+}
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+.stats article,
+.chart {
+  padding: 1.25rem;
+  border: 1px solid #e6d6b6;
+  border-radius: 0.7rem;
+  background: #fff;
+}
+.stats span {
+  display: block;
+  color: #8a6b43;
+}
+.stats strong {
+  font-size: 2rem;
+}
+.role-chart {
+  display: grid;
+  gap: 1rem;
+}
+.role-chart div {
+  display: grid;
+  grid-template-columns: 6rem 1fr 2rem;
+  gap: 0.5rem;
+  align-items: center;
+}
+.role-chart i {
+  height: 0.7rem;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #eef2f0;
+}
+.role-chart b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #b48421;
+  width: var(--progress, 0%);
+}
+@media (max-width: 550px) {
+  .stats {
+    grid-template-columns: 1fr;
+  }
+}

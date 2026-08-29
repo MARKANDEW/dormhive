@@ -115,9 +115,15 @@ form {
 
 .input-box select {
   appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, #666 50%), linear-gradient(135deg, #666 50%, transparent 50%);
-  background-position: calc(100% - 20px) calc(50% - 2px), calc(100% - 14px) calc(50% - 2px);
-  background-size: 6px 6px, 6px 6px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #666 50%),
+    linear-gradient(135deg, #666 50%, transparent 50%);
+  background-position:
+    calc(100% - 20px) calc(50% - 2px),
+    calc(100% - 14px) calc(50% - 2px);
+  background-size:
+    6px 6px,
+    6px 6px;
   background-repeat: no-repeat;
   padding-right: 42px;
 }
@@ -226,7 +232,10 @@ form {
   color: #333;
   margin: 0 8px;
   cursor: pointer;
-  transition: border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    color 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .social-icons button:hover:not(:disabled) {
@@ -236,11 +245,11 @@ form {
 
 .form-box.register .auth-submit {
   margin-top: 16px;
-  background: linear-gradient(to right, #DAA520 0%, #645403 100%);
+  background: linear-gradient(to right, #daa520 0%, #645403 100%);
 }
 
 .form-box.login .auth-submit {
-  background: linear-gradient(to right, #645403 0%, #DAA520 100%);
+  background: linear-gradient(to right, #645403 0%, #daa520 100%);
 }
 
 .social-icons button:disabled {
@@ -258,11 +267,17 @@ form {
   animation: oauth-spin 0.7s linear infinite;
 }
 
-.oauth-button.is-loading > i { display: none; }
-.oauth-button.is-loading .oauth-spinner { display: block; }
+.oauth-button.is-loading > i {
+  display: none;
+}
+.oauth-button.is-loading .oauth-spinner {
+  display: block;
+}
 
 @keyframes oauth-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .toggle-box {
@@ -271,14 +286,13 @@ form {
   height: 100%;
 }
 
-
 .toggle-box::before {
   content: "";
   position: absolute;
   left: -250%;
   width: 300%;
   height: 100%;
-  background: #DAA520;
+  background: #daa520;
   border-radius: 150px;
   z-index: 2;
   transition: 1.8s ease-in-out;
@@ -348,14 +362,31 @@ form {
   margin: 0 auto;
 }
 
-.form-inner h1 { color: #333; margin-bottom: 4px; }
-.form-inner p { color: #666; margin-bottom: 14px; }
+.form-inner h1 {
+  color: #333;
+  margin-bottom: 4px;
+}
+.form-inner p {
+  color: #666;
+  margin-bottom: 14px;
+}
 
-.form-inner .input-box { margin: 14px 0; }
-.form-inner .btn { width: 100%; }
+.form-inner .input-box {
+  margin: 14px 0;
+}
+.form-inner .btn {
+  width: 100%;
+}
 
 @media screen and (max-width: 650px) {
-  .container { width: 100vw; height: 100vh; }
-  .form-box { padding: 20px; }
-  .toggle-panel h1 { font-size: 30px; }
+  .container {
+    width: 100vw;
+    height: 100vh;
+  }
+  .form-box {
+    padding: 20px;
+  }
+  .toggle-panel h1 {
+    font-size: 30px;
+  }
 }

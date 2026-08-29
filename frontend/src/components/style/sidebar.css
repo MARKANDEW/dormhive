@@ -15,7 +15,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.5rem;
-  padding: .5rem;
+  padding: 0.5rem;
 }
 
 .ui-sidebar__header button {
@@ -28,17 +28,17 @@
 
 .ui-sidebar nav {
   display: grid;
-  gap: .3rem;
+  gap: 0.3rem;
 }
 
 .ui-sidebar nav a,
 .ui-sidebar__footer a,
 .ui-sidebar__footer button {
   display: flex;
-  gap: .6rem;
-  padding: .7rem;
+  gap: 0.6rem;
+  padding: 0.7rem;
   border: 0;
-  border-radius: .4rem;
+  border-radius: 0.4rem;
   background: transparent;
   color: inherit;
   font: inherit;
@@ -56,13 +56,13 @@
   background: #7e5222;
   color: #fff;
   border-left: 3px solid #fff;
-  padding-left: .67rem;
+  padding-left: 0.67rem;
 }
 
 .ui-sidebar__footer {
   margin-top: auto;
   display: grid;
-  gap: .3rem;
+  gap: 0.3rem;
 }
 
 @media (max-width: 700px) {
@@ -72,7 +72,7 @@
     top: 0;
     bottom: 0;
     transform: translateX(-105%);
-    transition: transform .2s;
+    transition: transform 0.2s;
   }
 
   .ui-sidebar.is-open {

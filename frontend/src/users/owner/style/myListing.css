@@ -481,7 +481,10 @@ body {
   border-radius: 16px;
   background: #f8fcff;
   margin-bottom: 20px;
-  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .media-dropzone.dragover {
@@ -576,21 +579,88 @@ body {
   background: #edf7fa;
 }
 
-.media-file-details { min-width: 0; }
-.media-file-heading { display: flex; justify-content: space-between; gap: 10px; font-size: 0.78rem; }
-.media-file-heading strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.media-file-heading span, .media-file-status, .media-progress-percent { color: #80909a; font-size: 0.72rem; }
-.media-file-status-icon { display: inline-grid; width: 1rem; height: 1rem; margin-right: 3px; place-items: center; border-radius: 50%; background: #d9f7ed; color: #087f66; font-weight: 900; }
-.media-file.is-error .media-file-status-icon { background: #ffe1e8; color: #d52d59; }
-.media-progress-row { display: flex; align-items: center; gap: 8px; }
-.media-progress-percent { min-width: 2.25rem; text-align: right; }
-.media-progress-track { height: 5px; margin: 7px 0 4px; overflow: hidden; border-radius: 999px; background: #e7eef1; }
-.media-progress-track span { display: block; height: 100%; border-radius: inherit; background: #3b5cff; transition: width 0.2s ease; }
-.media-file.is-error .media-progress-track span { background: #e53d68; }
-.media-file.is-error .media-file-status { color: #d52d59; }
-.media-file-retry { border: 0; background: transparent; color: #087f9b; font-size: 0.75rem; font-weight: 800; cursor: pointer; }
-.media-file-remove { border: 0; background: transparent; color: #83939b; font-size: 1.4rem; cursor: pointer; }
-.media-file-remove:hover { color: #d52d59; }
+.media-file-details {
+  min-width: 0;
+}
+.media-file-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.78rem;
+}
+.media-file-heading strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.media-file-heading span,
+.media-file-status,
+.media-progress-percent {
+  color: #80909a;
+  font-size: 0.72rem;
+}
+.media-file-status-icon {
+  display: inline-grid;
+  width: 1rem;
+  height: 1rem;
+  margin-right: 3px;
+  place-items: center;
+  border-radius: 50%;
+  background: #d9f7ed;
+  color: #087f66;
+  font-weight: 900;
+}
+.media-file.is-error .media-file-status-icon {
+  background: #ffe1e8;
+  color: #d52d59;
+}
+.media-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.media-progress-percent {
+  min-width: 2.25rem;
+  text-align: right;
+}
+.media-progress-track {
+  height: 5px;
+  margin: 7px 0 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e7eef1;
+}
+.media-progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #3b5cff;
+  transition: width 0.2s ease;
+}
+.media-file.is-error .media-progress-track span {
+  background: #e53d68;
+}
+.media-file.is-error .media-file-status {
+  color: #d52d59;
+}
+.media-file-retry {
+  border: 0;
+  background: transparent;
+  color: #087f9b;
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.media-file-remove {
+  border: 0;
+  background: transparent;
+  color: #83939b;
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+.media-file-remove:hover {
+  color: #d52d59;
+}
 
 /* Form Message */
 .form-message {

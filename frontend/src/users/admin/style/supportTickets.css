@@ -18,7 +18,7 @@ body,
   align-items: center;
   justify-content: space-between;
   padding: 18px 22px 20px 28px;
-  background: rgba(255,255,255,0.66);
+  background: rgba(255, 255, 255, 0.66);
   border-bottom: 1px solid #e6dccd;
 }
 
@@ -44,7 +44,7 @@ body,
   padding: 0.7rem 1.1rem;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 8px 18px rgba(155,108,51,0.12);
+  box-shadow: 0 8px 18px rgba(155, 108, 51, 0.12);
 }
 
 .support-btn.ghost {
@@ -64,11 +64,11 @@ body,
   display: flex;
   align-items: flex-end;
   gap: 18px;
-  background: rgba(255,255,255,0.72);
+  background: rgba(255, 255, 255, 0.72);
   border: 1px solid #e8ddcf;
   border-radius: 18px;
   padding: 16px 14px;
-  box-shadow: 0 8px 18px rgba(58,40,31,0.03);
+  box-shadow: 0 8px 18px rgba(58, 40, 31, 0.03);
 }
 
 .search-wrap {
@@ -141,7 +141,7 @@ body,
 .support-main-panel {
   flex: 1;
   min-width: 0;
-  background: rgba(255,255,255,0.7);
+  background: rgba(255, 255, 255, 0.7);
   border: 1px solid #e8dfd5;
   border-radius: 18px;
   overflow: hidden;
@@ -174,12 +174,12 @@ body,
   gap: 10px;
   padding: 16px 18px;
   border-bottom: 1px solid #eee4db;
-  background: rgba(255,255,255,0.22);
+  background: rgba(255, 255, 255, 0.22);
   cursor: pointer;
 }
 
 .ticket-row:hover {
-  background: rgba(255,255,255,0.74);
+  background: rgba(255, 255, 255, 0.74);
 }
 
 .row-status,
@@ -473,4 +473,3 @@ body,
     margin-bottom: 10px;
   }
 }
-

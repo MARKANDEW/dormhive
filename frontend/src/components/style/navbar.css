@@ -1,1 +1,71 @@
-﻿@charset "UTF-8"; .ui-navbar{display:flex;align-items:center;gap:1rem;min-height:4rem;padding:.75rem clamp(1rem,4vw,4rem);border-bottom:1px solid #e6d6b6;background:#fff;font-family:Inter,system-ui,sans-serif}.ui-navbar__brand{margin-right:auto;color:#b48421;font-size:1.3rem;font-weight:800;text-decoration:none}.ui-navbar__links,.ui-navbar__actions{display:flex;align-items:center;gap:.4rem}.ui-navbar__links a,.ui-navbar__action{padding:.55rem .75rem;border:0;border-radius:.4rem;background:transparent;color:#40534b;font:inherit;text-decoration:none}.ui-navbar__links a:hover,.ui-navbar__links a[aria-current=page]{background:#e5f4ec;color:#07533d}.ui-navbar__action:not(:empty){cursor:pointer}.ui-navbar__action.primary{background:#b48421;color:#fff}.ui-navbar__menu{display:none;border:0;background:none;font-size:1.25rem}@media(max-width:700px){.ui-navbar__menu{display:block}.ui-navbar__links{display:none}.ui-navbar.is-open{flex-wrap:wrap}.ui-navbar.is-open .ui-navbar__links{display:grid;order:3;width:100%}.ui-navbar__actions{margin-left:auto}}
+﻿@charset "UTF-8";
+.ui-navbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 4rem;
+  padding: 0.75rem clamp(1rem, 4vw, 4rem);
+  border-bottom: 1px solid #e6d6b6;
+  background: #fff;
+  font-family: Inter, system-ui, sans-serif;
+}
+.ui-navbar__brand {
+  margin-right: auto;
+  color: #b48421;
+  font-size: 1.3rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+.ui-navbar__links,
+.ui-navbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.ui-navbar__links a,
+.ui-navbar__action {
+  padding: 0.55rem 0.75rem;
+  border: 0;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: #40534b;
+  font: inherit;
+  text-decoration: none;
+}
+.ui-navbar__links a:hover,
+.ui-navbar__links a[aria-current="page"] {
+  background: #e5f4ec;
+  color: #07533d;
+}
+.ui-navbar__action:not(:empty) {
+  cursor: pointer;
+}
+.ui-navbar__action.primary {
+  background: #b48421;
+  color: #fff;
+}
+.ui-navbar__menu {
+  display: none;
+  border: 0;
+  background: none;
+  font-size: 1.25rem;
+}
+@media (max-width: 700px) {
+  .ui-navbar__menu {
+    display: block;
+  }
+  .ui-navbar__links {
+    display: none;
+  }
+  .ui-navbar.is-open {
+    flex-wrap: wrap;
+  }
+  .ui-navbar.is-open .ui-navbar__links {
+    display: grid;
+    order: 3;
+    width: 100%;
+  }
+  .ui-navbar__actions {
+    margin-left: auto;
+  }
+}

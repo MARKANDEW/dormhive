@@ -1,1 +1,38 @@
-﻿@charset "UTF-8";.ui-card{overflow:hidden;border:1px solid #e6d6b6;border-radius:.75rem;background:#fff;box-shadow:0 .25rem .7rem #4a372010;font-family:Inter,system-ui,sans-serif}.ui-card__image{display:block;width:100%;height:12rem;object-fit:cover}.ui-card__content{padding:1rem}.ui-card__subtitle{margin:0;color:#b48421;font-size:.75rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.ui-card h3{margin:.35rem 0 .7rem;font-size:1.1rem}.ui-card__body{color:#876241;line-height:1.5}.ui-card__footer{padding:.8rem 1rem;border-top:1px solid #e6d6b6}
+﻿@charset "UTF-8";
+.ui-card {
+  overflow: hidden;
+  border: 1px solid #e6d6b6;
+  border-radius: 0.75rem;
+  background: #fff;
+  box-shadow: 0 0.25rem 0.7rem #4a372010;
+  font-family: Inter, system-ui, sans-serif;
+}
+.ui-card__image {
+  display: block;
+  width: 100%;
+  height: 12rem;
+  object-fit: cover;
+}
+.ui-card__content {
+  padding: 1rem;
+}
+.ui-card__subtitle {
+  margin: 0;
+  color: #b48421;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.ui-card h3 {
+  margin: 0.35rem 0 0.7rem;
+  font-size: 1.1rem;
+}
+.ui-card__body {
+  color: #876241;
+  line-height: 1.5;
+}
+.ui-card__footer {
+  padding: 0.8rem 1rem;
+  border-top: 1px solid #e6d6b6;
+}

@@ -35,7 +35,10 @@ export function renderAdminSidebar(active = 'dashboardAdmin') {
 
   return `
     <aside class="admin-nav">
-      <a class="admin-logo" href="#/admin/dashboardAdmin">DormHive <small>ADMIN</small></a>
+      <a class="admin-logo" href="#/admin/dashboardAdmin">
+        <b class="admin-logo-mark" aria-hidden="true"><svg class="admin-logo-icon" viewBox="0 0 24 24"><path d="m4 10 8-6 8 6v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-9Z"/><path d="M9 20v-6h6v6"/></svg></b>
+        <span><strong>DormHive</strong><small>Admin Portal</small></span>
+      </a>
       ${sidebarLinks.map(([page, label]) => `
         <a class="nav-item ${active === page ? 'active' : ''}" href="#/admin/${page}">
           <span class="nav-icon">${glyphs[page] ?? ''}</span>

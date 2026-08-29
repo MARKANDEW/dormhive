@@ -1,1 +1,72 @@
-﻿@charset "UTF-8";:root{font-family:Inter,system-ui,sans-serif;color:#4a3720;background:#fff7e6}*{box-sizing:border-box}body{margin:0}.health-page header{display:flex;justify-content:space-between;padding:1rem 5%;background:#fff;border-bottom:1px solid #e6d6b6}.brand{color:#b48421;font-weight:800;text-decoration:none}.health-page section{width:min(92%,70rem);margin:2.5rem auto}.eyebrow{color:#b48421;font-size:.75rem;font-weight:800;letter-spacing:.1em}.updated{color:#8a6b43}.health-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}.health-grid article{padding:1.25rem;border:1px solid #e6d6b6;border-radius:.7rem;background:#fff}.indicator{display:block;width:.7rem;height:.7rem;border-radius:50%;background:#98a2b3}.indicator.healthy{background:#12b76a}.indicator.unhealthy{background:#f04438}.health-grid p{color:#8a6b43}.health-grid strong{font-size:1.1rem}@media(max-width:650px){.health-grid{grid-template-columns:1fr}}
+﻿@charset "UTF-8";
+:root {
+  font-family: Inter, system-ui, sans-serif;
+  color: #4a3720;
+  background: #fff7e6;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+.health-page header {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem 5%;
+  background: #fff;
+  border-bottom: 1px solid #e6d6b6;
+}
+.brand {
+  color: #b48421;
+  font-weight: 800;
+  text-decoration: none;
+}
+.health-page section {
+  width: min(92%, 70rem);
+  margin: 2.5rem auto;
+}
+.eyebrow {
+  color: #b48421;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+.updated {
+  color: #8a6b43;
+}
+.health-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+.health-grid article {
+  padding: 1.25rem;
+  border: 1px solid #e6d6b6;
+  border-radius: 0.7rem;
+  background: #fff;
+}
+.indicator {
+  display: block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: #98a2b3;
+}
+.indicator.healthy {
+  background: #12b76a;
+}
+.indicator.unhealthy {
+  background: #f04438;
+}
+.health-grid p {
+  color: #8a6b43;
+}
+.health-grid strong {
+  font-size: 1.1rem;
+}
+@media (max-width: 650px) {
+  .health-grid {
+    grid-template-columns: 1fr;
+  }
+}

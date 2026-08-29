@@ -1,27 +1,13 @@
-const glyph = {
-  grid: '&#9638;',
-  chat: '&#9993;',
-  calendar: '&#9783;',
-  gear: '&#9881;',
-  menu: '&#9776;',
-  search: '&#9906;',
-  bell: '&#9679;',
-  pin: '&#9679;',
-  heart: '&#9825;',
-  home: '&#8962;',
-  walk: '&#10148;',
-  target: '&#8857;',
-  layers: '&#9638;',
-  arrow: '&#8594;',
-  chevron: '&#8964;',
-  wifi: '&#8976;',
-  snow: '&#10052;',
-  kitchen: '&#9832;',
-  laundry: '&#8635;',
-  car: '&#9670;'
+const icons = {
+  grid: '<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>',
+  chat: '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H9l-5 4v-14.5Z"/>',
+  calendar: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/>',
+  gear: '<path d="m9.4 3.5.6-1h4l.6 1 .3 1.5 1.3.8 1.5-.2 2 3.5-1 1.2.1 1.5 1 1.1-2 3.5-1.5-.2-1.3.8-.3 1.5-.6 1h-4l-.6-1-.3-1.5-1.3-.8-1.5.2-2-3.5 1-1.1-.1-1.5-1-1.2 2-3.5 1.5.2 1.3-.8.3-1.5Z"/><circle cx="12" cy="12" r="3"/>',
+  home: '<path d="m4 10 8-6 8 6v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-9Z"/><path d="M9 20v-6h6v6"/>',
+  logout: '<path d="M10 4H5.5A1.5 1.5 0 0 0 4 5.5v13A1.5 1.5 0 0 0 5.5 20H10M15 8l4 4-4 4M19 12H9"/>'
 };
 
-const icon = (name) => `<span class="icon">${glyph[name] ?? ''}</span>`;
+const icon = (name) => `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">${icons[name] ?? ''}</svg>`;
 
 export function ensureTenantSidebarStyles() {
   const existing = document.querySelector('[data-tenant-sidebar-style="shared"]');
@@ -46,17 +32,17 @@ export function renderTenantSidebar(activePage = 'dashboardTenant') {
   ];
 
   return `<aside class="dh-sidebar">
-    <a class="dh-logo" href="#/tenant/dashboardTenant"><b>D</b>DormHive</a>
-    <small>TENANT PORTAL</small>
+    <a class="dh-logo" href="#/tenant/dashboardTenant">
+      <b aria-hidden="true">${icon('home')}</b>
+      <span><strong>DormHive</strong><small>Tenant Portal</small></span>
+    </a>
+    <div class="dh-sidebar-rule" aria-hidden="true"></div>
     <nav>
-      ${links.map(([page, label, iconName]) => `<a class="${page === activePage ? 'active' : ''}" href="#/tenant/${page}">${icon(iconName)}${label}</a>`).join('')}
+      ${links.map(([page, label, iconName]) => `<a class="${page === activePage ? 'active' : ''}" href="#/tenant/${page}">${icon(iconName)}<span>${label}</span>${page === 'message' ? '<em aria-label="3 unread messages">3</em>' : ''}</a>`).join('')}
     </nav>
-    <div class="help">
-      <strong>Need help?</strong>
-      <span>Our support team is here.</span>
-      <a href="#/tenant/message">Contact support</a>
+    <div class="dh-sidebar-footer">
+      <button class="logout" type="button">${icon('logout')}<span>Sign Out</span></button>
     </div>
-    <button class="logout">Sign out</button>
   </aside>`;
 }
 

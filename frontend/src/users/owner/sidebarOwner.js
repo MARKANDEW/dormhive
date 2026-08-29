@@ -136,7 +136,15 @@ export function ensureOwnerSidebarStyles() {
 }
 
 export function renderOwnerSidebar(active = 'dashboardOwner') {
-  return `<aside class="owner-sidebar">${sidebarLinks.map(([page, label, countA, countB]) => `<a class="nav-item ${active === page ? 'active' : ''}" href="#/owner/${page}"><span class="nav-icon">${glyphs[page] ?? ''}</span><span class="nav-copy"><strong>${label}</strong>${countA || countB ? `<small>${[countA, countB].filter(Boolean).join(' · ')}</small>` : ''}</span></a>`).join('')}<button class="logout">Sign out</button></aside>`;
+  return `<aside class="owner-sidebar">
+    <a class="owner-brand" href="#/owner/dashboardOwner">
+      <b class="owner-brand-mark" aria-hidden="true"><svg class="owner-brand-icon" viewBox="0 0 24 24"><path d="m4 10 8-6 8 6v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-9Z"/><path d="M9 20v-6h6v6"/></svg></b>
+      <span><strong>DormHive</strong><small>Owner Portal</small></span>
+    </a>
+    <div class="owner-sidebar-rule" aria-hidden="true"></div>
+    ${sidebarLinks.map(([page, label, countA, countB]) => `<a class="nav-item ${active === page ? 'active' : ''}" href="#/owner/${page}"><span class="nav-icon">${glyphs[page] ?? ''}</span><span class="nav-copy"><strong>${label}</strong>${countA || countB ? `<small>${[countA, countB].filter(Boolean).join(' · ')}</small>` : ''}</span></a>`).join('')}
+    <button class="logout">Sign out</button>
+  </aside>`;
 }
 
 document.addEventListener('click', (event) => {

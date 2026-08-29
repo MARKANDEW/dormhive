@@ -1,5 +1,11 @@
 ﻿:root {
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   color: #2d2d2d;
   background: #fef1d7;
 }
@@ -125,7 +131,9 @@ input {
   background: linear-gradient(180deg, #efe9dc, #f9f5ee);
   display: grid;
   place-items: center;
-  box-shadow: inset 0 0 0 2px rgba(120, 92, 28, 0.08), 0 14px 26px rgba(85, 67, 31, 0.08);
+  box-shadow:
+    inset 0 0 0 2px rgba(120, 92, 28, 0.08),
+    0 14px 26px rgba(85, 67, 31, 0.08);
   overflow: visible;
 }
 
@@ -192,7 +200,10 @@ input {
   font-weight: 700;
   cursor: pointer;
   min-width: 140px;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
 }
 
 .discard-profile {

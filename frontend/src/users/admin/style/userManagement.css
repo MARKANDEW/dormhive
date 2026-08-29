@@ -1,1 +1,123 @@
-﻿@charset "UTF-8";:root{font-family:Inter,system-ui,sans-serif;color:#4a3720;background:#fff7e6}*{box-sizing:border-box}body{margin:0}.users-page header,.moderation-page header,.health-page header,.admin-analytics header,.tickets-page header,.admin-settings header{display:flex;justify-content:space-between;padding:1rem 5%;border-bottom:1px solid #e6d6b6;background:#fff}.brand{color:#b48421;font-size:1.2rem;font-weight:800;text-decoration:none}header a:last-child{color:#4b635a;text-decoration:none}.users-page section{width:min(92%,75rem);margin:2.5rem auto}.heading{display:flex;justify-content:space-between;gap:1rem;align-items:center}.heading h1{margin:0}.heading p,.status{color:#8a6b43}.heading input{padding:.7rem;border:1px solid #cbd5d1;border-radius:.4rem;font:inherit}.table-wrap{overflow:auto;background:#fff;border:1px solid #e6d6b6;border-radius:.7rem}table{width:100%;border-collapse:collapse}th,td{padding:.85rem;text-align:left;border-bottom:1px solid #e6d6b6}td small{display:block;color:#8a6b43}.user-table-cell{display:flex;align-items:center;gap:.75rem}.user-row-avatar{width:2.6rem;height:2.6rem;border-radius:50%;object-fit:cover;object-position:center;overflow:hidden;background:#f4efe8;border:1px solid rgba(120,92,28,.15);display:block}.pill{padding:.2rem .5rem;border-radius:99px;font-size:.8rem}.pill.active{color:#07533d;background:#f8e2b5}.pill.suspended{color:#a61b1b;background:#fff0f0}td button{padding:.5rem .7rem;border:0;border-radius:.35rem;background:#344054;color:#fff;cursor:pointer}@media(max-width:560px){.heading{display:block}.heading input{width:100%;margin-top:.8rem}}
+﻿@charset "UTF-8";
+:root {
+  font-family: Inter, system-ui, sans-serif;
+  color: #4a3720;
+  background: #fff7e6;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+.users-page header,
+.moderation-page header,
+.health-page header,
+.admin-analytics header,
+.tickets-page header,
+.admin-settings header {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem 5%;
+  border-bottom: 1px solid #e6d6b6;
+  background: #fff;
+}
+.brand {
+  color: #b48421;
+  font-size: 1.2rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+header a:last-child {
+  color: #4b635a;
+  text-decoration: none;
+}
+.users-page section {
+  width: min(92%, 75rem);
+  margin: 2.5rem auto;
+}
+.heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+.heading h1 {
+  margin: 0;
+}
+.heading p,
+.status {
+  color: #8a6b43;
+}
+.heading input {
+  padding: 0.7rem;
+  border: 1px solid #cbd5d1;
+  border-radius: 0.4rem;
+  font: inherit;
+}
+.table-wrap {
+  overflow: auto;
+  background: #fff;
+  border: 1px solid #e6d6b6;
+  border-radius: 0.7rem;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th,
+td {
+  padding: 0.85rem;
+  text-align: left;
+  border-bottom: 1px solid #e6d6b6;
+}
+td small {
+  display: block;
+  color: #8a6b43;
+}
+.user-table-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.user-row-avatar {
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center;
+  overflow: hidden;
+  background: #f4efe8;
+  border: 1px solid rgba(120, 92, 28, 0.15);
+  display: block;
+}
+.pill {
+  padding: 0.2rem 0.5rem;
+  border-radius: 99px;
+  font-size: 0.8rem;
+}
+.pill.active {
+  color: #07533d;
+  background: #f8e2b5;
+}
+.pill.suspended {
+  color: #a61b1b;
+  background: #fff0f0;
+}
+td button {
+  padding: 0.5rem 0.7rem;
+  border: 0;
+  border-radius: 0.35rem;
+  background: #344054;
+  color: #fff;
+  cursor: pointer;
+}
+@media (max-width: 560px) {
+  .heading {
+    display: block;
+  }
+  .heading input {
+    width: 100%;
+    margin-top: 0.8rem;
+  }
+}

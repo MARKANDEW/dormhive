@@ -13,8 +13,8 @@
   background: #f7e2b2;
   color: #3d2d17;
   border: 0;
-  border-radius: .75rem;
-  padding: .65rem 1rem;
+  border-radius: 0.75rem;
+  padding: 0.65rem 1rem;
   cursor: pointer;
   font-weight: 700;
 }
@@ -60,18 +60,18 @@
   position: absolute;
   left: var(--x, 0);
   top: var(--y, 0);
-  padding: .55rem .75rem;
+  padding: 0.55rem 0.75rem;
   border: 0;
   border-radius: 999px;
   background: #f4c664;
   color: #3d2d17;
-  font-size: .8rem;
+  font-size: 0.8rem;
   line-height: 1.2;
   text-align: left;
   transform: translate(-50%, -50%);
   cursor: pointer;
   pointer-events: auto;
-  box-shadow: 0 10px 24px rgba(61, 45, 24, .12);
+  box-shadow: 0 10px 24px rgba(61, 45, 24, 0.12);
 }
 .map-panel .pin.selected {
   background: #d29a21;
@@ -81,13 +81,13 @@
   right: 1rem;
   bottom: 1rem;
   display: grid;
-  gap: .5rem;
+  gap: 0.5rem;
 }
 .map-panel .zoom button {
   width: 2.2rem;
   height: 2.2rem;
   border: 0;
-  border-radius: .75rem;
+  border-radius: 0.75rem;
   background: #dbae40;
   color: #3d2d17;
   font-size: 1rem;
@@ -97,12 +97,12 @@
   position: absolute;
   left: 1rem;
   bottom: 1rem;
-  padding: .7rem 1rem;
-  border-radius: .85rem;
-  background: rgba(255, 248, 225, .95);
+  padding: 0.7rem 1rem;
+  border-radius: 0.85rem;
+  background: rgba(255, 248, 225, 0.95);
   color: #4a3720;
-  font-size: .85rem;
-  box-shadow: 0 10px 20px rgba(61, 45, 24, .08);
+  font-size: 0.85rem;
+  box-shadow: 0 10px 20px rgba(61, 45, 24, 0.08);
   z-index: 10;
 }
 
