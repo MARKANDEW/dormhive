@@ -1,4 +1,4 @@
-﻿import { ensureOwnerSidebarStyles, renderOwnerProfileCard, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
+﻿import { ensureOwnerSidebarStyles, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
 
 const API = (window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1').replace(/\/$/, '');
 const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
@@ -63,28 +63,11 @@ export function renderMyListing(root = document.querySelector('#app')) {
   css();
   ensureOwnerSidebarStyles();
 
-  const account = user();
-  const profileName = account.name || 'Property Owner';
-  const initials = profileName.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '').join('') || 'PO';
-  const avatarUrl = resolveImageUrl(account.avatar_url || '');
-  const avatarMarkup = avatarUrl ? `<img src="${escape(avatarUrl)}" alt="${escape(profileName)} avatar" />` : `<span>${escape(initials)}</span>`;
-
   root.innerHTML = `
     <div class="owner-shell">
       ${renderOwnerSidebar('myListing')}
       <div class="owner-main">
         <main class="portfolio-page">
-          <header class="portfolio-topbar">
-            <div class="topbar-left"></div>
-            <label class="search-bar" aria-label="Search my listings, inquiries, tenants">
-              <span>⌕</span>
-              <input type="search" placeholder="Search my listings, inquiries, tenants..." />
-            </label>
-            <div class="topbar-right">
-              ${renderOwnerProfileCard()}
-            </div>
-          </header>
-
           <section class="portfolio-content">
             <div class="portfolio-headline">
               <div>

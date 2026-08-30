@@ -1,4 +1,5 @@
-import { ensureOwnerSidebarStyles, renderOwnerProfileCard, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
+import { ensureOwnerSidebarStyles, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
+import { createModal, openModal } from '../../components/modal.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const API_ORIGIN = API.replace(/\/api\/v1\/?$/, '');
@@ -58,21 +59,19 @@ export function renderMessage(root = document.querySelector('#app')) {
       ${renderOwnerSidebar('message')}
       <div class="owner-main">
         <main class="owner-inbox-page">
-          <header class="owner-topbar">
-            <div class="topbar-left"></div>
-            <label class="search-bar" aria-label="Search my listings, inquiries, tenants">
-              <span>⌕</span>
-              <input type="search" placeholder="Search my listings, inquiries, tenants..." />
-            </label>
-            <div class="topbar-right">
-              ${renderOwnerProfileCard()}
-            </div>
-          </header>
-
           <section class="inbox-layout">
             <aside class="inbox-sidebar">
               <div class="sidebar-title-row">
                 <h1>Inbox</h1>
+                <span class="inbox-count" aria-live="polite"></span>
+              </div>
+              <label class="search-bar inbox-search" aria-label="Search my listings, inquiries, tenants">
+                <span>⌕</span>
+                <input type="search" placeholder="Search conversations..." />
+              </label>
+              <div class="conversation-filters" role="group" aria-label="Conversation filters">
+                <button type="button" class="filter-button active" data-filter="all">All</button>
+                <button type="button" class="filter-button" data-filter="unread">Unread</button>
               </div>
               <p class="status" role="status">Loading conversations…</p>
               <div class="conversation-list"></div>
@@ -80,6 +79,7 @@ export function renderMessage(root = document.querySelector('#app')) {
 
             <section class="chat-pane">
               <div class="chat-header">
+                <button class="mobile-back" type="button" aria-label="Back to conversations">←</button>
                 <div class="contact-meta">
                   <div id="chat-avatar" class="avatar-chip large">U</div>
                   <div>
@@ -88,10 +88,11 @@ export function renderMessage(root = document.querySelector('#app')) {
                   </div>
                 </div>
                 <div class="chat-actions">
-                  <button class="icon-button" type="button" aria-label="Video call">📹</button>
-                  <button class="icon-button" type="button" aria-label="Profile">👤</button>
+                  <button class="icon-button" type="button" aria-label="Video call" title="Video call">📹</button>
+                  <button class="icon-button" type="button" aria-label="Profile" title="Tenant profile">👤</button>
                 </div>
               </div>
+              <div class="owner-property-context hidden"></div>
               <div class="messages"></div>
               <form class="composer" hidden>
                 <div class="composer-tools">
@@ -117,15 +118,22 @@ export function renderMessage(root = document.querySelector('#app')) {
       </div>
     </div>`;
 
-  const state = { conversations: [], selected: null, properties: [] };
+  const state = { conversations: [], selected: null, properties: [], bookings: [], filter: 'all', sending: false };
   const list = root.querySelector('.conversation-list');
   const messages = root.querySelector('.messages');
   const form = root.querySelector('.composer');
   const status = root.querySelector('.status');
+  const inboxCount = root.querySelector('.inbox-count');
+  const propertyContext = root.querySelector('.owner-property-context');
+  const filterButtons = Array.from(root.querySelectorAll('.filter-button'));
   const chatTitle = root.querySelector('#chat-contact');
   const chatProperty = root.querySelector('#chat-property');
   const chatAvatar = root.querySelector('#chat-avatar');
-  const searchInput = root.querySelector('.search-bar input');  const imageInput = form.querySelector('.image-input');
+  const searchInput = root.querySelector('.inbox-search input');
+  const videoCallButton = root.querySelector('.chat-actions button[aria-label="Video call"]');
+  const profileButton = root.querySelector('.chat-actions button[aria-label="Profile"]');
+  const mobileBackButton = root.querySelector('.mobile-back');
+  const imageInput = form.querySelector('.image-input');
   const attachmentStrip = form.querySelector('.attachment-strip');
   const attachmentPreview = form.querySelector('.attachment-preview');
   const removeAttachmentButton = form.querySelector('.remove-attachment');
@@ -161,8 +169,50 @@ export function renderMessage(root = document.querySelector('#app')) {
     return property?.title || 'Property';
   };
 
+  const getProperty = (propertyId) => state.properties.find((item) => String(item.id) === String(propertyId));
+  const getBooking = (conversation) => state.bookings
+    .filter((item) => Number(item.tenant_id) === Number(conversation?.tenant_id) && Number(item.property_id) === Number(conversation?.property_id))
+    .sort((a, b) => new Date(b.updated_at ?? b.created_at ?? 0) - new Date(a.updated_at ?? a.created_at ?? 0))[0];
+  const isBookingMessage = (value = '') => /viewing scheduled|scheduled for/i.test(String(value));
+
+  const renderBookingCard = (message, conversation) => {
+    const booking = getBooking(conversation);
+    const date = booking?.viewing_date || booking?.schedule_date || booking?.move_in_date;
+    const time = booking?.viewing_time || booking?.schedule_time;
+    const statusLabel = booking?.status ? String(booking.status).replace(/[-_]/g, ' ') : 'Viewing appointment';
+    return `
+      <div class="owner-booking-card">
+        <div class="owner-booking-heading"><span class="booking-icon">📅</span><strong>Property Viewing</strong><span class="booking-status">${esc(statusLabel)}</span></div>
+        <div class="owner-booking-details">
+          <strong>${esc(date ? new Date(date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'Viewing appointment')}</strong>
+          <span>${esc(time || message.replace(/.*scheduled for\s*/i, '') || 'Time not specified')}</span>
+        </div>
+        <div class="owner-booking-actions"><span>${esc(booking ? `Tenant: ${conversation.participant_name || 'Tenant'}` : 'Viewing appointment')}</span>${booking ? '<a href="#/owner/inquiries" class="booking-action">View Booking</a>' : ''}</div>
+      </div>`;
+  };
+
+  const renderOwnerPropertyContext = () => {
+    const property = getProperty(state.selected?.property_id);
+    if (!state.selected || !property) {
+      propertyContext.classList.add('hidden');
+      propertyContext.innerHTML = '';
+      return;
+    }
+    propertyContext.classList.remove('hidden');
+    propertyContext.innerHTML = `
+      <div class="owner-property-copy"><span class="property-context-icon">🏠</span><div><strong>${esc(property.title || 'Property')}</strong><small>Property inquiry</small><small>Tenant: ${esc(state.selected.participant_name || 'Tenant')}</small></div></div>
+      <button type="button" class="property-context-link" data-owner-property>View Property</button>`;
+    propertyContext.querySelector('[data-owner-property]')?.addEventListener('click', () => {
+      const modal = createModal({ title: property.title || 'Property Details', content: '', closeLabel: 'Close' });
+      const location = [property.address, property.barangay, property.municipality, property.city].filter(Boolean).join(', ') || 'Not specified';
+      modal.querySelector('.ui-modal__body').innerHTML = `<div class="owner-property-details"><h3>${esc(property.title || 'Property')}</h3><p><strong>Location:</strong> ${esc(location)}</p><p><strong>Room type:</strong> ${esc(property.room_type || 'Not specified')}</p><p><strong>Monthly rent:</strong> ${property.monthly_rent ? `PHP ${Number(property.monthly_rent).toLocaleString('en-PH')}` : 'Not specified'}</p><p><strong>Description:</strong> ${esc(property.description || 'No description provided.')}</p></div>`;
+      openModal(modal);
+    });
+  };
+
   const renderConversations = (query = '') => {
     const filtered = state.conversations.filter((item) => {
+      if (state.filter === 'unread' && Number(item.unread_count ?? 0) < 1) return false;
       const text = `${item.participant_name ?? ''} ${getPropertyTitle(item.property_id)} ${item.last_message ?? ''}`.toLowerCase();
       return !query || text.includes(query.toLowerCase());
     });
@@ -181,10 +231,13 @@ export function renderMessage(root = document.querySelector('#app')) {
               <span class="preview">${esc(item.last_message ?? 'No messages yet')}</span>
             </div>
           </div>
-          ${Number(item.unread_count ?? 0) > 0 ? '<span class="unread-dot"></span>' : ''}
+          ${Number(item.unread_count ?? 0) > 0 ? `<span class="unread-dot" aria-label="${Number(item.unread_count)} unread"></span>` : ''}
         </button>
       `).join('')
-      : '<p class="empty">No conversations found.</p>';
+      : '<div class="empty-conversations"><span>💬</span><strong>No conversations yet</strong><small>Tenant inquiries and messages will appear here.</small></div>';
+
+    const unread = state.conversations.reduce((total, item) => total + Number(item.unread_count ?? 0), 0);
+    inboxCount.textContent = `${state.conversations.length} conversation${state.conversations.length === 1 ? '' : 's'}${unread ? ` • ${unread} unread` : ''}`;
 
     list.querySelectorAll('.conversation-item').forEach((button) => {
       button.addEventListener('click', () => select(button.dataset.id));
@@ -199,10 +252,12 @@ export function renderMessage(root = document.querySelector('#app')) {
 
       state.selected = state.conversations.find((item) => String(item.id) === String(id));
       if (!state.selected) return;
+      root.querySelector('.owner-inbox-page')?.classList.add('thread-open');
 
       chatTitle.textContent = state.selected.participant_name ?? 'Conversation';
       chatProperty.textContent = getPropertyTitle(state.selected.property_id);
       chatAvatar.innerHTML = renderAvatar(state.selected.participant_name ?? 'Conversation', state.selected.participant_avatar_url);
+      renderOwnerPropertyContext();
 
       messages.innerHTML = (Array.isArray(body.data) ? body.data : []).map((message) => `
         <article class="message-bubble ${message.sender_id === Number(user().id) ? 'mine' : 'their'}">
@@ -212,7 +267,7 @@ export function renderMessage(root = document.querySelector('#app')) {
               : renderAvatar(state.selected.participant_name ?? 'Tenant', state.selected.participant_avatar_url)}</div>
             <span>${esc(message.sender_id === Number(user().id) ? 'You' : state.selected.participant_name ?? 'Tenant')}</span>
           </div>
-          <div class="bubble-body">${renderMessageBody(message.body)}</div>
+          <div class="bubble-body">${isBookingMessage(message.body) ? renderBookingCard(message.body, state.selected) : renderMessageBody(message.body)}</div>
           <small>${esc(shortDate(message.created_at))} • ${esc(dayTime(message.created_at))}</small>
         </article>
       `).join('') || '<p class="empty">Start the conversation.</p>';
@@ -224,6 +279,9 @@ export function renderMessage(root = document.querySelector('#app')) {
 
       form.hidden = false;
       renderConversations(searchInput.value);
+      requestAnimationFrame(() => {
+        messages.scrollTop = messages.scrollHeight;
+      });
     } catch (error) {
       messages.innerHTML = `<p class="empty">${esc(error.message)}</p>`;
     }
@@ -256,6 +314,9 @@ export function renderMessage(root = document.querySelector('#app')) {
     if (!hasImage && !hasText) return;
 
     try {
+      state.sending = true;
+      form.classList.add('is-sending');
+      form.querySelector('button[type="submit"]').disabled = true;
       if (hasImage) {
         await fetch(`${API}/messages`, {
           method: 'POST',
@@ -279,6 +340,10 @@ export function renderMessage(root = document.querySelector('#app')) {
       await select(state.selected.id);
     } catch (error) {
       status.textContent = error.message;
+    } finally {
+      state.sending = false;
+      form.classList.remove('is-sending');
+      form.querySelector('button[type="submit"]').disabled = false;
     }
   });
 
@@ -290,22 +355,52 @@ export function renderMessage(root = document.querySelector('#app')) {
   });
 
   searchInput.addEventListener('input', (event) => renderConversations(event.target.value));
+  filterButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      state.filter = button.dataset.filter || 'all';
+      filterButtons.forEach((item) => item.classList.toggle('active', item === button));
+      renderConversations(searchInput.value);
+    });
+  });
+  videoCallButton?.addEventListener('click', () => {
+    if (!state.selected) return;
+    const roomName = `DormHive-owner-conversation-${encodeURIComponent(String(state.selected.id))}`;
+    const callWindow = window.open(`https://meet.jit.si/${roomName}`, '_blank', 'noopener,noreferrer');
+    if (!callWindow) status.textContent = 'Allow pop-ups to open the video call in a new tab.';
+  });
+  profileButton?.addEventListener('click', () => {
+    if (!state.selected) return;
+    const modal = createModal({ title: state.selected.participant_name || 'Tenant profile', content: `<p><strong>Tenant:</strong> ${esc(state.selected.participant_name || 'Tenant')}</p><p><strong>Property:</strong> ${esc(getPropertyTitle(state.selected.property_id))}</p>`, closeLabel: 'Close' });
+    openModal(modal);
+  });
+  mobileBackButton?.addEventListener('click', () => {
+    state.selected = null;
+    root.querySelector('.owner-inbox-page')?.classList.remove('thread-open');
+    chatTitle.textContent = 'Select a conversation';
+    chatProperty.textContent = 'Property details will appear here.';
+    propertyContext.classList.add('hidden');
+    renderConversations(searchInput.value);
+  });
 
   const load = async () => {
     try {
-      const [conversationResponse, propertyResponse] = await Promise.all([
+      const [conversationResponse, propertyResponse, bookingResponse] = await Promise.all([
         fetch(`${API}/messages/conversations`, { headers: headers() }),
-        fetch(`${API}/properties?limit=100`, { headers: headers() })
+        fetch(`${API}/properties?limit=100`, { headers: headers() }),
+        fetch(`${API}/bookings`, { headers: headers() })
       ]);
 
       const conversationBody = await conversationResponse.json();
       const propertyBody = await propertyResponse.json();
+      const bookingBody = await bookingResponse.json();
 
       if (!conversationResponse.ok) throw new Error(conversationBody.message || 'Unable to load messages.');
       if (!propertyResponse.ok) throw new Error(propertyBody.message || 'Unable to load properties.');
+      if (!bookingResponse.ok) throw new Error(bookingBody.message || 'Unable to load bookings.');
 
       state.conversations = Array.isArray(conversationBody.data) ? conversationBody.data : [];
       state.properties = Array.isArray(propertyBody.data) ? propertyBody.data : [];
+      state.bookings = Array.isArray(bookingBody.data) ? bookingBody.data : [];
       status.hidden = true;
       renderConversations();
 

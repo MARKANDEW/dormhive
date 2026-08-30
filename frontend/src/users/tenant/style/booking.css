@@ -24,7 +24,9 @@ body {
   overflow-x: hidden;
   scrollbar-width: none;
   min-height: 100vh;
-  background: #f4f3f2;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.72)),
+    url('https://plain-apac-prod-public.komododecks.com/202608/29/jIJtZ9Mnj3rkRlfOItjs/image.png') center center / cover no-repeat;
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
 }
 

@@ -1,6 +1,6 @@
 ﻿.admin-shell {
   display: grid;
-  grid-template-columns: 15rem minmax(0, 1fr);
+  grid-template-columns: 240px minmax(0, 1fr);
   min-height: 100vh;
   background: linear-gradient(180deg, #f7faf9 0%, #fff3d3 100%);
   width: 100%;
@@ -171,7 +171,7 @@
     position: fixed;
     left: 0;
     top: 0;
-    width: 15rem;
+    width: 240px;
     transform: translateX(-105%);
     transition: transform 0.2s ease;
     z-index: 6;

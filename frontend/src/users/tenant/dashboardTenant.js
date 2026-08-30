@@ -42,31 +42,45 @@ function tenantFullName(user = {}) {
   return combined || String(user.name ?? 'Tenant').trim() || 'Tenant';
 }
 const money = (value = 0) => `PHP ${Number(value || 0).toLocaleString('en-PH')}`;
-const glyph = { grid: '&#9638;', calendar: '&#9783;', gear: '&#9881;', menu: '&#9776;', search: '&#9906;', pin: '&#9679;', heart: '&#9825;', home: '&#8962;', walk: '&#10148;', target: '&#8857;', layers: '&#9638;', arrow: '&#8594;', wifi: '&#8976;', snow: '&#10052;', kitchen: '&#9832;', laundry: '&#8635;', car: '&#9670;' };
+const glyph = { grid: '&#9638;', calendar: '&#9783;', gear: '&#9881;', menu: '&#9776;', search: '&#9906;', pin: '&#9679;', heart: '&#9825;', heartFilled: '&#9829;', home: '&#8962;', walk: '&#10148;', target: '&#8857;', layers: '&#9638;', arrow: '&#8594;', wifi: '&#8976;', snow: '&#10052;', kitchen: '&#9832;', laundry: '&#8635;', car: '&#9670;' };
 const icon = (name) => `<span class="icon">${glyph[name] ?? ''}</span>`;
+const heartIcon = (filled = false) => `<span class="icon">${filled ? glyph.heartFilled : glyph.heart}</span>`;
 const formatNotificationDate = (value) => new Date(value ?? Date.now()).toLocaleDateString([], { month: 'short', day: 'numeric' });
 
 function loadStyle() {
+  const stylePromises = [];
+
   if (!document.querySelector('[data-tenant-style="dashboard"]')) {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = new URL('./style/dashboardTenant.css', import.meta.url);
     link.dataset.tenantStyle = 'dashboard';
     document.head.append(link);
+    stylePromises.push(new Promise((resolve) => {
+      link.addEventListener('load', resolve, { once: true });
+      link.addEventListener('error', resolve, { once: true });
+    }));
   }
+
   if (!document.querySelector('[data-tenant-style="dashboard-font"]')) {
     const style = document.createElement('style');
     style.dataset.tenantStyle = 'dashboard-font';
     style.textContent = '.dh-dashboard{font-family:Inter,ui-sans-serif,system-ui,sans-serif}.dh-dashboard .intro small,.dh-dashboard .intro h1,.dh-dashboard .intro p{color:#000}';
     document.head.append(style);
   }
+
   if (!document.querySelector('[data-tenant-style="amenities"]')) {
     const aLink = document.createElement('link');
     aLink.rel = 'stylesheet';
     aLink.href = new URL('./style/amenities.css', import.meta.url);
     aLink.dataset.tenantStyle = 'amenities';
     document.head.append(aLink);
+    stylePromises.push(new Promise((resolve) => {
+      aLink.addEventListener('load', resolve, { once: true });
+      aLink.addEventListener('error', resolve, { once: true });
+    }));
   }
+
   if (!document.querySelector('[data-tenant-style="notifications"]')) {
     const style = document.createElement('style');
     style.dataset.tenantStyle = 'notifications';
@@ -88,6 +102,7 @@ function loadStyle() {
     `;
     document.head.append(style);
   }
+
   if (!document.querySelector('[data-tenant-style="listing-carousel"]')) {
     const style = document.createElement('style');
     style.dataset.tenantStyle = 'listing-carousel';
@@ -108,7 +123,7 @@ function loadStyle() {
     `;
     document.head.append(style);
   }
-  // Add CSS for full-map-container modal
+
   if (!document.querySelector('style[data-tenant-modal-css]')) {
     const style = document.createElement('style');
     style.dataset.tenantModalCss = '1';
@@ -162,6 +177,8 @@ function loadStyle() {
     `;
     document.head.append(style);
   }
+
+  return Promise.all(stylePromises);
 }
 
 function session() {
@@ -206,6 +223,26 @@ function normalizeGenderPreference(value = '') {
     coed: 'Co-ed'
   };
   return labels[gender] ?? gender.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+const FAVORITES_KEY = 'dormhive.favoriteListings';
+
+function getFavoriteListingIds() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]');
+    return Array.isArray(raw) ? raw.map((value) => String(value)) : [];
+  } catch {
+    return [];
+  }
+}
+
+function toggleFavoriteListing(id) {
+  const list = getFavoriteListingIds();
+  const next = new Set(list);
+  const normalizedId = String(id);
+  if (next.has(normalizedId)) next.delete(normalizedId); else next.add(normalizedId);
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify([...next]));
+  return next.has(normalizedId);
 }
 
 const AMENITY_LABELS = {
@@ -327,7 +364,7 @@ function listingCard(item, index) {
   const badge = item.status === 'approved' ? 'Verified' : (item.status || 'Active');
   const walkDistance = (0.6 + index * 0.25).toFixed(1);
   const image = normalizePropertyImage(item);
-  const photoMarkup = `<img src="${esc(image || DEFAULT_IMAGE_PLACEHOLDER)}" alt="${esc(item.title || 'Listing photo')}" class="listing-photo" /><em>${esc(badge)}</em><button aria-label="Save listing">${icon('heart')}</button>`;
+  const photoMarkup = `<img src="${esc(image || DEFAULT_IMAGE_PLACEHOLDER)}" alt="${esc(item.title || 'Listing photo')}" class="listing-photo" /><em>${esc(badge)}</em><button aria-label="Save listing">${heartIcon(false)}</button>`;
 
   return `
     <article class="listing" data-id="${item.id}">
@@ -539,7 +576,7 @@ async function showNearbyListingsModal(properties = []) {
 
 export async function renderDashboardTenant(root = document.querySelector('#app')) {
   if (!root) throw new Error('Tenant dashboard requires #app.');
-  loadStyle();
+  await loadStyle();
   loadPropertyDetailsStyle();
   ensureTenantSidebarStyles();
 
@@ -717,6 +754,9 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
   }, 15000);
 
   const state = { all: [] };
+  const routeSearch = typeof window.DORMHIVE_ROUTE_SEARCH === 'string' ? window.DORMHIVE_ROUTE_SEARCH : window.location.search;
+  const requestedPropertyId = new URLSearchParams(routeSearch).get('propertyId');
+  let requestedPropertyOpened = false;
   const search = root.querySelector('#search');
   const maxPrice = root.querySelector('#max-price');
   const range = root.querySelector('#range');
@@ -861,6 +901,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
       return;
     }
 
+    const favoriteIds = new Set(getFavoriteListingIds());
     cards.innerHTML = items.map((item, index) => {
       const location = locationText(item);
       const roomType = normalizeRoomType(item.room_type);
@@ -873,13 +914,14 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
       const dots = galleryImages.length > 1
         ? `<div class="listing-carousel-dots" role="tablist" aria-label="Photos for ${esc(item.title || 'listing')}">${galleryImages.map((_, photoIndex) => `<button type="button" class="listing-carousel-dot${photoIndex === 0 ? ' is-active' : ''}" data-carousel-index="${photoIndex}" role="tab" aria-label="View photo ${photoIndex + 1}" aria-selected="${photoIndex === 0}"></button>`).join('')}</div>`
         : '';
+      const isFavorite = favoriteIds.has(String(item.id));
 
       return `
         <article class="listing" data-id="${item.id}">
           <div class="photo p${index % 4}">
             <img src="${esc(galleryImages[0])}" alt="${esc(item.title || 'Listing photo')}" class="listing-photo" />
             <em>${esc(item.status === 'approved' ? 'Verified' : (item.status || 'Approved'))}</em>
-            <button aria-label="Save listing">${icon('heart')}</button>
+            <button type="button" class="favorite-toggle${isFavorite ? ' is-favorited' : ''}" data-property-id="${item.id}" aria-label="${isFavorite ? 'Remove from favorites' : 'Save listing'}" aria-pressed="${isFavorite}">${heartIcon(isFavorite)}</button>
             ${dots}
           </div>
           <div class="listing-body">
@@ -957,6 +999,18 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
           event.preventDefault();
           openPhotoViewer();
         }
+      });
+    });
+
+    cards.querySelectorAll('.favorite-toggle').forEach((button) => {
+      button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const propertyId = button.dataset.propertyId;
+        const isFavorite = toggleFavoriteListing(propertyId);
+        button.classList.toggle('is-favorited', isFavorite);
+        button.innerHTML = heartIcon(isFavorite);
+        button.setAttribute('aria-pressed', String(isFavorite));
+        button.setAttribute('aria-label', isFavorite ? 'Remove from favorites' : 'Save listing');
       });
     });
 
@@ -1050,6 +1104,13 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
       // Initialize Leaflet map and render approved property markers
       await initLeafletMap(root.querySelector('.map'), state.all);
       renderCards();
+      if (requestedPropertyId && !requestedPropertyOpened) {
+        const requestedProperty = state.all.find((item) => String(item.id) === String(requestedPropertyId));
+        if (requestedProperty) {
+          requestedPropertyOpened = true;
+          await openPropertyDetails(requestedProperty);
+        }
+      }
     } catch (error) {
       cards.innerHTML = `<div class="empty">${esc(error.message)}</div>`;
       if (mapStatus) mapStatus.textContent = 'Unable to load validated listings from the database.';

@@ -127,7 +127,16 @@ function ensureSettingLayoutStyles() {
   if (document.querySelector('[data-tenant-style="setting-layout"]')) return;
   const style = document.createElement('style');
   style.dataset.tenantStyle = 'setting-layout';
-  style.textContent = 'html:has(.tenant-settings),body:has(.tenant-settings),#app:has(.tenant-settings),.tenant-page-main.tenant-settings{background:linear-gradient(180deg,#fef1d7 0%,#f8faf8 100%) !important}';
+  style.textContent = `
+    html:has(.tenant-settings),
+    body:has(.tenant-settings),
+    #app:has(.tenant-settings),
+    .tenant-page-main.tenant-settings {
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.68)),
+        url('https://plain-apac-prod-public.komododecks.com/202608/29/jIJtZ9Mnj3rkRlfOItjs/image.png') center center / cover no-repeat !important;
+    }
+  `;
   document.head.append(style);
 }
 

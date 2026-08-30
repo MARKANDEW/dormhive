@@ -14,19 +14,6 @@ body {
   min-height: 100vh;
   background: #f3f5f6;
 }
-.inquiries-page header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 5%;
-  background: #fff;
-  border-bottom: 1px solid #dce7e2;
-}
-.brand {
-  color: #b48421;
-  text-decoration: none;
-  font-weight: 800;
-}
 .inquiries-board {
   width: min(96%, 1280px);
   margin: 0 auto;

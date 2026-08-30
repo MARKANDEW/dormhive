@@ -14,9 +14,19 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#app,
+.dh-app {
+  min-height: 100vh;
+  height: 100%;
+}
+
 body {
   margin: 0;
-  background: linear-gradient(180deg, #fef1d7 0%, #f8faf8 100%);
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.68)),
+    url('https://plain-apac-prod-public.komododecks.com/202608/29/jIJtZ9Mnj3rkRlfOItjs/image.png') center center / cover no-repeat;
 }
 
 button,
@@ -34,7 +44,9 @@ input {
   width: 100%;
   margin: 0;
   padding: 2rem !important;
-  background: linear-gradient(180deg, #fef1d7 0%, #f8faf8 100%);
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.68)),
+    url('https://plain-apac-prod-public.komododecks.com/202608/29/jIJtZ9Mnj3rkRlfOItjs/image.png') center center / cover no-repeat;
 }
 
 .tenant-settings {

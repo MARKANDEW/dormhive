@@ -30,6 +30,9 @@ input {
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0 clamp(20px, 4vw, 58px) 48px;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.72)),
+    url('https://plain-apac-prod-public.komododecks.com/202608/29/jIJtZ9Mnj3rkRlfOItjs/image.png') center center / cover no-repeat;
 }
 .topbar {
   display: flex;
@@ -381,6 +384,10 @@ legend {
 }
 .map-panel {
   padding: 20px;
+  border: 1px solid #e6ece9;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
 }
 .panel-title-row {
   display: flex;
@@ -412,8 +419,10 @@ legend {
   position: relative;
   height: 385px;
   overflow: hidden;
-  border-radius: 10px;
+  border: 1px solid #edf1ef;
+  border-radius: 12px;
   background: linear-gradient(132deg, #d9eee6 0 42%, #e7f3ee 42%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 .map iframe {
   position: absolute;
@@ -550,6 +559,11 @@ legend {
 .featured {
   min-width: 0;
   margin-top: 0;
+  padding: 16px 16px 14px;
+  border: 1px solid #e7eeeb;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.03);
 }
 .section-title {
   margin-bottom: 16px;
@@ -558,7 +572,7 @@ legend {
   display: grid;
   grid-auto-columns: minmax(240px, 1fr);
   grid-auto-flow: column;
-  gap: 16px;
+  gap: 14px;
   overflow-x: auto;
   padding-bottom: 7px;
   scroll-snap-type: x proximity;
@@ -566,9 +580,10 @@ legend {
 .listing {
   display: block;
   overflow: hidden;
-  border: 1px solid #dce6e2;
-  border-radius: 12px;
+  border: 1px solid #e3eae7;
+  border-radius: 10px;
   background: #fff;
+  box-shadow: none;
   scroll-snap-align: start;
 }
 .featured .section-title {
@@ -619,6 +634,30 @@ legend {
   border-radius: 50%;
   background: #ffffffe6;
   color: #39574e;
+  cursor: pointer;
+}
+.favorite-toggle {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+.favorite-toggle:hover {
+  transform: scale(1.04);
+}
+.favorite-toggle.is-favorited {
+  background: #fff;
+  color: #e5484d;
+  box-shadow: 0 4px 10px rgba(229, 72, 77, 0.12);
+}
+.favorite-toggle.is-favorited .icon {
+  color: #e5484d;
+}
+.favorite-toggle .icon {
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 700;
 }
 .listing-body {
   display: flex;
@@ -647,6 +686,29 @@ legend {
   color: #7a8c86;
   font-size: 11px;
   text-transform: capitalize;
+}
+.amenity-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+.amenity-chip,
+.empty-amenity {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 7px;
+  border: 1px solid #e3ebea;
+  border-radius: 6px;
+  background: #f5f8f7;
+  color: #4d615d;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.empty-amenity {
+  color: #6a7f7a;
 }
 .price {
   display: flex;

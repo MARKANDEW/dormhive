@@ -23,9 +23,6 @@ export function renderAnalytics(root = document.querySelector('#app')) {
       ${renderOwnerSidebar('analytics')}
       <div class="owner-main">
         <main class="analytics-page">
-          <header>
-            <a class="brand" href="#/owner/dashboardOwner">DormHive</a>
-          </header>
           <section>
             <p class="eyebrow">OWNER ANALYTICS</p>
             <h1>Rental performance</h1>

@@ -177,6 +177,17 @@ body {
   min-height: 0;
   overflow: hidden;
 }
+.inbox-search {
+  display: flex;
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: none;
+  min-height: 0;
+  height: 44px;
+  margin: 0 0 0.75rem;
+  padding: 10px 14px;
+  border-radius: 12px;
+}
 .sidebar-title-row h1 {
   margin: 0;
   font-size: 1.25rem;
@@ -499,4 +510,82 @@ body {
   .topbar-right {
     justify-content: flex-end;
   }
+}
+
+.inbox-count {
+  display: block;
+  margin-top: 0.25rem;
+  color: #65776f;
+  font-size: 0.75rem;
+}
+.conversation-filters {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0.2rem 0 0.75rem;
+}
+.filter-button {
+  padding: 0.38rem 0.7rem;
+  border: 1px solid #dce7e2;
+  border-radius: 999px;
+  background: #fff;
+  color: #65776f;
+  font: inherit;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+.filter-button.active,
+.filter-button:hover {
+  border-color: #c79f2f;
+  background: #fff6df;
+  color: #805d14;
+}
+.owner-property-context {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0.85rem 1rem 0;
+  padding: 0.8rem 1rem;
+  border: 1px solid #dce7e2;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 3px 12px rgba(40, 67, 56, 0.04);
+  flex-shrink: 0;
+}
+.owner-property-context.hidden { display: none; }
+.owner-property-copy { display: flex; align-items: center; gap: 0.7rem; min-width: 0; }
+.owner-property-copy div { display: grid; gap: 0.12rem; min-width: 0; }
+.owner-property-copy strong { color: #2d3d39; font-size: 0.9rem; }
+.owner-property-copy small { color: #65776f; font-size: 0.74rem; }
+.property-context-icon { display: grid; place-items: center; width: 2.2rem; height: 2.2rem; border-radius: 0.65rem; background: #f8edd1; font-size: 1.15rem; }
+.owner-property-context .property-context-link { padding: 0; border: 0; background: transparent; color: #1b7f62; font: inherit; font-size: 0.78rem; font-weight: 800; cursor: pointer; white-space: nowrap; }
+.owner-booking-card { display: grid; gap: 0.65rem; min-width: min(100%, 20rem); padding: 0.85rem; border: 1px solid #e4d5ad; border-radius: 12px; background: #fffaf0; }
+.owner-booking-heading { display: flex; align-items: center; gap: 0.45rem; color: #2d3d39; }
+.owner-booking-heading strong { font-size: 0.88rem; }
+.booking-status { margin-left: auto; padding: 0.22rem 0.45rem; border-radius: 999px; background: #f3e6bd; color: #795b19; font-size: 0.68rem; text-transform: capitalize; }
+.owner-booking-details { display: grid; gap: 0.16rem; color: #49615c; font-size: 0.8rem; }
+.owner-booking-actions { display: flex; justify-content: space-between; gap: 0.5rem; color: #65776f; font-size: 0.74rem; }
+.booking-action { color: #1b7f62; font-weight: 800; text-decoration: none; }
+.empty-conversations { display: grid; justify-items: center; gap: 0.35rem; padding: 2.5rem 1rem; color: #65776f; text-align: center; }
+.empty-conversations span { font-size: 1.7rem; }
+.empty-conversations strong { color: #2d3d39; font-size: 0.95rem; }
+.empty-conversations small { max-width: 13rem; line-height: 1.4; }
+.composer.is-sending { opacity: 0.7; }
+.composer button:disabled { cursor: wait; opacity: 0.65; }
+.mobile-back { display: none; }
+
+@media (max-width: 900px) {
+  .inbox-layout { grid-template-columns: 300px minmax(0, 1fr); }
+}
+@media (max-width: 650px) {
+  .inbox-layout { grid-template-columns: 1fr; }
+  .inbox-sidebar { border-right: 0; border-bottom: 1px solid #dce7e2; }
+  .chat-pane { display: none; }
+  .owner-inbox-page.thread-open .inbox-sidebar { display: none; }
+  .owner-inbox-page.thread-open .chat-pane { display: flex; }
+  .mobile-back { display: inline-flex; align-items: center; justify-content: center; width: 2.2rem; height: 2.2rem; margin-right: 0.25rem; border: 1px solid #dce7e2; border-radius: 50%; background: #fff; color: #2d3d39; cursor: pointer; }
+  .owner-property-context { align-items: flex-start; flex-direction: column; }
+  .owner-property-context .property-context-link { align-self: flex-end; }
+  .composer-tools { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .message-bubble { max-width: 88%; }
 }

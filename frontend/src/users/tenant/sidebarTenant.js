@@ -38,7 +38,7 @@ export function renderTenantSidebar(activePage = 'dashboardTenant') {
     </a>
     <div class="dh-sidebar-rule" aria-hidden="true"></div>
     <nav>
-      ${links.map(([page, label, iconName]) => `<a class="${page === activePage ? 'active' : ''}" href="#/tenant/${page}">${icon(iconName)}<span>${label}</span>${page === 'message' ? '<em aria-label="3 unread messages">3</em>' : ''}</a>`).join('')}
+      ${links.map(([page, label, iconName]) => `<a class="${page === activePage ? 'active' : ''}" href="#/tenant/${page}">${icon(iconName)}<span>${label}</span></a>`).join('')}
     </nav>
     <div class="dh-sidebar-footer">
       <button class="logout" type="button">${icon('logout')}<span>Sign Out</span></button>

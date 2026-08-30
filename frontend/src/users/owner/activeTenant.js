@@ -1,5 +1,5 @@
 import { createModal, openModal } from '../../components/modal.js';
-import { ensureOwnerSidebarStyles, renderOwnerProfileCard, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
+import { ensureOwnerSidebarStyles, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const apiBase = API.replace(/\/api\/v1\/?$/, '');
@@ -68,25 +68,11 @@ export function renderActiveTenant(root = document.querySelector('#app')) {
   root.replaceChildren();
   css();
   ensureOwnerSidebarStyles();
-  const user = session();
-  const profileName = user.name || 'Mr. Reyes';
-  const profileRole = user.role === 'owner' ? 'Property Owner' : 'Tenant';
 
   root.innerHTML = `
     <div class="owner-shell">
       ${renderOwnerSidebar('activeTenant')}
       <div class="owner-main">
-        <header class="owner-topbar">
-          <div class="topbar-left"></div>
-          <label class="search-bar" aria-label="Global search">
-            <span>⌕</span>
-            <input type="search" placeholder="Global Search" />
-          </label>
-          <div class="topbar-right">
-            ${renderOwnerProfileCard()}
-          </div>
-        </header>
-
         <main class="tenants-page">
           <section class="page-head">
             <div>

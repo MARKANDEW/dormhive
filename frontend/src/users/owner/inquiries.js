@@ -37,10 +37,6 @@ export function renderInquiries(root = document.querySelector('#app')) {
       ${renderOwnerSidebar('inquiries')}
       <div class="owner-main">
         <main class="inquiries-page">
-          <header>
-            <a class="brand" href="#/owner/dashboardOwner">DormHive</a>
-          </header>
-
           <section class="inquiries-board">
             <div class="inquiries-toolbar">
               <label class="search-box">

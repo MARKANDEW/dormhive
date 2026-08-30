@@ -1,6 +1,6 @@
 .owner-shell {
   display: grid;
-  grid-template-columns: 250px minmax(0, 1fr);
+  grid-template-columns: 240px minmax(0, 1fr);
   min-height: 100vh;
   background: linear-gradient(180deg, #fff8e8 0%, #fff3d3 100%);
   width: 100%;
@@ -137,7 +137,7 @@
     position: fixed;
     left: 0;
     top: 0;
-    width: 250px;
+    width: 240px;
     transform: translateX(-105%);
     transition: 0.2s;
     z-index: 5;

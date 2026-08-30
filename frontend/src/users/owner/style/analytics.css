@@ -10,18 +10,6 @@
 body {
   margin: 0;
 }
-.analytics-page header {
-  display: flex;
-  justify-content: space-between;
-  padding: 1rem 5%;
-  background: #fff;
-  border-bottom: 1px solid #dce7e2;
-}
-.brand {
-  color: #b48421;
-  font-weight: 800;
-  text-decoration: none;
-}
 .analytics-page > section {
   width: min(92%, 70rem);
   margin: 2.5rem auto;

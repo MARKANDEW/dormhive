@@ -21,24 +21,6 @@ body {
   background: #fff;
 }
 
-.portfolio-topbar {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  min-height: 86px;
-  padding: 0 22px;
-  border-bottom: 1px solid #e5ebe7;
-  background: #fff;
-}
-
-.brand {
-  color: #f28c28;
-  font-size: 1.35rem;
-  font-weight: 900;
-  text-decoration: none;
-}
-
-.search-bar,
 .property-search {
   display: flex;
   align-items: center;
@@ -50,11 +32,6 @@ body {
   color: #6a7f78;
 }
 
-.search-bar {
-  width: min(500px, 46vw);
-}
-
-.search-bar input,
 .property-search input {
   width: 100%;
   border: 0;
@@ -63,25 +40,6 @@ body {
   background: transparent;
 }
 
-.topbar-left {
-  margin-right: auto;
-}
-
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-left: auto;
-}
-
-.top-icon {
-  width: 40px;
-  height: 40px;
-  border: 0;
-  border-radius: 999px;
-  background: #f5f7f6;
-  cursor: pointer;
-}
 
 .profile-identity {
   display: flex;
@@ -1033,19 +991,6 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .portfolio-topbar {
-    flex-wrap: wrap;
-  }
-
-  .search-bar {
-    width: 100%;
-  }
-
-  .topbar-right {
-    width: 100%;
-    justify-content: flex-end;
-  }
-
   .form-grid {
     grid-template-columns: 1fr;
   }
@@ -1063,10 +1008,6 @@ body {
   .portfolio-table th,
   .portfolio-table td {
     padding: 10px 8px;
-  }
-
-  .topbar-right {
-    justify-content: space-between;
   }
 
   .tenant-link {
