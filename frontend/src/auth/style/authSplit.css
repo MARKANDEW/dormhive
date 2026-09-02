@@ -245,7 +245,7 @@ form {
 
 .form-box.register .auth-submit {
   margin-top: 16px;
-  background: linear-gradient(to right, #daa520 0%, #645403 100%);
+  background: linear-gradient(to right, #645403 0%, #daa520 100%);
 }
 
 .form-box.login .auth-submit {

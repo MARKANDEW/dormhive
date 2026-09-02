@@ -188,24 +188,55 @@ export async function renderBooking(root = document.querySelector('#app')) {
       const price = booking.monthly_rent ? `P${Number(booking.monthly_rent).toLocaleString('en-PH')}` : '';
       const image = getPropertyImageUrl(property || {}, booking);
       return `
-        <article class="booking-card--row">
-          <div class="booking-thumb">
-            <img src="${escape(image || '')}" alt="${escape(property?.title || booking.property_title || 'Property')}">
+        <article class="booking-card">
+          <div class="booking-card-image-wrapper">
+            <img src="${escape(image || '')}" alt="${escape(property?.title || booking.property_title || 'Property')}" class="booking-card-image">
+            <span class="pill pill-overlay ${pill.cls}">${escape(pill.label)}</span>
           </div>
-          <div class="booking-info">
-            <div class="booking-title-row">
-              <h3>${escape(property?.title || booking.property_title || 'Property')}</h3>
+          <div class="booking-card-content">
+            <div class="booking-card-header">
+              <div class="booking-card-title">
+                <div class="title-icon-badge">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" class="icon">
+                    <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                  </svg>
+                </div>
+                <h3>${escape(property?.title || booking.property_title || 'Property')}</h3>
+              </div>
               <span class="pill ${pill.cls}">${escape(pill.label)}</span>
             </div>
-            <div class="booking-meta">
-              <div>Booking ID: <strong>${escape(bookingIdFormat(booking.id))}</strong></div>
-              <div>Dates: <strong>${escape(dateRange || 'TBA')}</strong></div>
-              <div>Price: <strong>${escape(price || '—')}</strong></div>
+            <div class="booking-card-details">
+              <div class="detail-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon">
+                  <circle cx="12" cy="12" r="1"></circle>
+                  <path d="M19 12a7 7 0 1 0-14 0 7 7 0 0 0 14 0z"></path>
+                </svg>
+                <span class="detail-label">Booking ID:</span>
+                <strong>${escape(bookingIdFormat(booking.id))}</strong>
+              </div>
+              <div class="detail-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                <span class="detail-label">Dates:</span>
+                <strong>${escape(dateRange || 'TBA')}</strong>
+              </div>
+              <div class="detail-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon">
+                  <line x1="12" y1="1" x2="12" y2="23"></line>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+                <span class="detail-label">Price:</span>
+                <strong>${escape(price || '—')}</strong>
+              </div>
             </div>
-          </div>
-          <div class="booking-actions">
-            ${booking.status === 'approved' ? `<button class="btn" data-action="e-ticket" data-id="${booking.id}">View E-Ticket</button><button class="btn btn--secondary" data-action="contact" data-property="${property?.id ?? booking.property_id}">Contact Landlord</button>` : ''}
-            ${booking.status === 'pending' ? `<button class="btn btn--danger" data-action="cancel" data-id="${booking.id}">Cancel Request</button>` : ''}
+            <div class="booking-card-actions">
+              ${booking.status === 'approved' ? `<button class="btn" data-action="e-ticket" data-id="${booking.id}">View E-Ticket</button><button class="btn btn--primary" data-action="contact" data-property="${property?.id ?? booking.property_id}">Contact Landlord</button>` : ''}
+              ${booking.status === 'pending' ? `<button class="btn" data-action="cancel" data-id="${booking.id}">Cancel Request</button>` : ''}
+            </div>
           </div>
         </article>
       `;

@@ -63,8 +63,20 @@ export async function update(request, response, next) {
     const property = await properties.findById(request.params.id);
     if (!property) return response.status(404).json({ message: 'Property not found.' });
     if (property.owner_id !== request.user.id && request.user.role !== 'admin') return response.status(403).json({ message: 'Permission denied.' });
-    if (request.body.status && request.user.role !== 'admin') {
-      return response.status(403).json({ message: 'Only admins can change property status.' });
+
+    const requestedStatus = typeof request.body.status === 'string' ? request.body.status.trim().toLowerCase() : '';
+    if (requestedStatus && request.user.role !== 'admin') {
+      const allowedOwnerStatus = ['archived'];
+      if (!allowedOwnerStatus.includes(requestedStatus)) {
+        return response.status(403).json({ message: 'Only admins can change this property status.' });
+      }
+      if (property.owner_id !== request.user.id) {
+        return response.status(403).json({ message: 'Permission denied.' });
+      }
+    }
+
+    if (requestedStatus && !['approved', 'rejected', 'archived'].includes(requestedStatus)) {
+      return response.status(422).json({ message: 'Invalid property status.' });
     }
 
     const amenitiesRaw = request.body.amenities;

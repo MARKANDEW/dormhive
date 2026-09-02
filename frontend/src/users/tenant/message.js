@@ -428,6 +428,16 @@ export function renderMessage(root = document.querySelector('#app')) {
   };
 
   const select = async (id) => {
+    if (!id) {
+      if (!state.selected) return;
+      await fetchPropertyDetails(state.selected.property_id);
+      renderThreadHeader();
+      list.innerHTML = '<p class="empty-state">Send a message to start the conversation.</p>';
+      form.hidden = false;
+      syncMobileView();
+      return;
+    }
+
     try {
       const response = await fetch(`${API_URL}/messages/conversations/${id}`, { headers: headers() });
       const body = await response.json();
@@ -502,21 +512,34 @@ export function renderMessage(root = document.querySelector('#app')) {
     const matching = state.conversations.find((item) => String(item.property_id) === String(propertyIdValue));
     if (matching) return matching;
 
-    const response = await fetch(`${API_URL}/messages/conversations`, {
-      method: 'POST',
-      headers: headers(),
-      body: JSON.stringify({ propertyId: propertyIdValue })
-    });
-    const body = await response.json();
-    if (!response.ok) throw new Error(body.message || 'Unable to start a chat with the property owner.');
-    state.conversations.unshift(body.data);
-    return body.data;
+    const property = await fetchPropertyDetails(propertyIdValue);
+    return {
+      id: null,
+      property_id: propertyIdValue,
+      participant_name: property?.owner_name || 'Property Owner',
+      participant_avatar_url: property?.owner_avatar_url || property?.owner_avatar || ''
+    };
   };
 
   const openConversation = async (conversation) => {
     if (!conversation) return;
+    state.selected = conversation;
     renderThreads();
     await select(conversation.id);
+  };
+
+  const refreshConversationList = async (selectedId) => {
+    const response = await fetch(`${API_URL}/messages/conversations`, { headers: headers() });
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.message || 'Unable to refresh conversations.');
+
+    state.conversations = Array.isArray(body.data) ? body.data : [];
+    await Promise.all(state.conversations.map(async (item) => {
+      if (item.property_id) await fetchPropertyDetails(item.property_id);
+    }));
+    state.selected = state.conversations.find((item) => String(item.id) === String(selectedId)) ?? null;
+    renderThreads();
+    renderThreadHeader();
   };
 
   form.addEventListener('submit', async (event) => {
@@ -530,12 +553,30 @@ export function renderMessage(root = document.querySelector('#app')) {
     if (!hasImage && !hasText) return;
 
     try {
+      if (!state.selected.id) {
+        const response = await fetch(`${API_URL}/messages/conversations`, {
+          method: 'POST',
+          headers: headers(),
+          body: JSON.stringify({ propertyId: state.selected.property_id })
+        });
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.message ?? 'Unable to start a chat with the property owner.');
+        state.selected = { ...state.selected, ...body.data };
+        state.conversations.unshift(body.data);
+        renderThreads();
+        renderThreadHeader();
+      }
+
       if (hasImage) {
-        await fetch(`${API_URL}/messages`, {
+        const response = await fetch(`${API_URL}/messages`, {
           method: 'POST',
           headers: headers(),
           body: JSON.stringify({ conversationId: state.selected.id, body: pendingImage })
         });
+        if (!response.ok) {
+          const body = await response.json();
+          throw new Error(body.message ?? 'Image could not be sent.');
+        }
       }
 
       if (hasText) {
@@ -550,6 +591,7 @@ export function renderMessage(root = document.querySelector('#app')) {
 
       textarea.value = '';
       clearPendingImage();
+      await refreshConversationList(state.selected.id);
       await select(state.selected.id);
     } catch (error) {
       status.textContent = error.message;

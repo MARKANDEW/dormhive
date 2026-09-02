@@ -42,12 +42,9 @@ export function renderListingModeration(root = document.querySelector('#app')) {
                 <span>Filter by Type</span>
                 <select id="moderation-filter">
                   <option value="all">All Types</option>
-                  <option value="Bed Space">Bed Space</option>
-                  <option value="Studio Unit BGC">Studio Unit BGC</option>
-                  <option value="Solo Room">Solo Room</option>
-                  <option value="Dormitory">Dormitory</option>
-                  <option value="Private Room">Private Room</option>
-                  <option value="Apartment">Apartment</option>
+                  <option value="bedspace">Bedspace</option>
+                  <option value="private_room">Solo Room</option>
+                  <option value="entire_unit">Studio Unit</option>
                 </select>
               </label>
               <button class="bulk-actions" type="button">Bulk Actions</button>

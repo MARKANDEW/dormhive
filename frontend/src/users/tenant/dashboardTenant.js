@@ -102,7 +102,6 @@ function loadStyle() {
     `;
     document.head.append(style);
   }
-
   if (!document.querySelector('[data-tenant-style="listing-carousel"]')) {
     const style = document.createElement('style');
     style.dataset.tenantStyle = 'listing-carousel';
@@ -123,7 +122,6 @@ function loadStyle() {
     `;
     document.head.append(style);
   }
-
   if (!document.querySelector('style[data-tenant-modal-css]')) {
     const style = document.createElement('style');
     style.dataset.tenantModalCss = '1';
@@ -753,7 +751,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
     loadNotifications();
   }, 15000);
 
-  const state = { all: [] };
+  const state = { all: [], visible: [] };
   const routeSearch = typeof window.DORMHIVE_ROUTE_SEARCH === 'string' ? window.DORMHIVE_ROUTE_SEARCH : window.location.search;
   const requestedPropertyId = new URLSearchParams(routeSearch).get('propertyId');
   let requestedPropertyOpened = false;
@@ -802,11 +800,10 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
 
   const syncMapLocation = (items = []) => {
     if (!mapFrame) return;
-    const focusItem = items.find((item) => item.municipality || item.barangay || item.address) ?? state.all[0];
-    const safeQuery = focusItem ? mapQueryFor(focusItem) : 'Manila, Philippines';
-    mapFrame.src = `https://www.google.com/maps?q=${encodeURIComponent(safeQuery)}&z=12&output=embed`;
+    if (root.__leafletMapManager) updateLeafletMarkers(root, items);
 
     const nearButton = root.querySelector('.near');
+    const focusItem = items.find((item) => item.municipality || item.barangay || item.address) ?? state.all[0];
     if (nearButton && focusItem?.municipality) {
       nearButton.innerHTML = `${icon('target')} Nearby verified listings in ${esc(focusItem.municipality)}`;
     }
@@ -897,7 +894,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
   const renderFeaturedCards = (items = []) => {
     if (!cards) return;
     if (!items.length) {
-      cards.innerHTML = '<div class="empty">No approved listings match the current filters.</div>';
+      cards.innerHTML = '<div class="empty">No properties found</div>';
       return;
     }
 
@@ -921,6 +918,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
           <div class="photo p${index % 4}">
             <img src="${esc(galleryImages[0])}" alt="${esc(item.title || 'Listing photo')}" class="listing-photo" />
             <em>${esc(item.status === 'approved' ? 'Verified' : (item.status || 'Approved'))}</em>
+            <button type="button" class="favorite-toggle${isFavorite ? ' is-favorited' : ''}" data-property-id="${item.id}" aria-label="${isFavorite ? 'Remove from favorites' : 'Save listing'}" aria-pressed="${isFavorite}">${heartIcon(isFavorite)}</button>
             <button type="button" class="favorite-toggle${isFavorite ? ' is-favorited' : ''}" data-property-id="${item.id}" aria-label="${isFavorite ? 'Remove from favorites' : 'Save listing'}" aria-pressed="${isFavorite}">${heartIcon(isFavorite)}</button>
             ${dots}
           </div>
@@ -1030,7 +1028,23 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
     const amenities = selectedAmenityFilters();
 
     const filtered = state.all.filter((item) => {
-      const text = `${item.title ?? ''} ${item.municipality ?? ''} ${item.barangay ?? ''} ${normalizeRoomType(item.room_type)} ${item.address ?? ''}`.toLowerCase();
+      const keywordValues = [
+        item.title,
+        item.description,
+        item.address,
+        item.barangay,
+        item.municipality,
+        item.city,
+        item.location,
+        item.university,
+        item.landmark,
+        item.keywords,
+        item.tags,
+        normalizeRoomType(item.room_type),
+        normalizeGenderPreference(item.gender_preference),
+        normalizeAmenities(item).join(' ')
+      ];
+      const text = keywordValues.flatMap((value) => Array.isArray(value) ? value : [value]).filter(Boolean).join(' ').toLowerCase();
       const matchesSearch = !query || text.includes(query);
       const matchesBudget = Number(item.monthly_rent ?? 0) <= maxValue;
       const matchesRoom = !rooms.length || rooms.includes(String(item.room_type ?? '').toLowerCase());
@@ -1040,6 +1054,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
       return matchesSearch && matchesBudget && matchesRoom && matchesGender && matchesAmenities;
     });
 
+    state.visible = filtered;
     syncMapLocation(filtered);
     renderFeaturedCards(filtered);
 
@@ -1060,13 +1075,18 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
 
   applyButton.addEventListener('click', renderCards);
   search.addEventListener('input', renderCards);
+  search.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    renderCards();
+  });
 
   // Add event listener for View nearby listings button
   const nearButton = root.querySelector('.near');
   if (nearButton) {
     nearButton.addEventListener('click', async () => {
       try {
-        await showNearbyListingsModal(state.all);
+        await showNearbyListingsModal(state.visible);
       } catch (error) {
         console.error('Nearby listings modal error:', error);
         alert('Could not open nearby listings map.');
@@ -1079,7 +1099,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
   if (mapPanelButton) {
     mapPanelButton.addEventListener('click', async () => {
       try {
-        await showNearbyListingsModal(state.all);
+        await showNearbyListingsModal(state.visible);
       } catch (error) {
         console.error('Nearby listings modal error:', error);
         alert('Could not open nearby listings map.');
@@ -1100,6 +1120,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
       // Only load approved properties for tenants (Featured Listings and map markers)
       const response = await api('/properties?limit=100&status=approved');
       state.all = Array.isArray(response.data) ? response.data : [];
+      state.visible = state.all;
       syncMapLocation(state.all);
       // Initialize Leaflet map and render approved property markers
       await initLeafletMap(root.querySelector('.map'), state.all);

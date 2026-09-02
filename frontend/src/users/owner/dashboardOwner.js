@@ -293,6 +293,9 @@ export function renderDashboardOwner(root = document.querySelector('#app')) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? '')
     .join('') || 'O';
+  const firstName = profileName.split(/\s+/).filter(Boolean)[0] || 'there';
+  const currentHour = new Date().getHours();
+  const greeting = currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening';
   root.innerHTML = `
     <div class="owner-shell owner-shell--dashboard">
       ${renderOwnerSidebar('dashboardOwner')}
@@ -320,18 +323,23 @@ export function renderDashboardOwner(root = document.querySelector('#app')) {
           </div>
         </header>
         <main class="owner-dashboard">
+          <section class="dashboard-greeting">
+            <p class="eyebrow">OWNER OVERVIEW</p>
+            <h1 data-dashboard-greeting>${greeting}, ${escape(firstName)}</h1>
+            <p>Here's what's happening with your properties today.</p>
+          </section>
           <section class="metrics-grid">
             <article class="metric-card metric-card--highlight">
               <div class="metric-icon">🏠</div>
-              <div><p>Total Listings</p><strong data-metric="listings">24 Active</strong><span>+8% from last month ↗</span></div>
+              <div><p>Listings</p><strong data-metric="listings">0 Active</strong><span data-metric-note="listings">0 / 0 properties active</span></div>
             </article>
             <article class="metric-card">
               <div class="metric-icon">📣</div>
-              <div><p>Total Inquiries</p><strong data-metric="inquiries">48 Total</strong><span>12 this week ⚠</span></div>
+              <div><p>Inquiries</p><strong data-metric="inquiries">0 Total</strong><span data-metric-note="inquiries">No new inquiries</span></div>
             </article>
             <article class="metric-card">
               <div class="metric-icon">◔</div>
-              <div><p>Occupancy Rate</p><strong data-metric="occupancy">16</strong><span>80% Occupancy</span></div>
+              <div><p>Occupancy Rate</p><strong data-metric="occupancy">0%</strong><span data-metric-note="occupancy">0 / 0 units occupied</span></div>
             </article>
           </section>
           <section class="overview-grid">
@@ -343,14 +351,19 @@ export function renderDashboardOwner(root = document.querySelector('#app')) {
               <div class="panel-title-row"><h2>Action Center</h2></div>
               <div class="action-stack">
                 <button class="action-button" type="button" data-route="#/owner/myListing">+ List a New Property</button>
+                <div class="pending-actions" data-pending-actions><p class="action-section-label">Pending Actions</p></div>
                 <button class="action-button secondary">Generate Performance Report</button>
               </div>
             </aside>
           </section>
+          <section class="panel attention-panel">
+            <div class="panel-title-row"><h2>Needs Attention</h2><a href="#/owner/inquiries">View all</a></div>
+            <div class="attention-list" data-attention-list></div>
+          </section>
           <section class="interactions-grid">
             <article class="panel table-panel">
               <div class="panel-title-row"><h2>Inquiries Overview</h2><a href="#/owner/inquiries">View all</a></div>
-              <div class="table-wrap"><table><thead><tr><th>Tenant Name</th><th>Property</th><th>Date</th><th>Status</th></tr></thead><tbody></tbody></table></div>
+              <div class="table-wrap"><table><thead><tr><th>Tenant Name</th><th>Property</th><th>Date</th><th>Status</th><th>Action</th></tr></thead><tbody></tbody></table></div>
             </article>
             <article class="panel listings-panel">
               <div class="panel-title-row"><h2>My Top Listings</h2><a href="#/owner/myListing">Manage</a></div>
@@ -455,12 +468,19 @@ export function renderDashboardOwner(root = document.querySelector('#app')) {
   Promise.all([get('/properties?limit=100').catch(() => ({ data: [] })), get('/bookings').catch(() => ({ data: [] }))]).then(async ([properties, bookings]) => {
     const items = (properties.data ?? []).filter((item) => Number(item.owner_id) === Number(user.id));
     const listingGrid = root.querySelector('.listings-card-grid');
+    const approvedListings = items.filter((item) => String(item.status).toLowerCase() === 'approved');
     const cards = items.slice(0, 3).map((item) => {
       const roomType = String(item.room_type || 'Property').replaceAll('_', ' ');
       const place = [item.barangay, item.municipality].filter(Boolean).join(', ') || 'Manila';
       const badge = item.status === 'approved' ? 'Active' : String(item.status || 'Available').replaceAll('_', ' ');
+      let listingImages = item.images;
+      if (typeof listingImages === 'string') {
+        try { listingImages = JSON.parse(listingImages); } catch { listingImages = []; }
+      }
+      const image = resolveAvatarUrl(item.image_url || item.cover_image || (Array.isArray(listingImages) ? listingImages[0] : ''));
       return `
         <article class="listing-card">
+          ${image ? `<img class="listing-card-image" src="${escape(image)}" alt="${escape(item.title || 'Property')}" />` : '<div class="listing-card-image listing-card-image--empty">No image</div>'}
           <div class="listing-topline"><span class="property-pill">${escape(badge)}</span><span class="property-rent">₱${Number(item.monthly_rent ?? 0).toLocaleString()}/mo</span></div>
           <h3>${escape(item.title || 'Untitled property')}</h3>
           <p class="listing-subtitle">${escape(place)} • ${escape(roomType)}</p>
@@ -470,9 +490,12 @@ export function renderDashboardOwner(root = document.querySelector('#app')) {
     listingGrid.innerHTML = cards || '<p class="empty">No property listings yet for this account.</p>';
     const requests = bookings.data.length ? bookings.data : [];
     const approved = requests.filter((item) => item.status === 'approved');
-    const activeListings = items.length;
+    const pendingRequests = requests.filter((item) => item.status === 'pending');
+    const activeListings = approvedListings.length;
     const inquiryCount = requests.length;
-    const occupancy = Math.min(100, Math.max(0, Math.round((activeListings / Math.max(items.length || 1, 1)) * 100)));
+    const totalUnits = approvedListings.reduce((total, item) => total + Math.max(0, Number(item.max_occupants ?? item.available_slots ?? 0)), 0);
+    const occupiedUnits = approved.reduce((total, item) => total + Math.max(1, Number(item.occupants ?? 1)), 0);
+    const occupancy = totalUnits ? Math.min(100, Math.round((occupiedUnits / totalUnits) * 100)) : 0;
     const projectedRevenue = approved.reduce((total, item) => total + Number(item.monthly_rent ?? 0), 0);
     
     // Update report data for the Generate Performance Report button
@@ -481,6 +504,9 @@ export function renderDashboardOwner(root = document.querySelector('#app')) {
     root.querySelector('[data-metric="listings"]').textContent = `${activeListings} Active`;
     root.querySelector('[data-metric="inquiries"]').textContent = `${inquiryCount} Total`;
     root.querySelector('[data-metric="occupancy"]').textContent = `${occupancy}%`;
+    root.querySelector('[data-metric-note="listings"]').textContent = `${activeListings} / ${items.length} properties active`;
+    root.querySelector('[data-metric-note="inquiries"]').textContent = pendingRequests.length ? `${pendingRequests.length} new request${pendingRequests.length === 1 ? '' : 's'}` : 'No new inquiries';
+    root.querySelector('[data-metric-note="occupancy"]').textContent = `${occupiedUnits} / ${totalUnits} units occupied`;
     root.querySelector('tbody').innerHTML = requests.slice(0, 5).map((item) => {
       const normalized = (item.status ?? 'Pending').toLowerCase().replace(/\s+/g, '-');
       const badgeClass = statusClass[normalized] ?? 'status-pending';
@@ -490,8 +516,22 @@ export function renderDashboardOwner(root = document.querySelector('#app')) {
           <td>${escape(item.property_title ?? item.property_name ?? 'DormHive Listing')}</td>
           <td>${new Date(item.move_in_date ?? item.created_at ?? Date.now()).toLocaleDateString()}</td>
           <td><span class="status-tag ${badgeClass}">${escape(item.status ?? 'Pending')}</span></td>
+          <td><a class="table-action" href="#/owner/inquiries">View</a></td>
         </tr>`;
-    }).join('') || '<tr><td colspan="4">No inquiries yet.</td></tr>';
+    }).join('') || '<tr><td colspan="5">No inquiries yet.</td></tr>';
+
+    const pendingListings = items.filter((item) => String(item.status).toLowerCase() === 'pending').length;
+    root.querySelector('[data-pending-actions]').innerHTML = `
+      <p class="action-section-label">Pending Actions</p>
+      <a href="#/owner/inquiries" class="pending-action-row"><span>${pendingRequests.length} New ${pendingRequests.length === 1 ? 'inquiry' : 'inquiries'}</span><strong>View</strong></a>
+      <a href="#/owner/inquiries" class="pending-action-row"><span>${pendingRequests.length} Pending ${pendingRequests.length === 1 ? 'booking' : 'bookings'}</span><strong>View</strong></a>
+      <a href="#/owner/myListing" class="pending-action-row"><span>${pendingListings} Pending ${pendingListings === 1 ? 'listing' : 'listings'}</span><strong>View</strong></a>`;
+
+    const attentionList = root.querySelector('[data-attention-list]');
+    const attentionItems = pendingRequests.slice(0, 3).map((item) => `<a class="attention-item attention-item--warning" href="#/owner/inquiries"><span class="attention-icon">!</span><span><strong>New inquiry from ${escape(item.tenant_name ?? item.user_name ?? 'Tenant')}</strong><small>${escape(item.property_title ?? item.property_name ?? 'DormHive Listing')} · Respond to your tenant</small></span></a>`);
+    attentionList.innerHTML = attentionItems.length
+      ? attentionItems.join('')
+      : `<div class="attention-item attention-item--success"><span class="attention-icon">✓</span><span><strong>All listings are active</strong><small>No pending owner actions right now.</small></span></div>`;
     
     // Initialize Leaflet map with the owner's properties (pixel-accurate markers)
     try {

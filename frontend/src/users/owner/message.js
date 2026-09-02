@@ -370,7 +370,22 @@ export function renderMessage(root = document.querySelector('#app')) {
   });
   profileButton?.addEventListener('click', () => {
     if (!state.selected) return;
-    const modal = createModal({ title: state.selected.participant_name || 'Tenant profile', content: `<p><strong>Tenant:</strong> ${esc(state.selected.participant_name || 'Tenant')}</p><p><strong>Property:</strong> ${esc(getPropertyTitle(state.selected.property_id))}</p>`, closeLabel: 'Close' });
+    const modal = createModal({ title: state.selected.participant_name || 'Tenant profile', content: '', closeLabel: 'Close' });
+    modal.querySelector('.ui-modal__body').innerHTML = `
+      <div class="owner-tenant-profile">
+        <div class="tenant-avatar-section">
+          <div class="tenant-avatar-circle">${participantAvatar(state.selected)}</div>
+        </div>
+        <div class="tenant-info-row">
+          <span class="tenant-label">Tenant:</span>
+          <span class="tenant-value">${esc(state.selected.participant_name || 'Tenant')}</span>
+        </div>
+        <div class="tenant-info-row">
+          <span class="tenant-label">Property:</span>
+          <span class="tenant-value">${esc(getPropertyTitle(state.selected.property_id))}</span>
+        </div>
+      </div>
+    `;
     openModal(modal);
   });
   mobileBackButton?.addEventListener('click', () => {

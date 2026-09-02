@@ -119,6 +119,7 @@
   display: flex;
   gap: 12px;
   align-items: center;
+  justify-content: center;
   width: 100%;
   min-height: 46px;
   margin-top: 12px;
@@ -129,7 +130,7 @@
   color: #f8f5e9;
   font-size: 12px;
   font-weight: 500;
-  text-align: left;
+  text-align: center;
   cursor: pointer;
 }
 .dh-sidebar .logout:hover {

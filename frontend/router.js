@@ -22,7 +22,7 @@ export async function renderRoute() { const renderId = ++routeRenderId; const { 
   if (user && publicRoutes.includes(path) && path !== '/') return navigate(redirectForRole(user.role), true);
   window.DORMHIVE_ROUTE_SEARCH = search;
   try {
-    const module = await import(route[2]);
+    const module = await import(`${route[2]}?routeRender=${renderId}`);
     await module[route[3]](ROOT());
     if (renderId !== routeRenderId) return;
     if (path.startsWith('/admin/')) applyAdminPrivacy(ROOT());

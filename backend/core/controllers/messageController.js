@@ -55,7 +55,8 @@ export async function createConversation(request, response, next) {
     if (property && property.status !== 'approved') return response.status(404).json({ message: 'Property not found.' });
 
     const conversation = await messages.createConversation({ tenantId, ownerId, propertyId: property?.id ?? selectedBooking?.property_id ?? null });
-    response.status(201).json({ data: conversation });
+    const summary = await messages.conversationSummaryFor(conversation.id, request.user);
+    response.status(201).json({ data: summary ?? conversation });
   } catch (error) { next(error); }
 }
 

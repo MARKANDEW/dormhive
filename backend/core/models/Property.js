@@ -18,13 +18,13 @@ export async function list({ page, limit, municipality, roomType, minPrice, maxP
   if (status) { filters.push('p.status = ?'); values.push(status); }
   const where = filters.join(' AND ') || '1 = 1';
   const offset = (page - 1) * limit;
-  const rows = await query(`SELECT p.*, COALESCE(CONCAT_WS(' ', u.first_name, u.last_name), u.name) AS owner_name FROM properties p JOIN users u ON u.id = p.owner_id WHERE ${where} ORDER BY p.created_at DESC LIMIT ? OFFSET ?`, [...values, limit, offset]);
+  const rows = await query(`SELECT p.*, COALESCE(NULLIF(TRIM(CONCAT_WS(' ', u.first_name, u.last_name)), ''), NULLIF(TRIM(u.name), '')) AS owner_name, u.avatar_url AS owner_avatar_url FROM properties p JOIN users u ON u.id = p.owner_id WHERE ${where} ORDER BY p.created_at DESC LIMIT ? OFFSET ?`, [...values, limit, offset]);
   const total = await query(`SELECT COUNT(*) AS count FROM properties p WHERE ${where}`, values);
   return { rows, total: total[0].count };
 }
 
 export async function findById(id) {
-  const rows = await query(`SELECT p.*, COALESCE(CONCAT_WS(' ', u.first_name, u.last_name), u.name) AS owner_name FROM properties p JOIN users u ON u.id = p.owner_id WHERE p.id = ? LIMIT 1`, [id]);
+  const rows = await query(`SELECT p.*, COALESCE(NULLIF(TRIM(CONCAT_WS(' ', u.first_name, u.last_name)), ''), NULLIF(TRIM(u.name), '')) AS owner_name, u.avatar_url AS owner_avatar_url FROM properties p JOIN users u ON u.id = p.owner_id WHERE p.id = ? LIMIT 1`, [id]);
   return rows[0] ?? null;
 }
 
@@ -71,4 +71,7 @@ export async function updateStatus(id, status) {
   return findById(id);
 }
 
-export function remove(id) { return query('DELETE FROM properties WHERE id = ?', [id]); }
+export async function remove(id) {
+  await query('DELETE FROM bookings WHERE property_id = ?', [id]);
+  return query('DELETE FROM properties WHERE id = ?', [id]);
+}

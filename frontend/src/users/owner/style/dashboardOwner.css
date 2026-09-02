@@ -390,6 +390,11 @@ a {
   padding: 1.4rem 1.5rem;
   overflow-y: auto;
   overflow-x: hidden;
+  background:
+    radial-gradient(circle at 92% 4%, rgba(207, 171, 84, 0.11), transparent 30rem),
+    radial-gradient(circle at 4% 82%, rgba(125, 132, 91, 0.08), transparent 27rem),
+    radial-gradient(circle at 58% 105%, rgba(151, 184, 164, 0.08), transparent 30rem),
+    #f7f1e5;
 }
 
 /* =========================
@@ -473,6 +478,26 @@ a {
   color: #758680;
 }
 
+.dashboard-greeting {
+  margin-bottom: 1rem;
+}
+
+.dashboard-greeting .eyebrow {
+  margin: 0 0 0.35rem;
+}
+
+.dashboard-greeting h1 {
+  margin: 0;
+  font-size: clamp(1.45rem, 2.4vw, 2rem);
+  line-height: 1.15;
+}
+
+.dashboard-greeting > p:last-child {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 /* =========================
    DASHBOARD GRIDS
 ========================= */
@@ -554,7 +579,7 @@ a {
 
 .map-panel .leaflet-map {
   width: 100% !important;
-  height: 20rem !important;
+  height: 17rem !important;
   border-radius: 0.5rem;
   flex: 1;
   min-height: 0;
@@ -585,7 +610,7 @@ a {
   display: block;
 
   width: 100%;
-  height: 20rem;
+  height: 17rem;
 
   border: 0;
 }
@@ -632,6 +657,90 @@ a {
 
 .action-button.secondary:hover {
   background: #dff1e9;
+}
+
+.pending-actions {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.2rem 0;
+}
+
+.action-section-label {
+  margin: 0.1rem 0 0.25rem;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.pending-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #edf2ef;
+  color: var(--text);
+  font-size: 0.8rem;
+  text-decoration: none;
+}
+
+.pending-action-row strong,
+.table-action {
+  color: #0a6a4f;
+  font-weight: 800;
+}
+
+.attention-panel {
+  margin-top: 1rem;
+}
+
+.attention-list {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.8rem;
+}
+
+.attention-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.2rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.attention-icon {
+  display: grid;
+  place-items: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  flex: 0 0 1.8rem;
+  border-radius: 50%;
+  background: #fef0ca;
+  color: #8b5a05;
+  font-weight: 800;
+}
+
+.attention-item--success .attention-icon {
+  background: #dff4e8;
+  color: #136045;
+}
+
+.attention-item strong,
+.attention-item small {
+  display: block;
+}
+
+.attention-item strong {
+  font-size: 0.85rem;
+}
+
+.attention-item small {
+  margin-top: 0.15rem;
+  color: var(--muted);
+  font-size: 0.75rem;
 }
 
 /* =========================
@@ -748,6 +857,24 @@ a {
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
+}
+
+.listing-card-image {
+  display: block;
+  width: calc(100% + 2rem);
+  height: 7rem;
+  margin: -1rem -1rem 0.8rem;
+  border-radius: 0.9rem 0.9rem 0 0;
+  background: #edf5f2;
+  color: var(--muted);
+  object-fit: cover;
+  text-align: center;
+}
+
+.listing-card-image--empty {
+  display: grid;
+  place-items: center;
+  font-size: 0.78rem;
 }
 
 .listing-card:hover {

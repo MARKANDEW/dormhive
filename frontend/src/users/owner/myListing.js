@@ -1,4 +1,5 @@
-﻿import { ensureOwnerSidebarStyles, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
+﻿import { showToast } from '../../components/toast.js';
+import { ensureOwnerSidebarStyles, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
 
 const API = (window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1').replace(/\/$/, '');
 const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
@@ -17,6 +18,17 @@ const resolveImageUrl = (value = '') => {
 const normalizePropertyImage = (property) => {
   const source = property.image_url || property.cover_image || (Array.isArray(property.images) && property.images[0]) || '';
   return resolveImageUrl(source);
+};
+const normalizePropertyTypeLabel = (value = '') => {
+  const raw = String(value ?? '').trim().toLowerCase();
+  const labelMap = {
+    bedspace: 'Bedspace',
+    private_room: 'Solo Room',
+    'solo room': 'Solo Room',
+    entire_unit: 'Studio Unit',
+    'studio unit': 'Studio Unit'
+  };
+  return labelMap[raw] ?? (raw ? raw.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()) : '');
 };
 const escape = (value = '') => { const n = document.createElement('span'); n.textContent = value; return n.innerHTML; };
 const AMENITY_LABELS = {
@@ -82,14 +94,11 @@ export function renderMyListing(root = document.querySelector('#app')) {
                 <input type="search" placeholder="Search property" />
               </label>
               <label class="property-filter">
-                <span>Property Type</span>
                 <select>
-                  <option>All Types</option>
-                  <option>Studio</option>
-                  <option>Bed Space</option>
-                  <option>Solo Room</option>
-                  <option>Dormitory</option>
-                  <option>Apartment</option>
+                  <option value="">Property Type</option>
+                  <option value="bedspace">Bedspace</option>
+                  <option value="private_room">Solo Room</option>
+                  <option value="entire_unit">Studio Unit</option>
                 </select>
               </label>
               <button type="button" class="add-property">Add a New Property</button>
@@ -228,7 +237,6 @@ export function renderMyListing(root = document.querySelector('#app')) {
                     <tr>
                       <th>Thumbnail</th>
                       <th>Property Name &amp; Address</th>
-                      <th>Type</th>
                       <th>Amenities</th>
                       <th>Current Rent (PHP)</th>
                       <th>Occupancy Rate</th>
@@ -240,14 +248,23 @@ export function renderMyListing(root = document.querySelector('#app')) {
                 </table>
               </div>
 
-              <div class="pagination" aria-label="Portfolio pagination">
-                <button type="button" data-page="prev" aria-label="Previous page">‹</button>
-                <button type="button" data-page="1" class="active">1</button>
-                <button type="button" data-page="2">2</button>
-                <button type="button" data-page="3">3</button>
-                <button type="button" data-page="next" aria-label="Next page">›</button>
-              </div>
             </section>
+
+            <div id="property-action-confirm" class="property-action-confirm" hidden>
+              <div class="property-action-confirm-overlay"></div>
+              <div class="property-action-confirm-card">
+                <div class="property-action-confirm-header">
+                  <h2 id="property-action-confirm-title">Archive Property</h2>
+                </div>
+                <div class="property-action-confirm-body">
+                  <p id="property-action-confirm-text">Are you sure you want to archive this property?</p>
+                </div>
+                <div class="property-action-confirm-footer">
+                  <button type="button" class="secondary-btn property-action-cancel">Cancel</button>
+                  <button type="button" class="primary-btn property-action-confirm-btn">Confirm Archive</button>
+                </div>
+              </div>
+            </div>
           </section>
         </main>
       </div>
@@ -260,6 +277,8 @@ export function renderMyListing(root = document.querySelector('#app')) {
   const propertyFormStep1 = root.querySelector('#property-form-step-1');
   const propertyFormStep2 = root.querySelector('#property-form-step-2');
   const propertyFormStep3 = root.querySelector('#property-form-step-3');
+  const propertySearchInput = root.querySelector('.property-search input');
+  const propertyTypeFilter = root.querySelector('.property-filter select');
   const formStepIndicator = root.querySelector('#form-step-indicator');
   const propertyFormMessage = root.querySelector('#property-form-message');
   const mediaDropzone = root.querySelector('.media-dropzone');
@@ -656,16 +675,29 @@ export function renderMyListing(root = document.querySelector('#app')) {
 
   // Leaflet map interaction is handled internally by the map library.
 
+  const ITEMS_PER_PAGE = 3;
+
+  const getPagedProperties = (items = []) => {
+    const totalPages = Math.max(1, Math.ceil(items.length / ITEMS_PER_PAGE));
+    activePage = Math.min(Math.max(1, activePage), totalPages);
+    const startIndex = (activePage - 1) * ITEMS_PER_PAGE;
+    return items.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  };
+
   paginationButtons.forEach((button) => {
     button.addEventListener('click', () => {
       const page = button.dataset.page;
       if (page === 'prev') {
         activePage = Math.max(1, activePage - 1);
       } else if (page === 'next') {
-        activePage = Math.min(3, activePage + 1);
+        activePage = Math.min(Math.max(1, Math.ceil(allPropertyRows.length / ITEMS_PER_PAGE)), activePage + 1);
       } else {
         activePage = Number(page);
       }
+
+      const totalPages = Math.max(1, Math.ceil(allPropertyRows.length / ITEMS_PER_PAGE));
+      activePage = Math.min(Math.max(1, activePage), totalPages);
+      renderRows(getPagedProperties(allPropertyRows));
       paginationButtons.forEach((pageButton) => pageButton.classList.toggle('active', String(pageButton.dataset.page) === String(activePage)));
     });
   });
@@ -773,22 +805,93 @@ export function renderMyListing(root = document.querySelector('#app')) {
   });
 
 
+  let propertyRows = [];
+  let allPropertyRows = [];
+  let pendingPropertyAction = null;
+
+  const normalizePropertyTypeValue = (value = '') => {
+    const raw = String(value || '').trim().toLowerCase();
+    if (!raw || raw === 'property type') return '';
+    const aliasMap = {
+      'bedspace': 'bedspace',
+      'solo room': 'private_room',
+      'private_room': 'private_room',
+      'private room': 'private_room',
+      'studio unit': 'entire_unit',
+      'entire_unit': 'entire_unit',
+      'entire unit': 'entire_unit'
+    };
+    return aliasMap[raw] ?? raw.replace(/\s+/g, '_');
+  };
+
+  const getFilteredPropertyRows = () => {
+    const searchValue = (propertySearchInput?.value ?? '').trim().toLowerCase();
+    const selectedType = normalizePropertyTypeValue(propertyTypeFilter?.value ?? '');
+
+    return allPropertyRows.filter((item) => {
+      const propertyType = normalizePropertyTypeValue(item.room_type || item.property_type || '');
+      const searchableText = [
+        item.title,
+        item.address,
+        item.municipality,
+        item.barangay,
+        item.room_type,
+        item.property_type,
+        propertyType
+      ].join(' ').toLowerCase();
+
+      const matchesSearch = !searchValue || searchableText.includes(searchValue);
+      const matchesType = !selectedType || propertyType === selectedType;
+      return matchesSearch && matchesType;
+    });
+  };
+
+  const applyPropertyTableState = () => {
+    const filteredRows = getFilteredPropertyRows();
+    const pagedRows = getPagedProperties(filteredRows);
+    renderRows(pagedRows);
+  };
+
+  const propertyActionConfirm = root.querySelector('#property-action-confirm');
+  const propertyActionConfirmTitle = root.querySelector('#property-action-confirm-title');
+  const propertyActionConfirmText = root.querySelector('#property-action-confirm-text');
+  const propertyActionConfirmCancelBtn = root.querySelector('.property-action-cancel');
+  const propertyActionConfirmActionBtn = root.querySelector('.property-action-confirm-btn');
+
+  const closePropertyActionConfirm = () => {
+    pendingPropertyAction = null;
+    propertyActionConfirm.hidden = true;
+  };
+
+  const openPropertyActionConfirm = (property, action) => {
+    pendingPropertyAction = { property, action };
+    const isDelete = action === 'delete';
+    propertyActionConfirmTitle.textContent = isDelete ? 'Delete Property' : 'Archive Property';
+    propertyActionConfirmText.textContent = isDelete
+      ? `Are you sure you want to delete ${property.title || 'this property'}?`
+      : `Are you sure you want to archive ${property.title || 'this property'}?`;
+    propertyActionConfirmActionBtn.textContent = isDelete ? 'Confirm Delete' : 'Confirm Archive';
+    propertyActionConfirmActionBtn.dataset.action = action;
+    propertyActionConfirm.hidden = false;
+  };
+
   const renderRows = (items = []) => {
+    propertyRows = items;
     propertyCache.clear();
     const rows = items.map((item) => {
       const rate = Math.min(100, Math.max(35, Math.round((Number(item.max_occupants ?? 1) / 4) * 100)));
       const occupancy = `${rate}% (${Math.min(Number(item.max_occupants ?? 1), 4)}/${Math.max(Number(item.max_occupants ?? 1), 4)})`;
       const image = normalizePropertyImage(item);
-      // Store property in cache for reliable retrieval
       propertyCache.set(String(item.id), item);
+      const titleText = escape(item.title || 'Untitled Property');
+      const propertyTypeLabel = normalizePropertyTypeLabel(item.room_type || item.property_type || '');
       return `
         <tr>
           <td>${image ? `<img class="property-thumb" src="${escape(image)}" alt="${escape(item.title || 'Property photo')}" />` : '<div class="thumb-placeholder"></div>'}</td>
           <td>
-            <strong>${escape(item.title || 'Untitled Property')}</strong><br />
+            <strong>${titleText}</strong><br />
             <small>${escape([item.address, item.municipality, item.barangay].filter(Boolean).join(', ') || 'No address provided')}</small>
           </td>
-          <td>${escape(String(item.room_type || 'Room').replaceAll('_', ' '))}</td>
           <td>${renderAmenitiesChips(item) || '<span class="empty-amenity">None</span>'}</td>
           <td>₱${Number(item.monthly_rent ?? 0).toLocaleString()}/mo</td>
           <td>
@@ -799,9 +902,20 @@ export function renderMyListing(root = document.querySelector('#app')) {
           </td>
           <td>0 inquiries</td>
           <td>
-            <a href="#/owner/inquiries?propertyId=${escape(String(item.id ?? ''))}" class="manage-link" data-property-id="${escape(String(item.id ?? ''))}">Manage</a>
-            <button type="button" class="action-chip edit-property" data-property-id="${escape(String(item.id ?? ''))}">Edit</button>
-            <button type="button" class="action-chip view-property" data-property-id="${escape(String(item.id ?? ''))}">View</button>
+            <div class="property-row-actions">
+              <div class="property-inline-actions">
+                <a href="#/owner/inquiries?propertyId=${escape(String(item.id ?? ''))}" class="manage-link" data-property-id="${escape(String(item.id ?? ''))}">Manage</a>
+              </div>
+              <div class="property-more-wrap">
+                <button type="button" class="property-more-btn" data-property-id="${escape(String(item.id ?? ''))}" aria-label="More property actions">⋯</button>
+                <div class="property-menu" hidden>
+                  <button type="button" class="property-menu-action edit-property" data-property-id="${escape(String(item.id ?? ''))}">Edit</button>
+                  <button type="button" class="property-menu-action view-property" data-property-id="${escape(String(item.id ?? ''))}">View</button>
+                  <button type="button" class="property-menu-action" data-property-id="${escape(String(item.id ?? ''))}" data-action="archive">Archive</button>
+                  <button type="button" class="property-menu-action danger" data-property-id="${escape(String(item.id ?? ''))}" data-action="delete">Delete</button>
+                </div>
+              </div>
+            </div>
           </td>
         </tr>`;
     });
@@ -811,11 +925,48 @@ export function renderMyListing(root = document.querySelector('#app')) {
     });
   };
 
-  // Event delegation for Edit and View buttons
   portfolioBody.addEventListener('click', (event) => {
+    const menuButton = event.target.closest('.property-more-btn');
+    if (menuButton) {
+      event.stopPropagation();
+      const menu = menuButton.parentElement.querySelector('.property-menu');
+      const shouldOpen = menu.hidden;
+
+      portfolioBody.querySelectorAll('.property-menu').forEach((item) => {
+        if (item !== menu) {
+          item.hidden = true;
+          item.classList.remove('is-upward');
+        }
+      });
+
+      if (shouldOpen) {
+        const rect = menuButton.getBoundingClientRect();
+        const menuHeight = menu.offsetHeight || 170;
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const spaceAbove = rect.top;
+        const shouldOpenUpward = spaceBelow < menuHeight && spaceAbove > menuHeight;
+        menu.classList.toggle('is-upward', shouldOpenUpward);
+      } else {
+        menu.classList.remove('is-upward');
+      }
+
+      menu.hidden = !shouldOpen;
+      return;
+    }
+
     const editBtn = event.target.closest('.edit-property');
     const viewBtn = event.target.closest('.view-property');
-    
+    const menuAction = event.target.closest('.property-menu-action');
+
+    if (menuAction && menuAction.dataset.action) {
+      const propertyId = String(menuAction.dataset.propertyId);
+      const property = propertyRows.find((item) => String(item.id) === propertyId);
+      if (property) {
+        openPropertyActionConfirm(property, menuAction.dataset.action);
+      }
+      return;
+    }
+
     if (editBtn) {
       event.preventDefault();
       try {
@@ -831,8 +982,9 @@ export function renderMyListing(root = document.querySelector('#app')) {
         console.error('Error loading property for edit:', error);
         setFormMessage('Unable to load property for editing.');
       }
+      return;
     }
-    
+
     if (viewBtn) {
       event.preventDefault();
       try {
@@ -848,6 +1000,65 @@ export function renderMyListing(root = document.querySelector('#app')) {
         console.error('Error loading property details:', error);
         setFormMessage('Unable to load property details.');
       }
+    }
+  });
+
+  propertyActionConfirmCancelBtn.addEventListener('click', closePropertyActionConfirm);
+  propertyActionConfirmActionBtn.addEventListener('click', async () => {
+    if (!pendingPropertyAction) return;
+
+    const { property, action } = pendingPropertyAction;
+    const propertyId = String(property.id);
+
+    try {
+      if (action === 'delete') {
+        const response = await fetch(`${API}/properties/${propertyId}`, {
+          method: 'DELETE',
+          headers: authHeaders()
+        });
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          throw new Error(body.message || 'Unable to delete property.');
+        }
+        showToast({ message: 'Property deleted successfully.', type: 'success' });
+      } else if (action === 'archive') {
+        const response = await fetch(`${API}/properties/${propertyId}`, {
+          method: 'PATCH',
+          headers: authHeaders(),
+          body: JSON.stringify({ status: 'archived' })
+        });
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          throw new Error(body.message || 'Unable to archive property.');
+        }
+        showToast({ message: 'Property archived successfully.', type: 'success' });
+      }
+
+      closePropertyActionConfirm();
+      await load();
+      await updateListingCountsInSidebar();
+    } catch (error) {
+      console.error('Property action failed:', error);
+      setFormMessage(error.message || 'Unable to complete this action.');
+      closePropertyActionConfirm();
+    }
+  });
+
+  propertySearchInput?.addEventListener('input', () => {
+    activePage = 1;
+    applyPropertyTableState();
+  });
+
+  propertyTypeFilter?.addEventListener('change', () => {
+    activePage = 1;
+    applyPropertyTableState();
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!event.target.closest('.property-more-btn') && !event.target.closest('.property-menu')) {
+      portfolioBody.querySelectorAll('.property-menu').forEach((menu) => {
+        menu.hidden = true;
+      });
     }
   });
 
@@ -902,7 +1113,7 @@ export function renderMyListing(root = document.querySelector('#app')) {
           </div>
           <div class="details-section">
             <label>Property Type</label>
-            <p>${escape(String(propertyData.room_type || 'N/A').replaceAll('_', ' '))}</p>
+            <p>${escape(normalizePropertyTypeLabel(propertyData.room_type || propertyData.property_type || 'N/A')) || 'N/A'}</p>
           </div>
           <div class="details-section">
             <label>Monthly Rent</label>
@@ -962,8 +1173,9 @@ export function renderMyListing(root = document.querySelector('#app')) {
         }
         throw new Error(body.message ?? 'Unable to load listings.');
       }
-      const items = (body.data ?? []).filter((item) => Number(item.owner_id) === Number(account.id));
-      renderRows(items);
+      const items = (body.data ?? []).filter((item) => Number(item.owner_id) === Number(user().id));
+      allPropertyRows = items;
+      applyPropertyTableState();
       await updateListingCountsInSidebar();
     } catch (error) {
       portfolioBody.innerHTML = `<tr><td colspan="7" class="empty-row">${escape(error.message)}</td></tr>`;
