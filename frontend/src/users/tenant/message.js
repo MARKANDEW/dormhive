@@ -202,10 +202,10 @@ const openParticipantProfile = (conversation, property) => {
   openModal(modal);
 };
 
-export function renderMessage(root = document.querySelector('#app')) {
+export async function renderMessage(root = document.querySelector('#app')) {
   if (!root) throw new Error('Messages page requires #app.');
   dashboardStyle();
-  ensureTenantSidebarStyles();
+  await ensureTenantSidebarStyles();
   style();
 
   root.innerHTML = `

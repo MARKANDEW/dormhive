@@ -128,10 +128,19 @@
   border-radius: 8px;
   background: transparent !important;
   color: #f8f5e9;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   font-size: 12px;
   font-weight: 500;
+  line-height: 1.2;
   text-align: center;
+  text-decoration: none;
+  letter-spacing: normal;
+  appearance: none;
   cursor: pointer;
+}
+.dh-sidebar .logout span {
+  font: inherit;
+  color: inherit;
 }
 .dh-sidebar .logout:hover {
   color: #daa520;

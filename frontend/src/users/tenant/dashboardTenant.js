@@ -576,7 +576,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
   if (!root) throw new Error('Tenant dashboard requires #app.');
   await loadStyle();
   loadPropertyDetailsStyle();
-  ensureTenantSidebarStyles();
+  await ensureTenantSidebarStyles();
 
   const user = await refreshTenantUserSession();
   const displayName = tenantFullName(user);

@@ -570,15 +570,21 @@ legend {
 }
 .cards {
   display: grid;
-  grid-auto-columns: minmax(240px, 1fr);
-  grid-auto-flow: column;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 280px));
+  grid-auto-flow: row;
+  align-items: stretch;
+  justify-content: start;
   gap: 14px;
-  overflow-x: auto;
+  overflow: visible;
   padding-bottom: 7px;
-  scroll-snap-type: x proximity;
 }
 .listing {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 280px;
+  min-width: 0;
+  height: 360px;
   overflow: hidden;
   border: 1px solid #e3eae7;
   border-radius: 10px;
@@ -592,6 +598,7 @@ legend {
 .photo {
   position: relative;
   display: block;
+  flex: 0 0 168px;
   height: 168px;
   min-height: 168px;
   overflow: hidden;
@@ -661,7 +668,9 @@ legend {
 }
 .listing-body {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
+  min-height: 0;
   gap: 6px;
   padding: 12px 12px 14px;
 }
@@ -765,7 +774,7 @@ legend {
     display: none;
   }
   .cards {
-    grid-auto-columns: minmax(230px, 43%);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 280px));
   }
 }
 @media (max-width: 790px) {
@@ -820,7 +829,8 @@ legend {
     grid-column: 1/-1;
   }
   .cards {
-    grid-auto-columns: minmax(245px, 70%);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 280px));
+    justify-content: start;
   }
 }
 @media (max-width: 510px) {
@@ -844,6 +854,7 @@ legend {
     height: 130px;
   }
   .cards {
-    grid-auto-columns: minmax(230px, 86%);
+    grid-template-columns: minmax(0, 280px);
+    justify-content: center;
   }
 }

@@ -144,7 +144,7 @@ export async function renderSetting(root = document.querySelector('#app')) {
   if (!root) throw new Error('Tenant settings page requires #app.');
   await css();
   ensureSettingLayoutStyles();
-  ensureTenantSidebarStyles();
+  await ensureTenantSidebarStyles();
   let user = getUser();
   if (!user || !user.id || user.role !== 'tenant') {
     return location.assign('#/login');
