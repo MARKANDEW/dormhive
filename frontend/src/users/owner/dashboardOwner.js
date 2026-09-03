@@ -484,10 +484,20 @@ export function renderDashboardOwner(root = document.querySelector('#app')) {
           <div class="listing-topline"><span class="property-pill">${escape(badge)}</span><span class="property-rent">₱${Number(item.monthly_rent ?? 0).toLocaleString()}/mo</span></div>
           <h3>${escape(item.title || 'Untitled property')}</h3>
           <p class="listing-subtitle">${escape(place)} • ${escape(roomType)}</p>
-          <div class="listing-actions"><button>Manage</button><button class="ghost">Edit Listing</button></div>
+          <div class="listing-actions"><button type="button" class="manage-listing" data-property-id="${escape(String(item.id ?? ''))}">Manage</button><button type="button" class="ghost edit-listing" data-property-id="${escape(String(item.id ?? ''))}">Edit Listing</button></div>
         </article>`;
     }).join('');
     listingGrid.innerHTML = cards || '<p class="empty">No property listings yet for this account.</p>';
+    listingGrid.querySelectorAll('.manage-listing').forEach((button) => {
+      button.addEventListener('click', () => {
+        location.hash = `#/owner/inquiries?propertyId=${encodeURIComponent(button.dataset.propertyId)}`;
+      });
+    });
+    listingGrid.querySelectorAll('.edit-listing').forEach((button) => {
+      button.addEventListener('click', () => {
+        location.hash = `#/owner/myListing?propertyId=${encodeURIComponent(button.dataset.propertyId)}&action=edit`;
+      });
+    });
     const requests = bookings.data.length ? bookings.data : [];
     const approved = requests.filter((item) => item.status === 'approved');
     const pendingRequests = requests.filter((item) => item.status === 'pending');

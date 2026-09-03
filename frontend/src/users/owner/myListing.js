@@ -74,6 +74,9 @@ export function renderMyListing(root = document.querySelector('#app')) {
   if (!root) throw new Error('My listings page requires #app.');
   css();
   ensureOwnerSidebarStyles();
+  const routeSearch = typeof window.DORMHIVE_ROUTE_SEARCH === 'string' ? window.DORMHIVE_ROUTE_SEARCH : window.location.search;
+  const requestedPropertyId = new URLSearchParams(routeSearch).get('propertyId');
+  const requestedAction = new URLSearchParams(routeSearch).get('action');
 
   root.innerHTML = `
     <div class="owner-shell">
@@ -1176,6 +1179,10 @@ export function renderMyListing(root = document.querySelector('#app')) {
       const items = (body.data ?? []).filter((item) => Number(item.owner_id) === Number(user().id));
       allPropertyRows = items;
       applyPropertyTableState();
+      if (requestedPropertyId && requestedAction === 'edit') {
+        const requestedProperty = allPropertyRows.find((item) => String(item.id) === String(requestedPropertyId));
+        if (requestedProperty) loadPropertyForEdit(requestedProperty);
+      }
       await updateListingCountsInSidebar();
     } catch (error) {
       portfolioBody.innerHTML = `<tr><td colspan="7" class="empty-row">${escape(error.message)}</td></tr>`;

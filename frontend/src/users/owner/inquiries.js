@@ -23,13 +23,15 @@ const renderAvatarMarkup = () => '';
 
 function css() {
   document.querySelectorAll('link[data-owner-style], style[data-owner-style]').forEach((node) => node.remove());
-  if (!document.querySelector('[data-owner-style="inquiries"]')) {
-    const l = document.createElement('link');
-    l.rel = 'stylesheet';
-    l.href = new URL('./style/inquiries.css', import.meta.url);
-    l.dataset.ownerStyle = 'inquiries';
-    document.head.append(l);
-  }
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = new URL('./style/inquiries.css', import.meta.url);
+  link.dataset.ownerStyle = 'inquiries';
+  document.head.append(link);
+  return new Promise((resolve) => {
+    link.addEventListener('load', resolve, { once: true });
+    link.addEventListener('error', resolve, { once: true });
+  });
 }
 
 const statusInfo = (status) => {
@@ -46,9 +48,9 @@ const formatDate = (value) => {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
-export function renderInquiries(root = document.querySelector('#app')) {
+export async function renderInquiries(root = document.querySelector('#app')) {
   if (!root) throw new Error('Inquiries page requires #app.');
-  css();
+  await css();
   ensureOwnerSidebarStyles();
 
   root.innerHTML = `
@@ -246,6 +248,7 @@ export function renderInquiries(root = document.querySelector('#app')) {
   
   let schedulingBooking = null;
   let pendingArchiveBooking = null;
+  let isLoading = false;
 
   const getCurrentUser = () => { try { return JSON.parse(localStorage.getItem('dormhive.user') ?? '{}'); } catch { return {}; } };
 
@@ -727,6 +730,8 @@ export function renderInquiries(root = document.querySelector('#app')) {
   };
 
   const load = async () => {
+    if (isLoading) return;
+    isLoading = true;
     try {
       const [bookingResponse, propertyResponse, conversationResponse] = await Promise.all([
         fetch(`${API}/bookings`, { headers: auth() }),
@@ -759,11 +764,16 @@ export function renderInquiries(root = document.querySelector('#app')) {
       renderPropertyOptions();
       renderRows();
       renderDetailPanel();
-      if (state.bookings[0]) selectBooking(state.bookings[0]);
+      const selectedBooking = state.selected && state.bookings.find((booking) => booking.id === state.selected.id);
+      state.selected = selectedBooking || state.bookings[0] || null;
+      renderRows();
+      renderDetailPanel();
       await updateListingCountsInSidebar();
     } catch (error) {
       const msgArea = root.querySelector('.inquiries-table tbody');
       if (msgArea) msgArea.innerHTML = `<tr><td colspan="6" class="empty-row">Error: ${esc(error.message)}</td></tr>`;
+    } finally {
+      isLoading = false;
     }
   };
 
@@ -863,6 +873,18 @@ export function renderInquiries(root = document.querySelector('#app')) {
   });
 
   load();
+
+  const refreshTimer = window.setInterval(() => {
+    if (!root.isConnected) {
+      window.clearInterval(refreshTimer);
+      return;
+    }
+    load();
+  }, 10000);
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && root.isConnected) load();
+  });
 }
 
 
