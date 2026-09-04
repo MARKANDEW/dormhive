@@ -18,6 +18,13 @@ const resolveAvatarUrl = (value = '') => {
   return `${apiBase}${url.startsWith('/') ? '' : '/'}${url}`;
 };
 
+function renderTenantAvatar(entry) {
+  const name = entry.tenant_name || 'Tenant';
+  const source = resolveAvatarUrl(entry.tenant_avatar_url || entry.avatar_url || entry.tenant_avatar || '');
+  if (!source) return `<span class="tenant-avatar-fallback">${esc(initials(name))}</span>`;
+  return `<img src="${esc(source)}" alt="${esc(name)} profile" onerror="this.style.display='none'; this.nextElementSibling.style.display='grid';"><span class="tenant-avatar-fallback" style="display:none;">${esc(initials(name))}</span>`;
+}
+
 function css() {
   document.querySelectorAll('[data-owner-style="tenants"]').forEach((node) => node.remove());
   const existing = document.querySelector('[data-owner-style="tenants"]');
@@ -133,7 +140,7 @@ export function renderActiveTenant(root = document.querySelector('#app')) {
         <tr data-booking-id="${esc(String(entry.id ?? ''))}">
           <td>
             <div class="tenant-cell">
-              <span class="tenant-avatar">${esc(initials(entry.tenant_name || 'Tenant'))}</span>
+                        <span class="tenant-avatar">${renderTenantAvatar(entry)}</span>
               <span>${esc(entry.tenant_name || 'Tenant')}</span>
             </div>
           </td>

@@ -61,18 +61,23 @@ const renderAmenitiesChips = (item = {}) => normalizeAmenities(item)
 const clearSession = () => { localStorage.removeItem('dormhive.accessToken'); localStorage.removeItem('dormhive.user'); };
 
 function css() {
-  if (!document.querySelector('[data-owner-style="listings"]')) {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = new URL('./style/myListing.css', import.meta.url);
-    link.dataset.ownerStyle = 'listings';
-    document.head.append(link);
-  }
+  document.querySelectorAll('link[data-owner-style]:not([data-owner-style="shared"]), style[data-owner-style]:not([data-owner-style="shared"])').forEach((node) => node.remove());
+  const existing = document.querySelector('[data-owner-style="listings"]');
+  if (existing) return existing.sheet ? Promise.resolve() : new Promise((resolve) => existing.addEventListener('load', resolve, { once: true }));
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = new URL('./style/myListing.css', import.meta.url);
+  link.dataset.ownerStyle = 'listings';
+  document.head.append(link);
+  return new Promise((resolve) => {
+    link.addEventListener('load', resolve, { once: true });
+    link.addEventListener('error', resolve, { once: true });
+  });
 }
 
-export function renderMyListing(root = document.querySelector('#app')) {
+export async function renderMyListing(root = document.querySelector('#app')) {
   if (!root) throw new Error('My listings page requires #app.');
-  css();
+  await css();
   ensureOwnerSidebarStyles();
   const routeSearch = typeof window.DORMHIVE_ROUTE_SEARCH === 'string' ? window.DORMHIVE_ROUTE_SEARCH : window.location.search;
   const requestedPropertyId = new URLSearchParams(routeSearch).get('propertyId');
@@ -792,6 +797,7 @@ export function renderMyListing(root = document.querySelector('#app')) {
         ? 'Property updated successfully. Changes are now pending admin approval.' 
         : 'Property created successfully. Listing is now pending admin approval.';
       setFormMessage(successMessage, 'success');
+      showToast({ message: successMessage, type: 'success' });
       setTimeout(() => {
         closeModal();
         load();
@@ -1165,7 +1171,12 @@ export function renderMyListing(root = document.querySelector('#app')) {
 
   const load = async () => {
     try {
-      const response = await fetch(`${API}/properties?limit=100`, { headers: authHeaders() });
+      let response;
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        response = await fetch(`${API}/properties?limit=100`, { headers: authHeaders() });
+        if (response.status !== 429 || attempt === 1) break;
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      }
       const body = await response.json();
       if (!response.ok) {
         if (response.status === 401) {

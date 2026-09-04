@@ -22,6 +22,9 @@ body {
   border-bottom: 1px solid #e6d6b6;
   background: #fff;
 }
+.users-page header > a:last-child {
+  display: none !important;
+}
 .brand {
   color: #b48421;
   font-size: 1.2rem;

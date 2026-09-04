@@ -469,7 +469,7 @@ export function renderDashboardOwner(root = document.querySelector('#app')) {
     const items = (properties.data ?? []).filter((item) => Number(item.owner_id) === Number(user.id));
     const listingGrid = root.querySelector('.listings-card-grid');
     const approvedListings = items.filter((item) => String(item.status).toLowerCase() === 'approved');
-    const cards = items.slice(0, 3).map((item) => {
+    const cards = items.map((item) => {
       const roomType = String(item.room_type || 'Property').replaceAll('_', ' ');
       const place = [item.barangay, item.municipality].filter(Boolean).join(', ') || 'Manila';
       const badge = item.status === 'approved' ? 'Active' : String(item.status || 'Available').replaceAll('_', ' ');

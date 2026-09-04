@@ -832,19 +832,22 @@ a {
 }
 
 .listings-panel .listings-card-grid {
-  display: grid;
-
-  grid-template-columns: repeat(3, minmax(220px, 1fr));
-
+  display: flex;
+  align-items: stretch;
+  flex-wrap: nowrap;
   gap: 0.8rem;
-
+  height: 21rem;
+  overflow-x: auto;
+  overflow-y: hidden;
   margin-top: 0.9rem;
+  padding: 0.1rem 0.15rem 0.1rem 0;
 }
 
 .listing-card {
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  flex: 0 0 13.5rem;
+  min-width: 13.5rem;
   min-height: 0;
 
   padding: 1rem;
@@ -992,9 +995,7 @@ a {
     grid-template-columns: 1fr;
   }
 
-  .listings-panel .listings-card-grid {
-    grid-template-columns: repeat(2, minmax(200px, 1fr));
-  }
+  .listings-panel .listings-card-grid { height: 21rem; }
 }
 
 /* =========================
@@ -1130,7 +1131,7 @@ a {
   }
 
   .listings-panel .listings-card-grid {
-    grid-template-columns: 1fr;
+    height: 21rem;
   }
 
   .panel {

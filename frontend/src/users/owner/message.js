@@ -96,10 +96,6 @@ export function renderMessage(root = document.querySelector('#app')) {
               <div class="messages"></div>
               <form class="composer" hidden>
                 <div class="composer-tools">
-                  <label class="upload-button" title="Send a photo" aria-label="Send a photo">
-                    <input class="image-input" type="file" accept="image/*" hidden>
-                    <span>＋</span>
-                  </label>
                   <div class="composer-input-wrapper">
                     <div class="attachment-strip hidden">
                       <div class="attachment-item">
@@ -107,7 +103,13 @@ export function renderMessage(root = document.querySelector('#app')) {
                         <button type="button" class="remove-attachment" aria-label="Remove selected photo">×</button>
                       </div>
                     </div>
-                    <textarea maxlength="2000" placeholder="Type your message here..."></textarea>
+                    <div class="composer-inline-input">
+                      <label class="upload-button" title="Send a photo" aria-label="Send a photo">
+                        <input class="image-input" type="file" accept="image/*" hidden>
+                        <span>＋</span>
+                      </label>
+                      <textarea rows="1" maxlength="2000" placeholder="Type your message here..."></textarea>
+                    </div>
                   </div>
                   <button type="submit">Send</button>
                 </div>
@@ -432,7 +434,24 @@ export function renderMessage(root = document.querySelector('#app')) {
       const targetTenantId = savedSelection?.tenantId ?? tenantIdFromUrl;
 
       if (targetTenantId) {
-        const targetConversation = state.conversations.find((conv) => Number(conv.tenant_id) === Number(targetTenantId));
+        let targetConversation = state.conversations.find((conv) => Number(conv.tenant_id) === Number(targetTenantId)
+          && (!savedSelection?.propertyId || Number(conv.property_id) === Number(savedSelection.propertyId)));
+        if (!targetConversation && savedSelection?.propertyId) {
+          const createResponse = await fetch(`${API}/messages/conversations`, {
+            method: 'POST',
+            headers: headers(),
+            body: JSON.stringify({
+              tenantId: targetTenantId,
+              ownerId: user().id,
+              propertyId: savedSelection.propertyId
+            })
+          });
+          const createBody = await createResponse.json();
+          if (!createResponse.ok) throw new Error(createBody.message || 'Unable to start a conversation.');
+          targetConversation = createBody.data;
+          state.conversations.push(targetConversation);
+          renderConversations(searchInput.value);
+        }
         if (targetConversation) {
           await select(targetConversation.id);
           localStorage.removeItem('dormhive.activeTenantSelection');

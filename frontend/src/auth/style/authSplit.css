@@ -182,7 +182,9 @@ form {
 }
 
 .forgot-link {
-  margin: -15px 0 15px;
+  width: 100%;
+  margin: -7px 0 15px;
+  text-align: center;
 }
 .forgot-link a {
   font-size: 14.5px;

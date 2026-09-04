@@ -17,6 +17,9 @@ body {
   background: #fff;
   border-bottom: 1px solid #e6d6b6;
 }
+.health-page header > a:last-child {
+  display: none;
+}
 .brand {
   color: #b48421;
   font-weight: 800;

@@ -4,7 +4,7 @@ const glyphs = {
   dashboardAdmin: '⌂',
   userManagement: '☉',
   listingModeration: '☐',
-  systemHealth: '⚡',
+  systemHealth: '<i class="bi bi-lightning-fill" aria-hidden="true"></i>',
   analytics: '∑',
   supportTickets: '✉',
   setting: '⚙'

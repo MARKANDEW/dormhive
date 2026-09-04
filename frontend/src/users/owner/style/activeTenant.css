@@ -210,6 +210,19 @@ body {
   height: 2.4rem;
   flex: 0 0 2.4rem;
 }
+.tenant-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.tenant-avatar-fallback {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
 .status-pill {
   display: inline-flex;
   align-items: center;

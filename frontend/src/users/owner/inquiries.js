@@ -101,13 +101,6 @@ export async function renderInquiries(root = document.querySelector('#app')) {
 
                 <div class="list-footer">
                   <div id="pagination-summary" class="pagination-summary">Showing 0 to 0 of 0 inquiries</div>
-                  <div class="pagination">
-                    <button type="button" data-page="prev" aria-label="Previous page">‹</button>
-                    <button type="button" data-page="1" class="active">1</button>
-                    <button type="button" data-page="2">2</button>
-                    <button type="button" data-page="3">3</button>
-                    <button type="button" data-page="next" aria-label="Next page">›</button>
-                  </div>
                 </div>
               </section>
 
@@ -421,8 +414,7 @@ export async function renderInquiries(root = document.querySelector('#app')) {
     const totalPages = Math.max(1, Math.ceil(visible.length / state.pageSize));
     if (state.page > totalPages) state.page = totalPages;
 
-    const offset = (state.page - 1) * state.pageSize;
-    const pageItems = visible.slice(offset, offset + state.pageSize);
+    const pageItems = visible;
 
     if (!tbody) return;
 

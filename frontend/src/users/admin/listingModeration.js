@@ -29,7 +29,6 @@ export function renderListingModeration(root = document.querySelector('#app')) {
             <div>
               <h1>Listing Moderation: Pending Approvals</h1>
             </div>
-            <a class="header-link" href="#/admin/dashboardAdmin">← Overview</a>
           </header>
 
           <section class="moderation-content">
