@@ -183,7 +183,7 @@ form {
 
 .forgot-link {
   width: 100%;
-  margin: -7px 0 15px;
+  margin: 1px 0 15px;
   text-align: center;
 }
 .forgot-link a {
@@ -374,10 +374,15 @@ form {
 }
 
 .form-inner .input-box {
+  width: 100%;
   margin: 14px 0;
 }
 .form-inner .btn {
   width: 100%;
+}
+.form-inner .forgot-link {
+  width: 100%;
+  text-align: center;
 }
 
 @media screen and (max-width: 650px) {
