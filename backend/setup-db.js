@@ -272,6 +272,15 @@ async function checkAndFixDatabase() {
         }
         console.log('\n✅ Missing messages columns added successfully!\n');
       }
+
+      const notificationTableExists = (await query("SHOW TABLES LIKE 'notifications'"))[0] !== undefined;
+      if (notificationTableExists) {
+        const notificationColumns = await query('DESCRIBE notifications');
+        if (!notificationColumns.some((column) => column.Field === 'message')) {
+          await query('ALTER TABLE notifications ADD COLUMN IF NOT EXISTS message TEXT AFTER title');
+          console.log('✓ message column added to notifications table');
+        }
+      }
     }
     
     console.log('✨ Database setup complete! You can now:');

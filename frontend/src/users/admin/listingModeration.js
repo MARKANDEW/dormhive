@@ -1,5 +1,6 @@
 import { ensureAdminSidebarStyles, renderAdminSidebar } from './sidebarAdmin.js';
 import { applyAdminPrivacy } from './privacy.js';
+import { showToast } from '../../components/toast.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const headers = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
@@ -38,7 +39,6 @@ export function renderListingModeration(root = document.querySelector('#app')) {
                 <input id="moderation-search" type="search" placeholder="Search" />
               </label>
               <label class="filter-field">
-                <span>Filter by Type</span>
                 <select id="moderation-filter">
                   <option value="all">All Types</option>
                   <option value="bedspace">Bedspace</option>
@@ -46,7 +46,6 @@ export function renderListingModeration(root = document.querySelector('#app')) {
                   <option value="entire_unit">Studio Unit</option>
                 </select>
               </label>
-              <button class="bulk-actions" type="button">Bulk Actions</button>
             </div>
             <div class="moderation-tabs" role="tablist">
               <button type="button" class="moderation-tab active" data-status="pending">Pending Approvals</button>
@@ -359,6 +358,7 @@ export function renderListingModeration(root = document.querySelector('#app')) {
 
       renderRows();
       statusLabel.textContent = `Listing ${status} successfully.`;
+      showToast({ message: `Listing ${status} successfully.`, type: 'success' });
       approveButton.disabled = rejectButton.disabled = false;
     } catch (error) {
       statusLabel.textContent = error.message;

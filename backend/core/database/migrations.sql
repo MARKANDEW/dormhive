@@ -134,3 +134,5 @@ ALTER TABLE properties ADD COLUMN IF NOT EXISTS images JSON AFTER image_url;
 -- Add first_name and last_name to users for separate name storage
 ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name VARCHAR(100) AFTER name;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name VARCHAR(100) AFTER first_name;
+
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS message TEXT AFTER title;
