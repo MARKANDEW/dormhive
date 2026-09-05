@@ -415,6 +415,19 @@ export function renderListingModeration(root = document.querySelector('#app')) {
 
   const closeModal = () => modal.setAttribute('hidden', '');
 
+  const openPhotoPreview = (imageUrl) => {
+    const preview = document.createElement('div');
+    preview.className = 'photo-preview-modal';
+    preview.innerHTML = '<button type="button" class="photo-preview-close" aria-label="Close photo">×</button><img alt="Property photo preview">';
+    preview.querySelector('img').src = imageUrl;
+    const closePreview = () => preview.remove();
+    preview.querySelector('.photo-preview-close').addEventListener('click', closePreview);
+    preview.addEventListener('click', (event) => {
+      if (event.target === preview) closePreview();
+    });
+    document.body.append(preview);
+  };
+
   tabs.forEach((button) => {
     button.addEventListener('click', () => setActiveTab(button.dataset.status));
   });
@@ -428,6 +441,12 @@ export function renderListingModeration(root = document.querySelector('#app')) {
   modalClose?.addEventListener('click', closeModal);
   modal?.addEventListener('click', (event) => {
     if (event.target === modal) closeModal();
+  });
+  detailPhotos.addEventListener('click', (event) => {
+    const tile = event.target.closest('.thumb[style*="background-image"]');
+    if (!tile) return;
+    const match = tile.style.backgroundImage.match(/url\(["']?(.*?)["']?\)/);
+    if (match?.[1]) openPhotoPreview(match[1]);
   });
 
   searchInput.addEventListener('input', renderRows);
