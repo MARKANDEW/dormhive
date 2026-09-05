@@ -186,9 +186,18 @@ export function renderListingModeration(root = document.querySelector('#app')) {
     return `${apiBase}${url.startsWith('/') ? '' : '/'}${url}`;
   };
 
+  const getPropertyImages = (row = {}) => {
+    let images = row.images;
+    if (typeof images === 'string') {
+      try { images = JSON.parse(images); } catch { images = []; }
+    }
+    const sources = [row.image_url, ...(Array.isArray(images) ? images : [])].filter(Boolean);
+    return [...new Set(sources.map(resolveImageUrl).filter(Boolean))];
+  };
+
   const getThumbStyles = (row) => {
     const image = resolveImageUrl(row.image_url);
-    return image ? `style="background-image:url('${image}')"` : '';
+    return image ? `style="background-image:url('${image}');background-position:center;background-size:cover;background-repeat:no-repeat"` : '';
   };
 
   const formatCurrency = (value = 0) => `₱${Number(value ?? 0).toLocaleString()}`;
@@ -246,10 +255,9 @@ export function renderListingModeration(root = document.querySelector('#app')) {
       <p data-privacy-mask="stat">Rent: ${esc(formatCurrency(row.monthly_rent))}</p>
       <p>Submitted: ${esc(formatDate(row.created_at))}</p>`;
     applyAdminPrivacy(root);
-    const imageUrl = resolveImageUrl(row.image_url);
-    detailPhotos.innerHTML = imageUrl
-      ? `<div class="thumb" style="background-image:url('${imageUrl}')"></div>` + Array.from({ length: 5 }, () => '<div class="thumb"></div>').join('')
-      : Array.from({ length: 6 }, () => '<div class="thumb"></div>').join('');
+    const imageUrls = getPropertyImages(row);
+    const photoTiles = imageUrls.map((imageUrl) => `<div class="thumb" style="background-image:url('${esc(imageUrl)}');background-position:center;background-size:cover;background-repeat:no-repeat"></div>`);
+    detailPhotos.innerHTML = photoTiles.length ? photoTiles.join('') : '<div class="thumb"></div>';
     updateDetailActions();
   };
 
