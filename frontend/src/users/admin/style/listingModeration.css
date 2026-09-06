@@ -219,24 +219,6 @@ body {
   background: #fff;
   cursor: pointer;
 }
-.pagination {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 1rem;
-  padding: 0 1rem;
-}
-.pagination button {
-  padding: 0.5rem 0.8rem;
-  border: 1px solid #d9e1dd;
-  border-radius: 8px;
-  background: #fff;
-  cursor: pointer;
-}
-.pagination .page-indicator {
-  font-weight: 700;
-  color: #4a3720;
-}
 .moderation-tabs {
   display: flex;
   gap: 10px;

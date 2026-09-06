@@ -71,11 +71,6 @@ export function renderListingModeration(root = document.querySelector('#app')) {
                   </thead>
                   <tbody id="moderation-rows"></tbody>
                 </table>
-                <div class="pagination">
-                  <button type="button">‹</button>
-                  <button type="button" class="active">1</button>
-                  <button type="button">›</button>
-                </div>
               </section>
 
               <aside id="detail-panel" class="detail-panel">

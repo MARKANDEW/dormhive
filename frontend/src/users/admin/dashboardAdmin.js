@@ -1,5 +1,5 @@
 import { ensureAdminSidebarStyles, renderAdminSidebar } from './sidebarAdmin.js';
-import { buildActivityFeed, buildDashboardMetrics } from './analyticsUtils.js';
+import { buildActivityFeed, buildDashboardMetrics } from './analytics.js';
 import { createModal, openModal } from '../../components/modal.js';
 import { showToast } from '../../components/toast.js';
 import { applyAdminPrivacy } from './privacy.js';

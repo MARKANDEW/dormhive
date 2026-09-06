@@ -2,515 +2,132 @@ import { ensureAdminSidebarStyles, renderAdminSidebar } from './sidebarAdmin.js'
 import { applyAdminPrivacy } from './privacy.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
-const headers = () => ({
-  'Content-Type': 'application/json',
-  Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}`
-});
-const escape = (value = '') => {
-  const node = document.createElement('span');
-  node.textContent = String(value ?? '');
-  return node.innerHTML;
-};
-
-const normalizeStatus = (status = 'open') => {
-  const value = String(status ?? 'open').trim().toLowerCase();
-  if (['in_progress', 'in-progress', 'pending'].includes(value)) return 'pending';
-  if (['resolved', 'done'].includes(value)) return 'resolved';
-  if (['closed'].includes(value)) return 'closed';
-  return 'open';
-};
-
-const statusMeta = {
-  open: { label: 'Open', className: 'status-open' },
-  pending: { label: 'Pending', className: 'status-pending' },
-  resolved: { label: 'Resolved', className: 'status-resolved' },
-  closed: { label: 'Closed', className: 'status-closed' }
-};
-
-const normalizePriority = (priority = 'medium') => {
-  const value = String(priority ?? 'medium').trim().toLowerCase();
-  if (['high', 'medium', 'low'].includes(value)) return value;
-  return 'medium';
-};
-
-const priorityMeta = {
-  high: { label: 'High', className: 'priority-high' },
-  medium: { label: 'Medium', className: 'priority-medium' },
-  low: { label: 'Low', className: 'priority-low' }
-};
-
-const formatDate = (value) => {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
-};
-
-const filterByDateRange = (dateString, range) => {
-  if (!dateString || range === 'all') return true;
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffDays = (now - date) / (1000 * 60 * 60 * 24);
-  if (range === 'today') return diffDays <= 1;
-  if (range === '7') return diffDays <= 7;
-  if (range === '30') return diffDays <= 30;
-  if (range === '90') return diffDays <= 90;
-  return true;
-};
+const headers = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
+const escape = (value = '') => { const node = document.createElement('span'); node.textContent = String(value ?? ''); return node.innerHTML; };
+const normalizeStatus = (value) => ['pending', 'in-progress', 'in_progress'].includes(String(value).toLowerCase()) ? 'pending' : String(value || 'open').toLowerCase();
+const normalizePriority = (value) => ['high', 'low', 'medium'].includes(String(value).toLowerCase()) ? String(value).toLowerCase() : 'medium';
+const formatDate = (value) => value ? new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+const formatTime = (value) => value ? new Date(value).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
 
 function css() {
-  if (!document.querySelector('[data-admin-style="tickets"]')) {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = new URL('./style/supportTickets.css', import.meta.url);
-    link.dataset.adminStyle = 'tickets';
-    document.head.append(link);
-  }
-}
-
-async function apiGet(path) {
-  const response = await fetch(`${API}${path}`, { headers: headers() });
-  const body = await response.json();
-  if (!response.ok) throw new Error(body.message || 'Request failed.');
-  return body;
+  if (document.querySelector('[data-admin-style="tickets"]')) return;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = new URL('./style/supportTickets.css', import.meta.url);
+  link.dataset.adminStyle = 'tickets';
+  document.head.append(link);
 }
 
 export function renderSupportTickets(root = document.querySelector('#app')) {
   if (!root) throw new Error('Support tickets requires #app.');
   css();
   ensureAdminSidebarStyles();
+  root.innerHTML = `<div class="admin-shell">${renderAdminSidebar('supportTickets')}<div class="admin-main"><main class="support-page">
+    <header class="support-header"><div><span class="support-kicker"><i class="bi bi-headset" aria-hidden="true"></i> Support</span><h1>Support</h1><p>Manage user requests, questions, and support tickets.</p></div><button type="button" class="create-ticket"><i class="bi bi-plus-lg" aria-hidden="true"></i> Create Ticket</button></header>
+    <section class="support-content">
+      <section class="support-summary"><article class="support-summary-card support-blue"><i class="bi bi-ticket-perforated"></i><div><span>Open Tickets</span><strong data-summary="open">0</strong><small>Currently open</small></div></article><article class="support-summary-card support-orange"><i class="bi bi-clock"></i><div><span>Pending</span><strong data-summary="pending">0</strong><small>Waiting for response</small></div></article><article class="support-summary-card support-red"><i class="bi bi-exclamation-triangle"></i><div><span>High Priority</span><strong data-summary="high">0</strong><small>Needs attention</small></div></article><article class="support-summary-card support-green"><i class="bi bi-check-circle"></i><div><span>Resolved</span><strong data-summary="resolved">0</strong><small>Resolved tickets</small></div></article></section>
+      <section class="support-filter-bar"><label class="support-search"><i class="bi bi-search"></i><input id="ticket-search" type="search" placeholder="Search tickets, users, or subjects..." /></label><select id="status-filter"><option value="all">All Statuses</option><option value="open">Open</option><option value="pending">Pending</option><option value="resolved">Resolved</option></select><select id="priority-filter"><option value="all">All Priorities</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select><select id="category-filter"><option value="all">All Categories</option></select><button type="button" class="reset-filters"><i class="bi bi-arrow-clockwise"></i> Reset</button></section>
+      <div class="support-tabs" role="tablist"><button class="active" data-tab="all">All Tickets <strong data-count="all">0</strong></button><button data-tab="open">Open <strong data-count="open">0</strong></button><button data-tab="pending">Pending <strong data-count="pending">0</strong></button><button data-tab="resolved">Resolved <strong data-count="resolved">0</strong></button></div>
+      <section class="support-workspace"><article class="ticket-table-card"><div class="ticket-table-head"><span><input type="checkbox" aria-label="Select all tickets" /></span><span>TICKET</span><span>USER</span><span>CATEGORY</span><span>PRIORITY</span><span>STATUS</span><span>LAST UPDATED</span><span>ACTIONS</span></div><div id="ticket-list" class="ticket-list"></div><footer class="ticket-footer"><span data-ticket-range>Showing 0–0 of 0 tickets</span><div><button disabled aria-label="Previous page">‹</button><button class="current-page">1</button><button disabled aria-label="Next page">›</button></div></footer></article><aside class="ticket-details" id="ticket-details"></aside></section>
+    </section>
+  </main></div></div>`;
+  root.querySelector('.ticket-footer')?.remove();
 
-  const state = {
-    tickets: [],
-    search: '',
-    statuses: new Set(['open', 'pending', 'resolved', 'closed']),
-    priorities: new Set(['high', 'medium', 'low']),
-    dateRange: 'all'
+  const state = { tickets: [], tab: 'all', search: '', status: 'all', priority: 'all', category: 'all', selected: null };
+  const list = root.querySelector('#ticket-list');
+  const details = root.querySelector('#ticket-details');
+  const search = root.querySelector('#ticket-search');
+  const statusFilter = root.querySelector('#status-filter');
+  const priorityFilter = root.querySelector('#priority-filter');
+  const categoryFilter = root.querySelector('#category-filter');
+
+  const filteredTickets = () => state.tickets.filter((ticket) => {
+    const status = normalizeStatus(ticket.status);
+    const priority = normalizePriority(ticket.priority);
+    const query = `${ticket.id} ${ticket.subject || ''} ${ticket.requester_name || ''} ${ticket.requester_email || ''}`.toLowerCase();
+    return (state.tab === 'all' || status === state.tab) && (state.status === 'all' || status === state.status) && (state.priority === 'all' || priority === state.priority) && (state.category === 'all' || String(ticket.category || 'Support') === state.category) && (!state.search || query.includes(state.search));
+  });
+
+  const renderSummary = () => {
+    const counts = state.tickets.reduce((result, ticket) => { const status = normalizeStatus(ticket.status); const priority = normalizePriority(ticket.priority); result[status] = (result[status] || 0) + 1; if (priority === 'high') result.high += 1; return result; }, { open: 0, pending: 0, resolved: 0, high: 0 });
+    root.querySelectorAll('[data-summary]').forEach((item) => { item.textContent = counts[item.dataset.summary] ?? 0; });
+    root.querySelectorAll('[data-count]').forEach((item) => { item.textContent = item.dataset.count === 'all' ? state.tickets.length : counts[item.dataset.count] ?? 0; });
   };
 
-  root.innerHTML = `
-    <div class="admin-shell">
-      ${renderAdminSidebar('supportTickets')}
-      <div class="admin-main">
-        <main class="support-hub-page">
-          <header class="support-header">
-            <div class="support-header-left">
-              <h1>Support Hub</h1>
-            </div>
-            <div class="support-header-actions">
-              <button type="button" class="support-btn ghost" id="new-ticket-btn">Create New Ticket</button>
-              <button type="button" class="support-btn ghost" id="faq-btn">View FAQs</button>
-              <button type="button" class="support-btn" id="export-btn">Export Ticket Data</button>
-            </div>
-          </header>
-
-          <div class="support-content">
-            <section class="support-filters" aria-label="Ticket filters">
-              <div class="search-wrap">
-                <span class="search-icon">⌕</span>
-                <input id="ticket-search" type="text" placeholder="Search tickets, users, or FAQs..." />
-              </div>
-
-              <div class="filter-group">
-                <h3>Status</h3>
-                <label class="filter-option"><input class="status-filter" type="checkbox" value="open" checked /> Open</label>
-                <label class="filter-option"><input class="status-filter" type="checkbox" value="pending" checked /> Pending</label>
-                <label class="filter-option"><input class="status-filter" type="checkbox" value="resolved" checked /> Resolved</label>
-                <label class="filter-option"><input class="status-filter" type="checkbox" value="closed" checked /> Closed</label>
-              </div>
-
-              <div class="filter-group">
-                <h3>Priority</h3>
-                <label class="filter-option"><input class="priority-filter" type="checkbox" value="high" checked /> High</label>
-                <label class="filter-option"><input class="priority-filter" type="checkbox" value="medium" checked /> Medium</label>
-                <label class="filter-option"><input class="priority-filter" type="checkbox" value="low" checked /> Low</label>
-              </div>
-
-              <div class="filter-group">
-                <h3>Date Range</h3>
-                <select id="date-range-filter">
-                  <option value="all">All time</option>
-                  <option value="today">Today</option>
-                  <option value="7">Last 7 days</option>
-                  <option value="30">Last 30 days</option>
-                  <option value="90">Last 90 days</option>
-                </select>
-              </div>
-            </section>
-
-            <section class="support-main-panel">
-              <div class="support-table-head">
-                <span class="head-status">Status</span>
-                <span class="head-user">User</span>
-                <span class="head-priority">Priority</span>
-                <span class="head-subject">Subject</span>
-                <span class="head-date">Date/Time Opened</span>
-                <span class="head-admin">Admin</span>
-              </div>
-              <div class="support-tickets-list" id="support-tickets-list"></div>
-            </section>
-          </div>
-        </main>
-      </div>
-    </div>
-  `;
-
-  const listEl = root.querySelector('#support-tickets-list');
-  const searchInput = root.querySelector('#ticket-search');
-  const statusCheckboxes = root.querySelectorAll('.status-filter');
-  const priorityCheckboxes = root.querySelectorAll('.priority-filter');
-  const dateRangeFilter = root.querySelector('#date-range-filter');
-
-  const getFilteredTickets = () => {
-    const query = state.search.trim().toLowerCase();
-    return state.tickets.filter((ticket) => {
-      const normalizedStatus = normalizeStatus(ticket.status);
-      const normalizedPriority = normalizePriority(ticket.priority);
-      const matchesStatus = state.statuses.has(normalizedStatus);
-      const matchesPriority = state.priorities.has(normalizedPriority);
-      const matchesDate = filterByDateRange(ticket.created_at, state.dateRange);
-
-      if (!matchesStatus || !matchesPriority || !matchesDate) return false;
-
-      if (!query) return true;
-
-      const haystack = [
-        ticket.id,
-        ticket.requester_name,
-        ticket.requester_email,
-        ticket.email,
-        ticket.subject,
-        ticket.description,
-        ticket.message,
-        ticket.status,
-        ticket.priority,
-        ticket.assigned_admin_name
-      ].filter(Boolean).join(' ').toLowerCase();
-
-      return haystack.includes(query);
-    });
+  const renderDetails = (ticket) => {
+    if (!ticket) { details.innerHTML = '<div class="ticket-detail-empty"><i class="bi bi-headset"></i><strong>Select a ticket</strong><span>Ticket details and conversation will appear here.</span></div>'; return; }
+    const status = normalizeStatus(ticket.status);
+    const priority = normalizePriority(ticket.priority);
+    const user = ticket.requester_name || ticket.name || 'Unknown user';
+    const email = ticket.requester_email || ticket.email || 'No email provided';
+    details.innerHTML = `<div class="ticket-detail-header"><div><h2>Ticket #${escape(ticket.id)}</h2><div class="ticket-badges"><span class="ticket-status ${status}">${status[0].toUpperCase() + status.slice(1)}</span><span class="ticket-priority ${priority}">${priority[0].toUpperCase() + priority.slice(1)}</span></div></div><div class="ticket-actions"><button>Assign</button><button data-status="pending">Mark Pending</button><button class="resolve-ticket" data-status="resolved">Resolve Ticket</button></div></div><div class="ticket-info-grid"><div><i class="bi bi-pencil"></i><small>SUBJECT</small><strong>${escape(ticket.subject || 'Support request')}</strong></div><div><i class="bi bi-person"></i><small>USER</small><strong>${escape(user)}</strong><span>${escape(email)}</span></div><div><i class="bi bi-folder"></i><small>CATEGORY</small><strong>${escape(ticket.category || 'Support')}</strong></div><div><i class="bi bi-calendar3"></i><small>CREATED</small><strong>${formatDate(ticket.created_at)}</strong></div></div><div class="conversation"><h3>Conversation</h3><div class="message-card user-message"><i class="bi bi-person-circle"></i><div><strong>${escape(user)}</strong><time>${formatDate(ticket.created_at)} ${formatTime(ticket.created_at)}</time><p>${escape(ticket.description || ticket.message || 'No message provided.')}</p></div></div></div><div class="reply-area"><textarea placeholder="Write a reply..."></textarea><div><button><i class="bi bi-paperclip"></i> Attach</button><label><input type="checkbox" /> Internal note</label><button class="send-reply"><i class="bi bi-send"></i> Send Reply</button></div></div>`;
+    details.querySelector('.ticket-actions button:first-child')?.addEventListener('click', () => assignTicket(ticket));
+    details.querySelector('.resolve-ticket')?.addEventListener('click', () => updateStatus(ticket, 'resolved'));
+    details.querySelector('[data-status="pending"]')?.addEventListener('click', () => updateStatus(ticket, 'pending'));
+    applyAdminPrivacy(details);
   };
 
-  const renderTicketRows = () => {
-    const filtered = getFilteredTickets();
-    if (!filtered.length) {
-      listEl.innerHTML = '<div class="empty-state">No tickets match the current filters.</div>';
-      return;
-    }
-
-    listEl.innerHTML = filtered.map((ticket) => {
-      const status = statusMeta[normalizeStatus(ticket.status)] || statusMeta.open;
-      const priority = priorityMeta[normalizePriority(ticket.priority)] || priorityMeta.medium;
-      const userName = ticket.requester_name || ticket.name || 'Unknown user';
-      const userEmail = ticket.requester_email || ticket.email || 'No email provided';
-      const assignedAdmin = ticket.assigned_admin_name || ticket.assignedAdminName || 'Unassigned';
-
-      return `
-        <article class="ticket-row" data-id="${ticket.id}" tabindex="0">
-          <div class="row-status">
-            <span class="status-badge ${status.className}">${status.label}</span>
-            <span class="row-ticket-id">Ticket #${ticket.id}</span>
-          </div>
-
-          <div class="row-user">
-            <div class="user-name" data-privacy-mask="name">${escape(userName)}</div>
-            <div class="user-email" data-privacy-mask="email">${escape(userEmail)}</div>
-          </div>
-
-          <div class="row-priority">
-            <span class="priority-badge ${priority.className}">${priority.label}</span>
-          </div>
-
-          <div class="row-subject"><strong data-privacy-mask="detail">${escape(ticket.subject || 'Support request')}</strong></div>
-
-          <div class="row-date">${escape(formatDate(ticket.created_at))}</div>
-
-          <div class="row-admin" data-privacy-mask="name">${escape(assignedAdmin)}</div>
-        </article>
-      `;
-    }).join('');
-
-    listEl.querySelectorAll('.ticket-row').forEach((row) => {
-      row.addEventListener('click', () => openTicketDetails(Number(row.dataset.id)));
-      row.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          openTicketDetails(Number(row.dataset.id));
-        }
-      });
-    });
+  const renderList = () => {
+    const tickets = filteredTickets();
+    list.innerHTML = tickets.length ? tickets.map((ticket) => { const status = normalizeStatus(ticket.status); const priority = normalizePriority(ticket.priority); return `<div class="ticket-row ${state.selected?.id === ticket.id ? 'selected' : ''}" data-id="${ticket.id}"><input type="checkbox" aria-label="Select ticket ${ticket.id}" /><strong>#${ticket.id}</strong><span>${escape(ticket.requester_name || 'Unknown user')}</span><span>${escape(ticket.category || 'Support')}</span><span class="ticket-priority ${priority}">${priority[0].toUpperCase() + priority.slice(1)}</span><span class="ticket-status ${status}">${status[0].toUpperCase() + status.slice(1)}</span><span>${formatDate(ticket.updated_at || ticket.created_at)}</span><button class="ticket-view" aria-label="View ticket"><i class="bi bi-eye"></i></button></div>`; }).join('') : '<div class="support-empty-state"><span><i class="bi bi-headset"></i></span><strong>No support tickets yet</strong><p>User support requests will appear here when they are submitted.</p></div>';
+    list.querySelectorAll('.ticket-row').forEach((row) => row.addEventListener('click', (event) => { if (event.target.closest('input, button')) return; state.selected = state.tickets.find((ticket) => Number(ticket.id) === Number(row.dataset.id)); renderList(); renderDetails(state.selected); }));
+    list.querySelectorAll('.ticket-view').forEach((button) => button.addEventListener('click', (event) => { const row = event.currentTarget.closest('.ticket-row'); state.selected = state.tickets.find((ticket) => Number(ticket.id) === Number(row.dataset.id)); renderList(); renderDetails(state.selected); }));
     applyAdminPrivacy(root);
   };
 
-  const openTicketDetails = async (ticketId) => {
-    const ticket = state.tickets.find((item) => Number(item.id) === Number(ticketId));
-    if (!ticket) return;
-
-    const overlay = document.createElement('div');
-    overlay.className = 'support-modal-backdrop';
-    overlay.innerHTML = `
-      <div class="support-modal">
-        <button type="button" class="support-modal-close" data-close="true">×</button>
-        <div class="support-modal-header">
-          <div>
-            <div class="modal-kicker">Ticket #${ticket.id}</div>
-            <h2>${escape(ticket.subject || 'Support request')}</h2>
-          </div>
-          <span class="status-badge ${statusMeta[normalizeStatus(ticket.status)]?.className || 'status-open'}">${statusMeta[normalizeStatus(ticket.status)]?.label || 'Open'}</span>
-        </div>
-
-        <div class="support-modal-grid">
-          <div class="detail-block">
-            <label>User</label>
-            <div data-privacy-mask="name">${escape(ticket.requester_name || ticket.name || 'Unknown user')}</div>
-          </div>
-          <div class="detail-block">
-            <label>Email</label>
-            <div data-privacy-mask="email">${escape(ticket.requester_email || ticket.email || 'No email')}</div>
-          </div>
-          <div class="detail-block">
-            <label>Priority</label>
-            <div>${escape(priorityMeta[normalizePriority(ticket.priority)]?.label || 'Medium')}</div>
-          </div>
-          <div class="detail-block">
-            <label>Status</label>
-            <div>${escape(statusMeta[normalizeStatus(ticket.status)]?.label || 'Open')}</div>
-          </div>
-          <div class="detail-block full">
-            <label>Message</label>
-            <div data-privacy-mask="detail">${escape(ticket.description || ticket.message || 'No message provided.')}</div>
-          </div>
-          <div class="detail-block">
-            <label>Date opened</label>
-            <div>${escape(formatDate(ticket.created_at))}</div>
-          </div>
-          <div class="detail-block">
-            <label>Assigned admin</label>
-            <div data-privacy-mask="name">${escape(ticket.assigned_admin_name || ticket.assignedAdminName || 'Unassigned')}</div>
-          </div>
-        </div>
-
-        <div class="support-modal-actions">
-          <button type="button" class="support-btn" data-action="resolve">Mark Resolved</button>
-          <button type="button" class="support-btn ghost" data-action="close">Close</button>
-        </div>
-      </div>
-    `;
-
-    const closeModal = () => overlay.remove();
-    overlay.addEventListener('click', (event) => {
-      if (event.target === overlay || event.target.dataset.close === 'true') closeModal();
-    });
-
-    overlay.querySelector('[data-action="resolve"]').addEventListener('click', async () => {
-      try {
-        const response = await fetch(`${API}/support-tickets/${encodeURIComponent(ticket.id)}`, {
-          method: 'PATCH',
-          headers: headers(),
-          body: JSON.stringify({ status: 'resolved' })
-        });
-        const body = await response.json();
-        if (!response.ok) throw new Error(body.message || 'Unable to update ticket.');
-        const updated = body.data || { ...ticket, status: 'resolved' };
-        const index = state.tickets.findIndex((item) => Number(item.id) === Number(ticket.id));
-        if (index >= 0) state.tickets[index] = { ...state.tickets[index], ...updated };
-        renderTicketRows();
-        closeModal();
-      } catch (error) {
-        alert(error.message);
-      }
-    });
-
-    overlay.querySelector('[data-action="close"]').addEventListener('click', closeModal);
-    document.body.append(overlay);
-  };
-
-  const openCreateTicketModal = () => {
-    const overlay = document.createElement('div');
-    overlay.className = 'support-modal-backdrop';
-    overlay.innerHTML = `
-      <div class="support-modal form-modal">
-        <button type="button" class="support-modal-close" data-close="true">×</button>
-        <h2>Create New Ticket</h2>
-        <form id="new-ticket-form">
-          <label>
-            <span>Subject</span>
-            <input name="subject" type="text" required placeholder="Describe the issue" />
-          </label>
-          <label>
-            <span>Priority</span>
-            <select name="priority">
-              <option value="high">High</option>
-              <option value="medium" selected>Medium</option>
-              <option value="low">Low</option>
-            </select>
-          </label>
-          <label>
-            <span>Message</span>
-            <textarea name="description" rows="6" required placeholder="Provide details"></textarea>
-          </label>
-          <div class="support-modal-actions">
-            <button type="submit" class="support-btn">Save Ticket</button>
-            <button type="button" class="support-btn ghost" data-close="true">Cancel</button>
-          </div>
-        </form>
-      </div>
-    `;
-
-    const closeModal = () => overlay.remove();
-    overlay.addEventListener('click', (event) => {
-      if (event.target === overlay || event.target.dataset.close === 'true') closeModal();
-    });
-
-    overlay.querySelector('#new-ticket-form').addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const formData = new FormData(event.currentTarget);
-      const payload = {
-        subject: formData.get('subject')?.toString().trim(),
-        description: formData.get('description')?.toString().trim(),
-        priority: formData.get('priority')?.toString() || 'medium'
-      };
-
-      if (!payload.subject || !payload.description) return;
-
-      try {
-        const currentUser = JSON.parse(localStorage.getItem('dormhive.user') ?? '{}');
-        const response = await fetch(`${API}/support-tickets`, {
-          method: 'POST',
-          headers: headers(),
-          body: JSON.stringify({ ...payload, requesterId: currentUser.id || undefined })
-        });
-        const body = await response.json();
-        if (!response.ok) throw new Error(body.message || 'Unable to create ticket.');
-        await loadTickets();
-        closeModal();
-      } catch (error) {
-        alert(error.message);
-      }
-    });
-
-    applyAdminPrivacy(overlay);
-    document.body.append(overlay);
-  };
-
-  const openFaqModal = async () => {
-    const overlay = document.createElement('div');
-    overlay.className = 'support-modal-backdrop';
-    const faqModal = document.createElement('div');
-    faqModal.className = 'support-modal faq-modal';
-    faqModal.innerHTML = '<button type="button" class="support-modal-close" data-close="true">×</button><h2>FAQs</h2><div class="faq-list">Loading FAQs…</div>';
-    overlay.append(faqModal);
-
-    const closeModal = () => overlay.remove();
-    overlay.addEventListener('click', (event) => {
-      if (event.target === overlay || event.target.dataset.close === 'true') closeModal();
-    });
-
+  const updateStatus = async (ticket, status) => {
     try {
-      const response = await fetch(`${API}/faqs`, { headers: headers() });
+      const response = await fetch(`${API}/support-tickets/${encodeURIComponent(ticket.id)}`, { method: 'PATCH', headers: headers(), body: JSON.stringify({ status }) });
       const body = await response.json();
-      if (!response.ok) {
-        if (response.status === 404) {
-          faqModal.querySelector('.faq-list').innerHTML = '<div class="empty-state compact">No FAQs are currently saved in the database.</div>';
-        } else {
-          throw new Error(body.message || 'Unable to load FAQs.');
-        }
-      } else if (!Array.isArray(body.data) || !body.data.length) {
-        faqModal.querySelector('.faq-list').innerHTML = '<div class="empty-state compact">No FAQs are currently saved in the database.</div>';
-      } else {
-        faqModal.querySelector('.faq-list').innerHTML = body.data.map((item) => `
-          <div class="faq-item">
-            <h3>${escape(item.question || 'FAQ')}</h3>
-            <p>${escape(item.answer || 'No answer available.')}</p>
-          </div>
-        `).join('');
-      }
-    } catch (error) {
-      faqModal.querySelector('.faq-list').innerHTML = `<div class="empty-state compact">${escape(error.message || 'Unable to load FAQs.')}</div>`;
-    }
-
-    applyAdminPrivacy(overlay);
-    document.body.append(overlay);
-  };
-
-  const exportTickets = () => {
-    const filtered = getFilteredTickets();
-    const rows = [
-      ['Ticket ID', 'Status', 'User', 'Email', 'Priority', 'Subject', 'Date Opened', 'Assigned Admin']
-    ];
-    filtered.forEach((ticket) => {
-      rows.push([
-        ticket.id,
-        statusMeta[normalizeStatus(ticket.status)]?.label || 'Open',
-        ticket.requester_name || ticket.name || 'Unknown user',
-        ticket.requester_email || ticket.email || '',
-        priorityMeta[normalizePriority(ticket.priority)]?.label || 'Medium',
-        ticket.subject || '',
-        formatDate(ticket.created_at),
-        ticket.assigned_admin_name || ticket.assignedAdminName || 'Unassigned'
-      ]);
-    });
-
-    const csv = rows.map((row) => row.map((cell) => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = 'support_tickets.csv';
-    anchor.click();
-    URL.revokeObjectURL(url);
+      if (!response.ok) throw new Error(body.message || 'Unable to update ticket.');
+      ticket.status = status;
+      renderSummary(); renderList(); renderDetails(ticket);
+    } catch (error) { window.alert(error.message); }
   };
 
   const loadTickets = async () => {
     try {
-      const response = await apiGet('/support-tickets');
-      state.tickets = Array.isArray(response.data) ? response.data : [];
-      renderTicketRows();
-    } catch (error) {
-      listEl.innerHTML = `<div class="empty-state">${escape(error.message || 'Unable to load support tickets.')}</div>`;
-    }
+      const response = await fetch(`${API}/support-tickets`, { headers: headers() });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.message || 'Unable to load support tickets.');
+      state.tickets = Array.isArray(body.data) ? body.data : [];
+      const categories = [...new Set(state.tickets.map((ticket) => ticket.category || 'Support'))].sort();
+      categoryFilter.innerHTML = '<option value="all">All Categories</option>' + categories.map((category) => `<option value="${escape(category)}">${escape(category)}</option>`).join('');
+      renderSummary(); renderList(); renderDetails(state.tickets[0] || null);
+    } catch (error) { list.innerHTML = `<div class="support-empty-state"><strong>${escape(error.message)}</strong></div>`; renderDetails(null); }
   };
 
-  searchInput.addEventListener('input', (event) => {
-    state.search = event.target.value;
-    renderTicketRows();
-  });
+  const assignTicket = async (ticket) => {
+    try {
+      const currentUser = JSON.parse(localStorage.getItem('dormhive.user') ?? '{}');
+      if (!currentUser.id) throw new Error('No admin session is available.');
+      const response = await fetch(`${API}/support-tickets/${encodeURIComponent(ticket.id)}`, { method: 'PATCH', headers: headers(), body: JSON.stringify({ assignedAdminId: currentUser.id }) });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.message || 'Unable to assign ticket.');
+      Object.assign(ticket, body.data || {}, { assigned_admin_name: currentUser.name || currentUser.email || 'Assigned admin' });
+      renderDetails(ticket);
+    } catch (error) { window.alert(error.message); }
+  };
 
-  statusCheckboxes.forEach((input) => {
-    input.addEventListener('change', () => {
-      const value = input.value;
-      if (input.checked) {
-        state.statuses.add(value);
-      } else {
-        state.statuses.delete(value);
-      }
-      renderTicketRows();
-    });
-  });
+  const createTicket = async () => {
+    const subject = window.prompt('Ticket subject:')?.trim();
+    if (!subject) return;
+    const description = window.prompt('Describe the issue:')?.trim();
+    if (!description) return;
+    try {
+      const response = await fetch(`${API}/support-tickets`, { method: 'POST', headers: headers(), body: JSON.stringify({ subject, description, priority: 'medium' }) });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.message || 'Unable to create ticket.');
+      await loadTickets();
+    } catch (error) { window.alert(error.message); }
+  };
 
-  priorityCheckboxes.forEach((input) => {
-    input.addEventListener('change', () => {
-      const value = input.value;
-      if (input.checked) {
-        state.priorities.add(value);
-      } else {
-        state.priorities.delete(value);
-      }
-      renderTicketRows();
-    });
-  });
-
-  dateRangeFilter.addEventListener('change', (event) => {
-    state.dateRange = event.target.value || 'all';
-    renderTicketRows();
-  });
-
-  root.querySelector('#new-ticket-btn').addEventListener('click', openCreateTicketModal);
-  root.querySelector('#faq-btn').addEventListener('click', openFaqModal);
-  root.querySelector('#export-btn').addEventListener('click', exportTickets);
-
+  search.addEventListener('input', () => { state.search = search.value.toLowerCase().trim(); renderList(); });
+  statusFilter.addEventListener('change', () => { state.status = statusFilter.value; renderList(); });
+  priorityFilter.addEventListener('change', () => { state.priority = priorityFilter.value; renderList(); });
+  categoryFilter.addEventListener('change', () => { state.category = categoryFilter.value; renderList(); });
+  root.querySelector('.reset-filters').addEventListener('click', () => { search.value = ''; statusFilter.value = 'all'; priorityFilter.value = 'all'; categoryFilter.value = 'all'; state.search = ''; state.status = 'all'; state.priority = 'all'; state.category = 'all'; state.tab = 'all'; root.querySelectorAll('.support-tabs button').forEach((button) => button.classList.toggle('active', button.dataset.tab === 'all')); renderList(); });
+  root.querySelectorAll('.support-tabs button').forEach((button) => button.addEventListener('click', () => { state.tab = button.dataset.tab; root.querySelectorAll('.support-tabs button').forEach((item) => item.classList.toggle('active', item === button)); renderList(); }));
+  root.querySelector('.create-ticket').addEventListener('click', createTicket);
   loadTickets();
 }
-
-
-

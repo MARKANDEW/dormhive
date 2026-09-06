@@ -169,6 +169,7 @@ export function renderOwnerSidebar(active = 'dashboardOwner') {
     </a>
     <div class="owner-sidebar-rule" aria-hidden="true"></div>
     ${sidebarLinks.map(([page, label, countA, countB]) => `<a class="nav-item ${active === page ? 'active' : ''}" href="#/owner/${page}"><span class="nav-icon">${glyphs[page] ?? ''}</span><span class="nav-copy"><strong>${label}</strong>${countA || countB ? `<small>${[countA, countB].filter(Boolean).join(' · ')}</small>` : ''}</span></a>`).join('')}
+    <div class="owner-support-notice"><strong>Need help?</strong><span>Our support team is here.</span><a href="#/owner/support">Contact support</a></div>
     <button class="logout">Sign out</button>
   </aside>`;
 }

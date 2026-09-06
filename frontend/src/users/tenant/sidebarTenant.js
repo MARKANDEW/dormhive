@@ -41,6 +41,7 @@ export function renderTenantSidebar(activePage = 'dashboardTenant') {
       ${links.map(([page, label, iconName]) => `<a class="${page === activePage ? 'active' : ''}" href="#/tenant/${page}">${icon(iconName)}<span>${label}</span></a>`).join('')}
     </nav>
     <div class="dh-sidebar-footer">
+      <div class="dh-support-notice"><strong>Need help?</strong><span>Our support team is here.</span><a href="#/tenant/support">Contact support</a></div>
       <button class="logout" type="button">${icon('logout')}<span>Sign Out</span></button>
     </div>
   </aside>`;
