@@ -32,7 +32,8 @@ input {
   padding: 0 clamp(20px, 4vw, 58px) 48px;
   background:
     linear-gradient(rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.72)),
-    url('https://plain-apac-prod-public.komododecks.com/202608/29/jIJtZ9Mnj3rkRlfOItjs/image.png') center center / cover no-repeat;
+    url("https://plain-apac-prod-public.komododecks.com/202608/29/jIJtZ9Mnj3rkRlfOItjs/image.png")
+      center center / cover no-repeat;
 }
 .topbar {
   display: flex;
@@ -648,7 +649,10 @@ legend {
   place-items: center;
   width: 32px;
   height: 32px;
-  transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease;
 }
 .favorite-toggle:hover {
   transform: scale(1.04);

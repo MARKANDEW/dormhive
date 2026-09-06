@@ -26,7 +26,8 @@ body {
   margin: 0;
   background:
     linear-gradient(rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.68)),
-    url('https://plain-apac-prod-public.komododecks.com/202608/29/jIJtZ9Mnj3rkRlfOItjs/image.png') center center / cover no-repeat;
+    url("https://plain-apac-prod-public.komododecks.com/202608/29/jIJtZ9Mnj3rkRlfOItjs/image.png")
+      center center / cover no-repeat;
 }
 
 button,
@@ -46,7 +47,8 @@ input {
   padding: 2rem !important;
   background:
     linear-gradient(rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.68)),
-    url('https://plain-apac-prod-public.komododecks.com/202608/29/jIJtZ9Mnj3rkRlfOItjs/image.png') center center / cover no-repeat;
+    url("https://plain-apac-prod-public.komododecks.com/202608/29/jIJtZ9Mnj3rkRlfOItjs/image.png")
+      center center / cover no-repeat;
 }
 
 .tenant-settings {

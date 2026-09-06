@@ -205,7 +205,10 @@ textarea {
 .inquiry-table-header,
 .inquiry-row {
   display: grid;
-  grid-template-columns: minmax(140px, 1.1fr) minmax(110px, 0.8fr) minmax(90px, 0.7fr) minmax(90px, 0.6fr) minmax(150px, 1.1fr) minmax(95px, 0.7fr);
+  grid-template-columns: minmax(140px, 1.1fr) minmax(110px, 0.8fr) minmax(
+      90px,
+      0.7fr
+    ) minmax(90px, 0.6fr) minmax(150px, 1.1fr) minmax(95px, 0.7fr);
   align-items: center;
   gap: 8px;
   width: 100%;
@@ -742,10 +745,22 @@ textarea {
   background: rgba(255, 255, 255, 0.42);
 }
 
-.dot-one { top: 12px; left: 12px; }
-.dot-two { top: 18px; right: 10px; }
-.dot-three { bottom: 14px; left: 18px; }
-.dot-four { bottom: 12px; right: 16px; }
+.dot-one {
+  top: 12px;
+  left: 12px;
+}
+.dot-two {
+  top: 18px;
+  right: 10px;
+}
+.dot-three {
+  bottom: 14px;
+  left: 18px;
+}
+.dot-four {
+  bottom: 12px;
+  right: 16px;
+}
 
 .success-modal-card h2 {
   margin: 0;
@@ -782,7 +797,10 @@ textarea {
   font-weight: 800;
   min-height: 46px;
   cursor: pointer;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    opacity 0.18s ease;
   box-shadow: 0 12px 20px rgba(15, 111, 103, 0.18);
 }
 

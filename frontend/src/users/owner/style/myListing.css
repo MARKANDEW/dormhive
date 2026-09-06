@@ -41,7 +41,6 @@ body {
   background: transparent;
 }
 
-
 .profile-identity {
   display: flex;
   align-items: center;
@@ -800,16 +799,30 @@ body {
 }
 
 .portfolio-table thead th:nth-child(1),
-.portfolio-table tbody td:nth-child(1) { width: 92px; }
+.portfolio-table tbody td:nth-child(1) {
+  width: 92px;
+}
 
 .portfolio-table thead th:nth-child(2),
-.portfolio-table tbody td:nth-child(2) { width: 26%; }
+.portfolio-table tbody td:nth-child(2) {
+  width: 26%;
+}
 
-.portfolio-table thead th:nth-child(3) { width: 18%; }
-.portfolio-table thead th:nth-child(4) { width: 16%; }
-.portfolio-table thead th:nth-child(5) { width: 18%; }
-.portfolio-table thead th:nth-child(6) { width: 12%; }
-.portfolio-table thead th:nth-child(7) { width: 12%; }
+.portfolio-table thead th:nth-child(3) {
+  width: 18%;
+}
+.portfolio-table thead th:nth-child(4) {
+  width: 16%;
+}
+.portfolio-table thead th:nth-child(5) {
+  width: 18%;
+}
+.portfolio-table thead th:nth-child(6) {
+  width: 12%;
+}
+.portfolio-table thead th:nth-child(7) {
+  width: 12%;
+}
 
 .portfolio-table th {
   color: #5b7067;

@@ -26,7 +26,8 @@ body {
   min-height: 100vh;
   background:
     linear-gradient(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.72)),
-    url('https://plain-apac-prod-public.komododecks.com/202608/29/jIJtZ9Mnj3rkRlfOItjs/image.png') center center / cover no-repeat;
+    url("https://plain-apac-prod-public.komododecks.com/202608/29/jIJtZ9Mnj3rkRlfOItjs/image.png")
+      center center / cover no-repeat;
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -92,12 +93,12 @@ body {
 }
 
 .tab:hover {
-  color: #DAA520;
+  color: #daa520;
   background: rgba(218, 165, 32, 0.05);
 }
 
 .tab.active {
-  background: linear-gradient(135deg, #DAA520 0%, #b8860b 100%);
+  background: linear-gradient(135deg, #daa520 0%, #b8860b 100%);
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(218, 165, 32, 0.25);
 }
@@ -436,7 +437,9 @@ body {
   background: #ffffff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   overflow: hidden;
-  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+  transition:
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
 }
 
 .booking-card:hover {
@@ -512,7 +515,7 @@ body {
 .title-icon-badge .icon {
   width: 24px;
   height: 24px;
-  color: #DAA520;
+  color: #daa520;
 }
 
 .booking-card-title h3 {
@@ -640,13 +643,13 @@ body {
 }
 
 .booking-card-actions .btn--primary {
-  background: linear-gradient(135deg, #DAA520 0%, #b8860b 100%);
+  background: linear-gradient(135deg, #daa520 0%, #b8860b 100%);
   color: #ffffff;
-  border-color: #DAA520;
+  border-color: #daa520;
 }
 
 .booking-card-actions .btn--primary:hover {
-  background: linear-gradient(135deg, #DAA520 0%, #b8860b 100%);
+  background: linear-gradient(135deg, #daa520 0%, #b8860b 100%);
   box-shadow: 0 4px 10px rgba(218, 165, 32, 0.3);
   transform: translateY(-1px);
 }
