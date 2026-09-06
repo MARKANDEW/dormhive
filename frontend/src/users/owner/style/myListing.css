@@ -774,12 +774,14 @@ body {
 }
 
 .table-wrap {
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: visible;
   position: relative;
 }
 
 .portfolio-table {
   width: 100%;
+  min-width: 1080px;
   border-collapse: separate;
   border-spacing: 0;
   table-layout: fixed;
@@ -800,28 +802,28 @@ body {
 
 .portfolio-table thead th:nth-child(1),
 .portfolio-table tbody td:nth-child(1) {
-  width: 92px;
+  width: 80px;
 }
 
 .portfolio-table thead th:nth-child(2),
 .portfolio-table tbody td:nth-child(2) {
-  width: 26%;
+  width: 24%;
 }
 
 .portfolio-table thead th:nth-child(3) {
-  width: 18%;
+  width: 15%;
 }
 .portfolio-table thead th:nth-child(4) {
-  width: 16%;
+  width: 15%;
 }
 .portfolio-table thead th:nth-child(5) {
-  width: 18%;
+  width: 15%;
 }
 .portfolio-table thead th:nth-child(6) {
-  width: 12%;
+  width: 15%;
 }
 .portfolio-table thead th:nth-child(7) {
-  width: 12%;
+  width: 16%;
 }
 
 .portfolio-table th {
@@ -835,6 +837,11 @@ body {
   padding-left: 10px;
   padding-right: 10px;
   white-space: nowrap;
+}
+
+.portfolio-table thead th:nth-child(6),
+.portfolio-table thead th:nth-child(7) {
+  min-width: 140px;
 }
 
 .portfolio-table thead th:nth-child(1),
@@ -913,8 +920,9 @@ body {
 .property-row-actions {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 8px;
+  width: 100%;
   min-width: 0;
 }
 

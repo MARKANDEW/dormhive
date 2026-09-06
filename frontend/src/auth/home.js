@@ -56,8 +56,8 @@ export function renderHomePage(root = document.querySelector('#app')) {
           <h2 id="about-title">About DormHive</h2>
           <p class="dh-about-copy">
             DormHive is your trusted platform for finding verified and comfortable student accommodations.
-            Whether you're looking for a shared room or a private dorm, we've got you covered with a variety
-            of options to suit your needs and budget.
+            Whether you're looking for a bedspace, solo room, or studio unit, we've got you covered with verified
+            options to suit your needs and budget.
           </p>
 
           <div class="dh-feature-grid">
@@ -87,7 +87,7 @@ export function renderHomePage(root = document.querySelector('#app')) {
             <article class="dh-card">
               <div class="dh-card-media" style="background-image:url('https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=900&q=80');"></div>
               <div class="dh-card-body">
-                <h3>Shared Room</h3>
+                <h3>Bedspace</h3>
                 <p>Cost-effective shared living with essential amenities.</p>
               </div>
             </article>
@@ -95,7 +95,7 @@ export function renderHomePage(root = document.querySelector('#app')) {
             <article class="dh-card">
               <div class="dh-card-media" style="background-image:url('https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=900&q=80');"></div>
               <div class="dh-card-body">
-                <h3>Private Dorm</h3>
+                <h3>Solo Room</h3>
                 <p>The perfect balance of comfort and privacy.</p>
               </div>
             </article>
@@ -103,7 +103,7 @@ export function renderHomePage(root = document.querySelector('#app')) {
             <article class="dh-card">
               <div class="dh-card-media" style="background-image:url('https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=900&q=80');"></div>
               <div class="dh-card-body">
-                <h3>Studio Apartment</h3>
+                <h3>Studio Unit</h3>
                 <p>Premium accommodations with top-tier amenities and private space.</p>
               </div>
             </article>

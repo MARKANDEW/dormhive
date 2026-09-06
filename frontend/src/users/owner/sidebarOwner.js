@@ -153,6 +153,7 @@ export async function updateListingCountsInSidebar() {
 }
   
 export function ensureOwnerSidebarStyles() {
+  document.querySelectorAll('link[data-dormhive-auth="split"]').forEach((node) => node.remove());
   if (document.querySelector('[data-owner-sidebar-style="shared"]')) return;
   const link = document.createElement('link');
   link.rel = 'stylesheet';

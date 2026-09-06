@@ -374,6 +374,31 @@ export function renderDashboardOwner(root = document.querySelector('#app')) {
       </div>
     </div>`;
   const shell = root.querySelector('.owner-shell');
+  const listingGrid = root.querySelector('.listings-card-grid');
+  const searchInput = root.querySelector('.search-bar input');
+  const applyListingSearch = () => {
+    const query = searchInput.value.trim().toLowerCase();
+    const cards = [...listingGrid.querySelectorAll('.listing-card')];
+    let visibleCount = 0;
+    cards.forEach((card) => {
+      const matches = !query || card.textContent.toLowerCase().includes(query);
+      card.hidden = !matches;
+      if (matches) visibleCount += 1;
+    });
+    let emptySearch = listingGrid.querySelector('[data-search-empty]');
+    if (query && cards.length && visibleCount === 0) {
+      if (!emptySearch) {
+        emptySearch = document.createElement('p');
+        emptySearch.className = 'empty';
+        emptySearch.dataset.searchEmpty = 'true';
+        listingGrid.append(emptySearch);
+      }
+      emptySearch.textContent = `No listings match "${searchInput.value.trim()}".`;
+    } else {
+      emptySearch?.remove();
+    }
+  };
+  searchInput.addEventListener('input', applyListingSearch);
   root.querySelector('.menu').addEventListener('click', () => shell.classList.toggle('nav-open'));
   root.querySelector('[data-route="#/owner/myListing"]').addEventListener('click', () => location.hash = '#/owner/myListing');
   root.querySelector('.logout').addEventListener('click', () => { localStorage.clear(); location.assign('#/login'); });
@@ -467,7 +492,6 @@ export function renderDashboardOwner(root = document.querySelector('#app')) {
   });
   Promise.all([get('/properties?limit=100').catch(() => ({ data: [] })), get('/bookings').catch(() => ({ data: [] }))]).then(async ([properties, bookings]) => {
     const items = (properties.data ?? []).filter((item) => Number(item.owner_id) === Number(user.id));
-    const listingGrid = root.querySelector('.listings-card-grid');
     const approvedListings = items.filter((item) => String(item.status).toLowerCase() === 'approved');
     const cards = items.map((item) => {
       const roomType = String(item.room_type || 'Property').replaceAll('_', ' ');
@@ -488,6 +512,7 @@ export function renderDashboardOwner(root = document.querySelector('#app')) {
         </article>`;
     }).join('');
     listingGrid.innerHTML = cards || '<p class="empty">No property listings yet for this account.</p>';
+    applyListingSearch();
     listingGrid.querySelectorAll('.manage-listing').forEach((button) => {
       button.addEventListener('click', () => {
         location.hash = `#/owner/inquiries?propertyId=${encodeURIComponent(button.dataset.propertyId)}`;

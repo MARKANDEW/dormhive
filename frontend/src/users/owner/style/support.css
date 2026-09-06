@@ -5,7 +5,8 @@ html:has(.user-support-main) {
 .user-support-main {
   min-width: 0;
   min-height: 100vh;
-  overflow-y: auto;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
   padding: 28px 32px 42px;
   background: #fffdf6;
   color: #173e4d;
@@ -17,19 +18,32 @@ html:has(.user-support-main) {
 }
 .support-standalone > .user-support-main {
   width: 100%;
+  height: 100vh;
+  min-height: 0;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  scrollbar-width: thin;
+  scrollbar-color: #b9ccc6 #eef5f2;
 }
 .user-support-main::-webkit-scrollbar {
   width: 8px;
 }
+.user-support-main::-webkit-scrollbar-track {
+  background: #eef5f2;
+}
 .user-support-main::-webkit-scrollbar-thumb {
   background: #d6e2de;
   border-radius: 8px;
+  border: 2px solid #eef5f2;
 }
 .support-page-header,
 .support-hero,
 .support-content-grid,
 .user-ticket-form {
-  width: min(1310px, 100%);
+  width: 100%;
+  max-width: 1310px;
+  box-sizing: border-box;
   margin-inline: auto;
 }
 .support-page-header {
@@ -127,6 +141,12 @@ html:has(.user-support-main) {
   width: 330px;
   height: 150px;
   flex: 0 0 330px;
+  box-sizing: border-box;
+  background: url("/src/assets/images/FriendlyHelpdeskAgent.png") center / contain no-repeat;
+}
+.support-illustration span {
+  display: none;
+  box-sizing: border-box;
 }
 .support-person-head {
   position: absolute;
@@ -313,11 +333,13 @@ html:has(.user-support-main) {
 }
 .user-ticket-form form {
   display: grid;
+  min-width: 0;
   gap: 13px;
   padding-top: 16px;
 }
 .user-ticket-form label {
   display: grid;
+  min-width: 0;
   gap: 5px;
   color: #52707a;
   font-size: 0.7rem;
@@ -327,6 +349,8 @@ html:has(.user-support-main) {
 .user-ticket-form select,
 .user-ticket-form textarea {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 10px;
   border: 1px solid #dce6e2;
   border-radius: 7px;

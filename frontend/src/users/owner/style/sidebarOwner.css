@@ -194,6 +194,11 @@
   flex-direction: column !important;
   gap: 0.35rem !important;
   box-sizing: border-box !important;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+}
+
+.owner-shell > .owner-sidebar * {
+  font-family: inherit !important;
 }
 
 .owner-shell > .owner-sidebar .nav-item {
@@ -228,16 +233,16 @@
     gap: 2px !important;
   }
   .owner-shell .owner-brand {
-    margin-bottom: 8px;
+    margin-bottom: 4px;
   }
   .owner-shell .owner-brand-mark {
-    width: 42px;
-    height: 42px;
-    border-radius: 12px;
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
   }
   .owner-shell .owner-brand-icon {
-    width: 21px;
-    height: 21px;
+    width: 19px;
+    height: 19px;
   }
   .owner-shell .owner-brand strong {
     font-size: 18px;
@@ -250,15 +255,15 @@
     margin-bottom: 3px;
   }
   .owner-shell > .owner-sidebar .nav-item {
-    padding-top: 6px !important;
-    padding-bottom: 6px !important;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
   }
   .owner-support-notice {
-    padding-top: 10px;
-    padding-bottom: 10px;
+    padding-top: 7px;
+    padding-bottom: 7px;
   }
   .owner-shell > .owner-sidebar .logout {
-    padding-top: 6px !important;
-    padding-bottom: 6px !important;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
   }
 }

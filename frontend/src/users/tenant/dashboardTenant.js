@@ -203,7 +203,7 @@ function normalizeRoomType(value = '') {
   const typeMap = {
     private_room: 'Solo Room',
     entire_unit: 'Studio Unit',
-    bedspace: 'Bed Space',
+    bedspace: 'Bedspace',
     bed_space: 'Bed Space',
     shared_room: 'Bed Space'
   };
@@ -658,7 +658,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
               <legend>Room type</legend>
               <label><input type="checkbox" name="room" value="private_room"> Solo Room</label>
               <label><input type="checkbox" name="room" value="entire_unit"> Studio Unit</label>
-              <label><input type="checkbox" name="room" value="bedspace"> Bed Space</label>
+              <label><input type="checkbox" name="room" value="bedspace"> Bedspace</label>
             </fieldset>
 
             <fieldset>

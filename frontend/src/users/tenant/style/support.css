@@ -17,6 +17,16 @@ html:has(.user-support-main) {
 }
 .support-standalone > .user-support-main {
   width: 100%;
+  height: 100vh;
+  min-height: 0;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 28px 32px 42px;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.68), rgba(255, 255, 255, 0.72)),
+    url("https://plain-apac-prod-public.komododecks.com/202608/29/jIJtZ9Mnj3rkRlfOItjs/image.png")
+      center center / cover no-repeat;
 }
 .user-support-main::-webkit-scrollbar {
   width: 8px;
@@ -29,7 +39,9 @@ html:has(.user-support-main) {
 .support-hero,
 .support-content-grid,
 .user-ticket-form {
-  width: min(1310px, 100%);
+  width: 100%;
+  max-width: 1310px;
+  box-sizing: border-box;
   margin-inline: auto;
 }
 .support-page-header {
@@ -127,6 +139,12 @@ html:has(.user-support-main) {
   width: 330px;
   height: 150px;
   flex: 0 0 330px;
+  box-sizing: border-box;
+  background: url("/src/assets/images/FriendlyHelpdeskAgent.png") center / contain no-repeat;
+}
+.support-illustration span {
+  display: none;
+  box-sizing: border-box;
 }
 .support-person-head {
   position: absolute;
@@ -313,11 +331,13 @@ html:has(.user-support-main) {
 }
 .user-ticket-form form {
   display: grid;
+  min-width: 0;
   gap: 13px;
   padding-top: 16px;
 }
 .user-ticket-form label {
   display: grid;
+  min-width: 0;
   gap: 5px;
   color: #52707a;
   font-size: 0.7rem;
@@ -327,6 +347,8 @@ html:has(.user-support-main) {
 .user-ticket-form select,
 .user-ticket-form textarea {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 10px;
   border: 1px solid #dce6e2;
   border-radius: 7px;
@@ -362,6 +384,11 @@ html:has(.user-support-main) {
   }
   .user-support-main {
     min-height: 100vh;
+    padding: 22px 17px 32px;
+  }
+  .support-standalone > .user-support-main {
+    height: 100vh;
+    min-height: 0;
     padding: 22px 17px 32px;
   }
   .support-hero {
