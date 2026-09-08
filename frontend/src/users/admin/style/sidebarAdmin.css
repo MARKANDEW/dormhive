@@ -159,6 +159,9 @@
 
 .admin-shell > .admin-main {
   min-width: 0;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .menu {

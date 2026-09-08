@@ -20,6 +20,7 @@
   padding: 28px 20px 48px;
   background: var(--users-page);
   color: var(--users-ink);
+  overflow: visible;
 }
 
 .users-header {
@@ -130,7 +131,7 @@
 
 .users-card {
   margin-top: 4px;
-  overflow: hidden;
+  overflow: auto;
   border: 1px solid var(--users-line);
   border-radius: 22px;
   background: var(--users-panel);
@@ -189,6 +190,7 @@
 
 .table-wrap {
   overflow-x: auto;
+  overflow-y: auto;
 }
 
 .users-card table {
