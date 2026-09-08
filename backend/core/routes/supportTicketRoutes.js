@@ -8,5 +8,7 @@ const router = Router();
 router.use(authenticate);
 router.get('/', controller.list);
 router.post('/', validate(['subject', 'description']), controller.create);
+router.get('/:id/messages', controller.messages);
+router.post('/:id/messages', controller.addMessage);
 router.patch('/:id', authorize('admin'), controller.update);
 export default router;

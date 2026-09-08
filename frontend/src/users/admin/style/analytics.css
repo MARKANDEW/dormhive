@@ -34,8 +34,9 @@ body {
   border-radius: 999px;
   background: #e1f8f2;
   color: #087d67;
-  font-size: 0.75rem;
+  font-size: 12px;
   font-weight: 800;
+  height: 34px;
 }
 .analytics-heading h1 {
   margin: 12px 0 5px;

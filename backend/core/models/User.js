@@ -1,7 +1,7 @@
 import { query } from '../config/database.js';
 
 // Return a computed `name` while exposing first_name and last_name when available
-const publicFields = 'id, COALESCE(CONCAT_WS(" ", first_name, last_name), name) AS name, first_name, last_name, email, phone, avatar_url, role, status, created_at, updated_at';
+const publicFields = "id, COALESCE(NULLIF(TRIM(CONCAT_WS(' ', first_name, last_name)), ''), name) AS name, first_name, last_name, email, phone, avatar_url, role, status, created_at, updated_at";
 
 export async function findByEmail(email) {
   const rows = await query(`SELECT ${publicFields}, password_hash FROM users WHERE email = ? LIMIT 1`, [email]);

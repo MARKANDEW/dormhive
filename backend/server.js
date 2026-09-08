@@ -17,9 +17,9 @@ const backendDirectory = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDirectory = path.join(backendDirectory, 'core', 'uploads');
 const serverStartedAt = Date.now();
 const port = Number.parseInt(process.env.PORT ?? '5000', 10);
-const allowedOrigins = (process.env.CLIENT_URL ?? 'http://localhost:3000')
+const allowedOrigins = (process.env.CLIENT_URL ?? 'http://localhost:3000,https://dormhive-frontend.vercel.app')
   .split(',')
-  .map((origin) => origin.trim())
+  .map((origin) => origin.trim().replace(/\/+$/, ''))
   .filter(Boolean);
 
 const isLocalDevOrigin = (origin = '') => /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/i.test(origin);
@@ -94,7 +94,7 @@ app.get('/api/v1/health', async (_request, response) => {
   const services = {
     api: { status: 'healthy', uptimeSeconds: process.uptime() },
     database,
-    authentication: { status: process.env.JWT_SECRET ? 'healthy' : 'degraded' },
+    authentication: { status: process.env.JWT_ACCESS_SECRET ? 'healthy' : 'degraded' },
     storage,
     notifications: { status: 'healthy' },
     webServer: { status: 'healthy', uptimeSeconds: process.uptime() }

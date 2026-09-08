@@ -7,6 +7,7 @@ import { markNotificationRead } from '../../services/notificationSystem.js';
 
 const API_URL = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const apiBase = API_URL.replace(/\/api\/v1\/?$/, '');
+const MAX_LISTING_PRICE = 1000000;
 const DEFAULT_IMAGE_PLACEHOLDER = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 300"><rect width="500" height="300" fill="#ecf5ef"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#4a7160" font-family="Inter,Arial,sans-serif" font-size="28">No image available</text></svg>');
 const resolveImageUrl = (value = '') => {
   const url = String(value || '').trim();
@@ -645,11 +646,11 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
 
             <fieldset>
               <legend>Price range</legend>
-              <input id="range" type="range" min="3000" max="15000" step="500" value="15000">
+              <input id="range" type="range" min="3000" max="1000000" step="500" value="1000000">
               <div class="price-input">
                 <label>Min<input id="min-price" value="3000" readonly></label>
                 <span>to</span>
-                <label>Max<input id="max-price" value="15000"></label>
+                <label>Max<input id="max-price" value="1000000"></label>
               </div>
               <p id="range-note">PHP 3,000 to PHP 15,000+</p>
             </fieldset>
@@ -788,8 +789,8 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
   };
 
   const updateRangeNote = () => {
-    maxPrice.value = String(range.value || 15000);
-    rangeNote.textContent = `PHP 3,000 to PHP ${Number(range.value || 15000).toLocaleString('en-PH')}+`;
+    maxPrice.value = String(range.value || MAX_LISTING_PRICE);
+    rangeNote.textContent = `PHP 3,000 to PHP ${Number(range.value || MAX_LISTING_PRICE).toLocaleString('en-PH')}+`;
   };
 
   const handleUserRefresh = async () => {
@@ -1022,7 +1023,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
 
   const renderCards = () => {
     const query = (search?.value ?? '').trim().toLowerCase();
-    const maxValue = Number(range.value || 15000);
+    const maxValue = Number(range.value || MAX_LISTING_PRICE);
     const rooms = selectedRoomFilters();
     const genders = selectedGenderFilters();
     const amenities = selectedAmenityFilters();
@@ -1068,7 +1069,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
   range.addEventListener('input', updateRangeNote);
   clearButton.addEventListener('click', () => {
     root.querySelectorAll('input[type="checkbox"]').forEach((input) => { input.checked = false; });
-    range.value = 15000;
+    range.value = MAX_LISTING_PRICE;
     updateRangeNote();
     renderCards();
   });

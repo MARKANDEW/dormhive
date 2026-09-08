@@ -24,7 +24,7 @@
   flex-direction: column;
   gap: 0.35rem;
   box-sizing: border-box;
-  overflow-y: auto;
+  overflow-y: hidden;
   scrollbar-width: none;
 }
 .owner-shell > .owner-sidebar::-webkit-scrollbar {

@@ -950,16 +950,25 @@ export async function renderMyListing(root = document.querySelector('#app')) {
 
       if (shouldOpen) {
         const rect = menuButton.getBoundingClientRect();
+        menu.hidden = false;
         const menuHeight = menu.offsetHeight || 170;
+        const menuWidth = menu.offsetWidth || 140;
         const spaceBelow = window.innerHeight - rect.bottom;
         const spaceAbove = rect.top;
         const shouldOpenUpward = spaceBelow < menuHeight && spaceAbove > menuHeight;
         menu.classList.toggle('is-upward', shouldOpenUpward);
+        const top = shouldOpenUpward
+          ? Math.max(8, rect.top - menuHeight - 8)
+          : Math.min(window.innerHeight - menuHeight - 8, rect.bottom + 8);
+        const left = Math.max(8, Math.min(window.innerWidth - menuWidth - 8, rect.right - menuWidth));
+        menu.style.top = `${top}px`;
+        menu.style.left = `${left}px`;
       } else {
+        menu.hidden = true;
         menu.classList.remove('is-upward');
+        menu.style.removeProperty('top');
+        menu.style.removeProperty('left');
       }
-
-      menu.hidden = !shouldOpen;
       return;
     }
 

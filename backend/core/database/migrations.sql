@@ -124,6 +124,17 @@ CREATE TABLE IF NOT EXISTS support_tickets (
   INDEX idx_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS support_ticket_messages (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  ticket_id INT NOT NULL,
+  sender_id INT NOT NULL,
+  body TEXT NOT NULL,
+  is_internal TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_ticket_messages_ticket (ticket_id),
+  INDEX idx_ticket_messages_sender (sender_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Add missing columns to properties table if they don't exist
 -- Run these if you have an existing properties table without these columns:
 ALTER TABLE properties ADD COLUMN IF NOT EXISTS available_slots INT AFTER max_occupants;

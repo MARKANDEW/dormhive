@@ -961,9 +961,9 @@ body {
 }
 
 .property-menu {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 8px);
+  position: fixed;
+  top: 0;
+  left: 0;
   display: grid;
   min-width: 140px;
   padding: 6px;
@@ -975,8 +975,7 @@ body {
 }
 
 .property-menu.is-upward {
-  top: auto;
-  bottom: calc(100% + 8px);
+  top: 0;
 }
 
 .property-menu[hidden] {

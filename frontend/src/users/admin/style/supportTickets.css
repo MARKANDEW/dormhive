@@ -20,7 +20,7 @@ body {
   gap: 20px;
   width: min(96%, 1340px);
   margin: 0 auto;
-  padding: 20px 0 16px;
+  padding: 28px 0 16px;
 }
 .support-kicker {
   display: inline-flex;
@@ -30,8 +30,9 @@ body {
   border-radius: 999px;
   background: #e1f8f2;
   color: #087d67;
-  font-size: 0.72rem;
+  font-size: 12px;
   font-weight: 800;
+  height: 34px;
 }
 .support-header h1 {
   margin: 8px 0 3px;
@@ -502,6 +503,13 @@ body {
 .message-card.user-message {
   background: #eef7ff;
 }
+.message-card:not(.user-message) {
+  margin-top: 7px;
+  background: #f5fbf9;
+}
+.message-card.internal-message {
+  background: #fff8e8;
+}
 .message-card > i {
   color: #287be3;
   font-size: 1.1rem;
@@ -520,6 +528,11 @@ body {
   color: #617b84;
   font-size: 0.62rem;
   line-height: 1.35;
+}
+.conversation-empty {
+  margin: 0;
+  color: #78909a;
+  font-size: 0.62rem;
 }
 .reply-area {
   border-top: 1px solid #edf2f3;
@@ -562,6 +575,20 @@ body {
   background: #d79a19;
   color: #fff;
   font-weight: 800;
+}
+.reply-area .send-reply:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+.attachment-name {
+  display: block;
+  min-height: 12px;
+  margin-top: 4px;
+  color: #78909a;
+  font-size: 0.56rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 @media (max-width: 1050px) {
   .support-summary {

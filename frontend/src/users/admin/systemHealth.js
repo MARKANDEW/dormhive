@@ -101,8 +101,8 @@ export function renderSystemHealth(root = document.querySelector('#app')) {
       const storage = body.services.storage;
       const memoryPercent = body.system.memoryUsedPercent;
       const apiResponse = Math.round(performance.now() - started);
-      const overallClass = body.status === 'ok' ? 'healthy' : body.status === 'warning' ? 'degraded' : 'down';
-      overallStatus.textContent = body.status === 'ok' ? 'All systems operational' : body.status === 'warning' ? 'Some systems need attention' : 'System degradation detected';
+      const overallClass = body.status === 'ok' ? 'healthy' : ['warning', 'degraded'].includes(body.status) ? 'degraded' : 'down';
+      overallStatus.textContent = body.status === 'ok' ? 'All systems operational' : ['warning', 'degraded'].includes(body.status) ? 'Some systems need attention' : 'System degradation detected';
       lastUpdated.textContent = `Last updated: ${checkedTime(body.checkedAt)}`;
       root.querySelector('.operational-status').classList.remove('healthy', 'degraded', 'down');
       root.querySelector('.operational-status').classList.add(overallClass);

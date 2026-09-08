@@ -24,6 +24,42 @@ const userColumn = async () => {
   return fields.includes('requester_id') ? 'requester_id' : 'user_id';
 };
 
+async function ensureMessageTable() {
+  await query(`CREATE TABLE IF NOT EXISTS support_ticket_messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ticket_id INT NOT NULL,
+    sender_id INT NOT NULL,
+    body TEXT NOT NULL,
+    is_internal TINYINT(1) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_ticket_messages_ticket (ticket_id),
+    INDEX idx_ticket_messages_sender (sender_id)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+}
+
+export async function listMessages(ticketId) {
+  await ensureMessageTable();
+  return query(`SELECT m.id, m.ticket_id, m.sender_id, m.body, m.is_internal, m.created_at,
+    COALESCE(CONCAT_WS(' ', u.first_name, u.last_name), u.name) AS sender_name,
+    u.email AS sender_email, u.role AS sender_role
+    FROM support_ticket_messages m
+    JOIN users u ON u.id = m.sender_id
+    WHERE m.ticket_id = ? ORDER BY m.created_at ASC, m.id ASC`, [ticketId]);
+}
+
+export async function addMessage(ticketId, senderId, body, isInternal = false) {
+  await ensureMessageTable();
+  const result = await query(
+    'INSERT INTO support_ticket_messages (ticket_id, sender_id, body, is_internal) VALUES (?, ?, ?, ?)',
+    [ticketId, senderId, body, isInternal ? 1 : 0]
+  );
+  const rows = await query(`SELECT m.id, m.ticket_id, m.sender_id, m.body, m.is_internal, m.created_at,
+    COALESCE(CONCAT_WS(' ', u.first_name, u.last_name), u.name) AS sender_name,
+    u.email AS sender_email, u.role AS sender_role
+    FROM support_ticket_messages m JOIN users u ON u.id = m.sender_id WHERE m.id = ?`, [result.insertId]);
+  return rows[0] ?? null;
+}
+
 export async function listForUser(user) {
   const fields = await columnNames();
   const userKey = await userColumn();

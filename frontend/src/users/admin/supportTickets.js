@@ -54,17 +54,79 @@ export function renderSupportTickets(root = document.querySelector('#app')) {
     root.querySelectorAll('[data-count]').forEach((item) => { item.textContent = item.dataset.count === 'all' ? state.tickets.length : counts[item.dataset.count] ?? 0; });
   };
 
+  const renderConversation = (ticket) => {
+    const user = ticket.requester_name || ticket.name || 'Unknown user';
+    const messages = Array.isArray(ticket.messages) ? ticket.messages : [];
+    const initialMessage = ticket.description || ticket.message;
+    const cards = initialMessage ? [`<div class="message-card user-message"><i class="bi bi-person-circle"></i><div><strong>${escape(user)}</strong><time>${formatDate(ticket.created_at)} ${formatTime(ticket.created_at)}</time><p>${escape(initialMessage)}</p></div></div>`] : [];
+    messages.forEach((message) => {
+      const internalClass = Number(message.is_internal) ? ' internal-message' : '';
+      cards.push(`<div class="message-card${internalClass}"><i class="bi ${Number(message.is_internal) ? 'bi-lock' : 'bi-person-circle'}"></i><div><strong>${escape(message.sender_name || 'Support')}</strong><time>${formatDate(message.created_at)} ${formatTime(message.created_at)}</time><p>${escape(message.body)}</p></div></div>`);
+    });
+    return cards.length ? cards.join('') : '<p class="conversation-empty">No messages yet.</p>';
+  };
+
+  const loadMessages = async (ticket) => {
+    try {
+      const response = await fetch(`${API}/support-tickets/${encodeURIComponent(ticket.id)}/messages`, { headers: headers() });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.message || 'Unable to load conversation.');
+      ticket.messages = Array.isArray(body.data) ? body.data : [];
+      if (state.selected?.id === ticket.id) {
+        const conversation = details.querySelector('.conversation');
+        if (conversation) conversation.innerHTML = `<h3>Conversation</h3>${renderConversation(ticket)}`;
+        applyAdminPrivacy(details);
+      }
+    } catch (error) {
+      const conversation = details.querySelector('.conversation');
+      if (conversation && state.selected?.id === ticket.id) conversation.innerHTML = `<h3>Conversation</h3><p class="conversation-empty">${escape(error.message)}</p>`;
+    }
+  };
+
+  const sendReply = async (ticket) => {
+    const textarea = details.querySelector('.reply-area textarea');
+    const internal = details.querySelector('.reply-area input[type="checkbox"]')?.checked === true;
+    const body = textarea?.value.trim();
+    if (!body) return;
+    const sendButton = details.querySelector('.send-reply');
+    if (sendButton) sendButton.disabled = true;
+    try {
+      const response = await fetch(`${API}/support-tickets/${encodeURIComponent(ticket.id)}/messages`, {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({ body, isInternal: internal })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Unable to send message.');
+      ticket.messages = [...(ticket.messages || []), result.data];
+      textarea.value = '';
+      if (details.querySelector('.reply-area input[type="checkbox"]')) details.querySelector('.reply-area input[type="checkbox"]').checked = false;
+      const conversation = details.querySelector('.conversation');
+      if (conversation) conversation.innerHTML = `<h3>Conversation</h3>${renderConversation(ticket)}`;
+      applyAdminPrivacy(details);
+    } catch (error) {
+      window.alert(error.message);
+    } finally {
+      if (sendButton) sendButton.disabled = false;
+    }
+  };
+
   const renderDetails = (ticket) => {
     if (!ticket) { details.innerHTML = '<div class="ticket-detail-empty"><i class="bi bi-headset"></i><strong>Select a ticket</strong><span>Ticket details and conversation will appear here.</span></div>'; return; }
     const status = normalizeStatus(ticket.status);
     const priority = normalizePriority(ticket.priority);
     const user = ticket.requester_name || ticket.name || 'Unknown user';
     const email = ticket.requester_email || ticket.email || 'No email provided';
-    details.innerHTML = `<div class="ticket-detail-header"><div><h2>Ticket #${escape(ticket.id)}</h2><div class="ticket-badges"><span class="ticket-status ${status}">${status[0].toUpperCase() + status.slice(1)}</span><span class="ticket-priority ${priority}">${priority[0].toUpperCase() + priority.slice(1)}</span></div></div><div class="ticket-actions"><button>Assign</button><button data-status="pending">Mark Pending</button><button class="resolve-ticket" data-status="resolved">Resolve Ticket</button></div></div><div class="ticket-info-grid"><div><i class="bi bi-pencil"></i><small>SUBJECT</small><strong>${escape(ticket.subject || 'Support request')}</strong></div><div><i class="bi bi-person"></i><small>USER</small><strong>${escape(user)}</strong><span>${escape(email)}</span></div><div><i class="bi bi-folder"></i><small>CATEGORY</small><strong>${escape(ticket.category || 'Support')}</strong></div><div><i class="bi bi-calendar3"></i><small>CREATED</small><strong>${formatDate(ticket.created_at)}</strong></div></div><div class="conversation"><h3>Conversation</h3><div class="message-card user-message"><i class="bi bi-person-circle"></i><div><strong>${escape(user)}</strong><time>${formatDate(ticket.created_at)} ${formatTime(ticket.created_at)}</time><p>${escape(ticket.description || ticket.message || 'No message provided.')}</p></div></div></div><div class="reply-area"><textarea placeholder="Write a reply..."></textarea><div><button><i class="bi bi-paperclip"></i> Attach</button><label><input type="checkbox" /> Internal note</label><button class="send-reply"><i class="bi bi-send"></i> Send Reply</button></div></div>`;
+    details.innerHTML = `<div class="ticket-detail-header"><div><h2>Ticket #${escape(ticket.id)}</h2><div class="ticket-badges"><span class="ticket-status ${status}">${status[0].toUpperCase() + status.slice(1)}</span><span class="ticket-priority ${priority}">${priority[0].toUpperCase() + priority.slice(1)}</span></div></div><div class="ticket-actions"><button>Assign</button><button data-status="pending">Mark Pending</button><button class="resolve-ticket" data-status="resolved">Resolve Ticket</button></div></div><div class="ticket-info-grid"><div><i class="bi bi-pencil"></i><small>SUBJECT</small><strong>${escape(ticket.subject || 'Support request')}</strong></div><div><i class="bi bi-person"></i><small>USER</small><strong>${escape(user)}</strong><span>${escape(email)}</span></div><div><i class="bi bi-folder"></i><small>CATEGORY</small><strong>${escape(ticket.category || 'Support')}</strong></div><div><i class="bi bi-calendar3"></i><small>CREATED</small><strong>${formatDate(ticket.created_at)}</strong></div></div><div class="conversation"><h3>Conversation</h3>${renderConversation(ticket)}</div><div class="reply-area"><textarea placeholder="Write a reply..."></textarea><div><button type="button" class="attach-file"><i class="bi bi-paperclip"></i> Attach</button><input class="ticket-file-input" type="file" hidden /><label><input type="checkbox" /> Internal note</label><button type="button" class="send-reply"><i class="bi bi-send"></i> Send Reply</button></div><small class="attachment-name"></small></div>`;
     details.querySelector('.ticket-actions button:first-child')?.addEventListener('click', () => assignTicket(ticket));
     details.querySelector('.resolve-ticket')?.addEventListener('click', () => updateStatus(ticket, 'resolved'));
     details.querySelector('[data-status="pending"]')?.addEventListener('click', () => updateStatus(ticket, 'pending'));
+    details.querySelector('.send-reply')?.addEventListener('click', () => sendReply(ticket));
+    const fileInput = details.querySelector('.ticket-file-input');
+    details.querySelector('.attach-file')?.addEventListener('click', () => fileInput?.click());
+    fileInput?.addEventListener('change', () => { details.querySelector('.attachment-name').textContent = fileInput.files?.[0]?.name || ''; });
     applyAdminPrivacy(details);
+    loadMessages(ticket);
   };
 
   const renderList = () => {

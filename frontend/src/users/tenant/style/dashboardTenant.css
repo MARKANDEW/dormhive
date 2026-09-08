@@ -571,7 +571,7 @@ legend {
 }
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 280px));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   grid-auto-flow: row;
   align-items: stretch;
   justify-content: start;
@@ -583,9 +583,9 @@ legend {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 280px;
+  max-width: none;
   min-width: 0;
-  height: 360px;
+  height: 390px;
   overflow: hidden;
   border: 1px solid #e3eae7;
   border-radius: 10px;
@@ -679,10 +679,16 @@ legend {
   padding: 12px 12px 14px;
 }
 .place {
+  display: -webkit-box;
+  overflow: hidden;
   margin: 0;
   color: #16815e;
   font-size: 10px;
   font-weight: 750;
+  line-height: 1.2;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  text-overflow: ellipsis;
 }
 .listing h3 {
   overflow: hidden;
@@ -744,7 +750,7 @@ legend {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 7px;
-  margin-top: 10px;
+  margin-top: auto;
 }
 .listing-actions a,
 .listing-actions button {
@@ -778,7 +784,7 @@ legend {
     display: none;
   }
   .cards {
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 280px));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
 }
 @media (max-width: 790px) {
@@ -833,7 +839,7 @@ legend {
     grid-column: 1/-1;
   }
   .cards {
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 280px));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     justify-content: start;
   }
 }
@@ -858,7 +864,7 @@ legend {
     height: 130px;
   }
   .cards {
-    grid-template-columns: minmax(0, 280px);
+    grid-template-columns: minmax(0, 1fr);
     justify-content: center;
   }
 }
