@@ -35,13 +35,13 @@ export function renderUserManagement(root = document.querySelector('#app')) {
               <h1>User management</h1>
               <p>Search and administer platform accounts.</p>
             </div>
-            <div class="users-header-meta"><span class="users-date">▣ <time>${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</time></span><span class="users-updated">● Updated just now</span></div>
+            <div class="users-header-meta"><span class="users-date"><i class="bi bi-calendar3" aria-hidden="true"></i> <time>${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</time></span><span class="users-updated"><span class="status-dot" aria-hidden="true"></span> Updated just now</span></div>
           </header>
           <section class="users-content">
             <label class="users-search"><span aria-hidden="true">⌕</span><input type="search" placeholder="Search name or email" /></label>
             <p class="status" role="status">Loading users...</p>
             <section class="users-card">
-              <div class="users-card-heading"><div class="users-card-title"><span class="users-card-icon" aria-hidden="true">♙</span><div><h2>Platform Users</h2><p>Manage and view all registered users.</p></div></div><span class="users-total" data-total>0 total</span></div>
+              <div class="users-card-heading"><div class="users-card-title"><span class="users-card-icon" aria-hidden="true"><i class="bi bi-person"></i></span><div><h2>Platform Users</h2><p>Manage and view all registered users.</p></div></div><span class="users-total" data-total>0 total</span></div>
               <div class="table-wrap"><table><thead><tr><th>User</th><th>Role</th><th>Status</th><th>Action</th></tr></thead><tbody></tbody></table></div>
             </section>
           </section>

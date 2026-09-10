@@ -314,7 +314,7 @@ export function renderDashboardAdmin(root = document.querySelector('#app')) {
               <p>Quick insights into your platform activity and recent user actions.</p>
             </div>
             <div class="header-date-wrap">
-              <div class="date-card"><span class="date-card-icon">◫</span><span>${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span></div>
+              <div class="date-card"><i class="bi bi-calendar3" aria-hidden="true"></i> ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
               <div class="date-status"><span class="status-dot"></span> Updated just now</div>
             </div>
           </header>

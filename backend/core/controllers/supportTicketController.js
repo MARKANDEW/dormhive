@@ -22,14 +22,14 @@ export async function messages(request, response, next) {
 
 export async function addMessage(request, response, next) {
   try {
-    const body = String(request.body.body ?? '').trim();
-    if (!body) return response.status(422).json({ message: 'Message cannot be empty.' });
+    const body = String(request.body?.body ?? request.body?.message ?? '').trim();
+    if (!body && !request.file) return response.status(422).json({ message: 'Message or attachment is required.' });
     if (body.length > 5000) return response.status(422).json({ message: 'Message is too long.' });
     const ticketRows = await tickets.listForUser(request.user);
     if (request.user.role !== 'admin' && !ticketRows.some((ticket) => Number(ticket.id) === Number(request.params.id))) {
       return response.status(403).json({ message: 'Permission denied.' });
     }
-    const message = await tickets.addMessage(request.params.id, request.user.id, body, request.body.isInternal === true && request.user.role === 'admin');
+    const message = await tickets.addMessage(request.params.id, request.user.id, body, request.body.isInternal === true && request.user.role === 'admin', request.file ? `/uploads/support/${request.file.filename}` : null, request.file?.originalname ?? null);
     response.status(201).json({ data: message });
   } catch (error) { next(error); }
 }

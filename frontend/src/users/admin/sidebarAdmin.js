@@ -2,11 +2,11 @@ import { getAdminPrivacyMode, setAdminPrivacyMode } from './privacy.js';
 
 const glyphs = {
   dashboardAdmin: '⌂',
-  userManagement: '☉',
-  listingModeration: '☐',
-  systemHealth: '<i class="bi bi-lightning-fill" aria-hidden="true"></i>',
-  analytics: '∑',
-  supportTickets: '✉',
+  userManagement: '<i class="bi bi-person" aria-hidden="true"></i>',
+  listingModeration: '▣',
+  systemHealth: '<i class="bi bi-activity" aria-hidden="true"></i>',
+  analytics: '<i class="bi bi-bar-chart-line" aria-hidden="true"></i>',
+  supportTickets: '<i class="bi bi-headset" aria-hidden="true"></i>',
   setting: '⚙'
 };
 

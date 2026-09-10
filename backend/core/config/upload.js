@@ -5,7 +5,10 @@ import { fileURLToPath } from 'node:url';
 
 const uploadBaseDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'uploads');
 
-function createUploadMiddleware(subfolderResolver) {
+function createUploadMiddleware(subfolderResolver, fileFilter = (_request, file, callback) => {
+  if (file.mimetype.startsWith('image/')) callback(null, true);
+  else callback(new Error('Only image uploads are allowed.'));
+}) {
   return multer({
     storage: multer.diskStorage({
       destination: (request, _file, callback) => {
@@ -20,10 +23,7 @@ function createUploadMiddleware(subfolderResolver) {
       }
     }),
     limits: { fileSize: 2 * 1024 * 1024 },
-    fileFilter: (_request, file, callback) => {
-      if (file.mimetype.startsWith('image/')) callback(null, true);
-      else callback(new Error('Only image uploads are allowed.'));
-    }
+    fileFilter
   });
 }
 
@@ -31,4 +31,9 @@ export const upload = createUploadMiddleware('properties');
 export const uploadUser = createUploadMiddleware((request) => {
   const role = request?.user?.role || 'tenant';
   return path.join('users', role);
+});
+export const uploadSupport = createUploadMiddleware('support', (_request, file, callback) => {
+  const allowed = ['image/', 'application/pdf', 'text/plain', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+  if (allowed.some((type) => type.endsWith('/') ? file.mimetype.startsWith(type) : file.mimetype === type)) callback(null, true);
+  else callback(new Error('Unsupported support attachment type.'));
 });

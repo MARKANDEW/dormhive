@@ -71,8 +71,39 @@
   color: var(--mod-ink);
 }
 
-.updated-indicator { color: #5f8790; }
-.updated-indicator::first-letter { color: #23ae99; }
+.updated-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #5f8790;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.updated-indicator .status-dot,
+.users-updated .status-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  flex: 0 0 9px;
+  border-radius: 50%;
+  background: #15b98a;
+  box-shadow: 0 0 0 3px rgba(47, 194, 154, 0.15);
+}
+
+.date-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid #dce9ed;
+  border-radius: 10px;
+  background: #fff;
+  color: #31515c;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
 .moderation-content { width: 100%; }
 
 .toolbar {

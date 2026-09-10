@@ -36,7 +36,7 @@ textarea {
 
 .inquiries-page {
   min-height: 100vh;
-  background: var(--dormhive-bg);
+  background: #f0f0f0;
 }
 
 .inquiries-board {

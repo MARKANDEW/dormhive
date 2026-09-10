@@ -9,7 +9,7 @@
 }
 body {
   margin: 0;
-  background: linear-gradient(180deg, #f7f4ee 0%, #f3efe8 100%);
+  background: #f0f0f0;
 }
 
 button,
@@ -20,7 +20,7 @@ input {
 .owner-main.owner-settings {
   min-width: 0;
   padding: 2.25rem 2rem;
-  background: linear-gradient(180deg, #f7f4ee 0%, #f3efe8 100%);
+  background: #f0f0f0;
 }
 
 .settings-card {

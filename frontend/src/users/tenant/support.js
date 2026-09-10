@@ -23,6 +23,40 @@ const faqs = [
   ['Can I cancel a booking request?', 'Open the booking request before it is confirmed and select the cancellation option.'],
 ];
 
+const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
+const attachmentHref = (value) => value ? `${API.replace(/\/api\/v1\/?$/, '')}${value}` : '';
+const renderTickets = (tickets) => tickets.length ? tickets.map((ticket) => `<article class="support-ticket-row" data-ticket-id="${escapeHtml(ticket.id)}" tabindex="0"><div><strong>${escapeHtml(ticket.subject)}</strong><small>${escapeHtml(ticket.description)}</small></div><span class="support-ticket-meta"><b class="support-ticket-status ${escapeHtml(ticket.status)}">${escapeHtml(ticket.status)}</b><span>${escapeHtml(ticket.priority)} priority</span><time>${ticket.created_at ? new Date(ticket.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No date'}</time></span></article>`).join('') : '<p class="support-ticket-empty">You have not submitted any support tickets yet.</p>';
+const renderMessages = (messages) => messages.filter((message) => !message.is_internal).map((message) => `<div class="support-message-wrap${message.sender_role === 'admin' ? '' : ' support-message-wrap--self'}"><article class="support-message"><strong>${escapeHtml(message.sender_name || 'Support')}</strong><p>${escapeHtml(message.body)}</p>${message.attachment_url ? `<a class="support-message-attachment" href="${escapeHtml(attachmentHref(message.attachment_url))}" target="_blank" rel="noopener"><i class="bi bi-paperclip"></i> ${escapeHtml(message.attachment_name || 'Open attachment')}</a>` : ''}</article><time>${message.created_at ? new Date(message.created_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : ''}</time></div>`).join('') || '<p class="support-ticket-empty">No replies yet.</p>';
+async function loadTickets(root) {
+  const list = root.querySelector('[data-support-ticket-list]');
+  if (!list) return;
+  try {
+    const response = await fetch(`${API}/support-tickets`, { headers: headers() });
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.message || 'Unable to load support tickets.');
+    list.innerHTML = renderTickets(body.data || []);
+    list.onclick = async (event) => {
+      const row = event.target.closest('[data-ticket-id]');
+      const conversation = root.querySelector('[data-support-conversation]');
+      if (!row || !conversation) return;
+      conversation.hidden = false;
+      conversation.innerHTML = '<p class="support-ticket-empty">Loading conversation...</p>';
+      const messagesResponse = await fetch(`${API}/support-tickets/${row.dataset.ticketId}/messages`, { headers: headers() });
+      const messagesBody = await messagesResponse.json();
+      conversation.innerHTML = messagesResponse.ok ? `<h3>Conversation</h3>${renderMessages(messagesBody.data || [])}<form class="support-reply-form" data-ticket-id="${escapeHtml(row.dataset.ticketId)}"><textarea name="body" rows="3" required placeholder="Write a reply..."></textarea><button type="submit">Send</button></form>` : `<p class="support-ticket-empty">${escapeHtml(messagesBody.message || 'Unable to load conversation.')}</p>`;
+      conversation.querySelector('.support-reply-form')?.addEventListener('submit', async (replyEvent) => {
+        replyEvent.preventDefault();
+        const form = replyEvent.currentTarget;
+        const body = new FormData(form).get('body');
+        const replyResponse = await fetch(`${API}/support-tickets/${row.dataset.ticketId}/messages`, { method: 'POST', headers: headers(), body: JSON.stringify({ body }) });
+        if (!replyResponse.ok) { showToast({ message: 'Unable to send reply.', type: 'error' }); return; }
+        row.click();
+      });
+    };
+  } catch (error) {
+    list.innerHTML = `<p class="support-ticket-empty">${escapeHtml(error.message)}</p>`;
+  }
+}
 export async function renderSupport(root = document.querySelector('#app')) {
   if (!root) throw new Error('Support requires #app.');
   await css();
@@ -33,6 +67,7 @@ export async function renderSupport(root = document.querySelector('#app')) {
   root.querySelector('.dh-app')?.classList.add('support-standalone');
   const formCard = root.querySelector('.user-ticket-form');
   const ticketForm = formCard?.querySelector('form');
+  root.querySelector('.user-ticket-form')?.insertAdjacentHTML('beforebegin', '<section class="support-tickets-card"><header><h2>My Support Tickets</h2><p>View the support requests you have submitted.</p></header><div data-support-ticket-list><p class="support-ticket-empty">Loading tickets...</p></div><div class="support-conversation" data-support-conversation hidden></div></section>');
   const dashboardLink = document.createElement('a');
   dashboardLink.className = 'support-dashboard-link';
   dashboardLink.href = '#/tenant/dashboardTenant';
@@ -50,5 +85,7 @@ export async function renderSupport(root = document.querySelector('#app')) {
   root.querySelector('.support-contact').addEventListener('click', () => { formCard.hidden = false; formCard.scrollIntoView({ behavior: 'smooth', block: 'center' }); });
   root.querySelector('.support-close').addEventListener('click', () => { formCard.hidden = true; });
   root.querySelector('.support-cancel').addEventListener('click', () => { formCard.hidden = true; ticketForm?.reset(); });
+  ticketForm?.addEventListener('submit', () => setTimeout(() => loadTickets(root), 500));
+  loadTickets(root);
   ticketForm?.addEventListener('submit', async (event) => { event.preventDefault(); const form = event.currentTarget; try { const data = new FormData(form); const response = await fetch(`${API}/support-tickets`, { method: 'POST', headers: headers(), body: JSON.stringify({ subject: data.get('subject'), priority: data.get('priority'), description: data.get('description') }) }); const body = await response.json(); if (!response.ok) throw new Error(body.message || 'Unable to create support ticket.'); form.reset(); formCard.hidden = true; showToast({ message: 'Support ticket submitted successfully.', type: 'success' }); } catch (error) { showToast({ message: error.message, type: 'error' }); } });
 }

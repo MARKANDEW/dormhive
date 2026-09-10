@@ -12,7 +12,7 @@ body {
 }
 .owner-main {
   min-width: 0;
-  background: #f5f8f7;
+  background: #f0f0f0;
 }
 .owner-topbar {
   display: grid;

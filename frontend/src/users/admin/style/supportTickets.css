@@ -457,7 +457,7 @@ body {
 }
 .ticket-info-grid {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
   gap: 14px 12px;
   padding: 14px 0;
   border-bottom: 1px solid #edf2f3;
@@ -466,6 +466,7 @@ body {
   display: grid;
   grid-template-columns: 22px 1fr;
   gap: 2px 7px;
+  min-width: 0;
 }
 .ticket-info-grid i {
   grid-row: span 3;
@@ -478,9 +479,12 @@ body {
 }
 .ticket-info-grid strong,
 .ticket-info-grid span {
+  min-width: 0;
   grid-column: 2;
   color: #31515c;
   font-size: 0.68rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .ticket-info-grid span {
   color: #78909a;
@@ -529,24 +533,39 @@ body {
   font-size: 0.62rem;
   line-height: 1.35;
 }
+.message-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  color: #287be3;
+  font-size: 0.58rem;
+  overflow-wrap: anywhere;
+}
 .conversation-empty {
   margin: 0;
   color: #78909a;
   font-size: 0.62rem;
 }
 .reply-area {
+  position: sticky;
+  bottom: -14px;
+  z-index: 1;
+  margin: 0 -14px -14px;
+  padding: 10px 14px 14px;
+  background: #fff;
   border-top: 1px solid #edf2f3;
-  padding-top: 10px;
 }
 .reply-area textarea {
   width: 100%;
-  min-height: 55px;
+  min-height: 65px;
   padding: 9px;
   border: 1px solid #dce9ed;
   border-radius: 7px;
   resize: vertical;
   font: inherit;
   font-size: 0.65rem;
+  cursor: text;
 }
 .reply-area > div {
   display: flex;

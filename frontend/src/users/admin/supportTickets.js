@@ -8,6 +8,7 @@ const normalizeStatus = (value) => ['pending', 'in-progress', 'in_progress'].inc
 const normalizePriority = (value) => ['high', 'low', 'medium'].includes(String(value).toLowerCase()) ? String(value).toLowerCase() : 'medium';
 const formatDate = (value) => value ? new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 const formatTime = (value) => value ? new Date(value).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
+const attachmentHref = (value) => value ? `${API.replace(/\/api\/v1\/?$/, '')}${value}` : '';
 
 function css() {
   if (document.querySelector('[data-admin-style="tickets"]')) return;
@@ -33,7 +34,9 @@ export function renderSupportTickets(root = document.querySelector('#app')) {
   </main></div></div>`;
   root.querySelector('.ticket-footer')?.remove();
 
-  const state = { tickets: [], tab: 'all', search: '', status: 'all', priority: 'all', category: 'all', selected: null };
+  const state = { tickets: [], tab: 'all', search: '', status: 'all', priority: 'all', category: 'all', selected: null, internalNotes: {} };
+  try { const saved = localStorage.getItem('dormhive.supportTickets.internalNotes'); if (saved) state.internalNotes = JSON.parse(saved); } catch (e) { /* ignore */ }
+  const saveInternalNotes = () => localStorage.setItem('dormhive.supportTickets.internalNotes', JSON.stringify(state.internalNotes));
   const list = root.querySelector('#ticket-list');
   const details = root.querySelector('#ticket-details');
   const search = root.querySelector('#ticket-search');
@@ -61,7 +64,8 @@ export function renderSupportTickets(root = document.querySelector('#app')) {
     const cards = initialMessage ? [`<div class="message-card user-message"><i class="bi bi-person-circle"></i><div><strong>${escape(user)}</strong><time>${formatDate(ticket.created_at)} ${formatTime(ticket.created_at)}</time><p>${escape(initialMessage)}</p></div></div>`] : [];
     messages.forEach((message) => {
       const internalClass = Number(message.is_internal) ? ' internal-message' : '';
-      cards.push(`<div class="message-card${internalClass}"><i class="bi ${Number(message.is_internal) ? 'bi-lock' : 'bi-person-circle'}"></i><div><strong>${escape(message.sender_name || 'Support')}</strong><time>${formatDate(message.created_at)} ${formatTime(message.created_at)}</time><p>${escape(message.body)}</p></div></div>`);
+      const attachment = message.attachment_url ? `<a class="message-attachment" href="${escape(attachmentHref(message.attachment_url))}" target="_blank" rel="noopener"><i class="bi bi-paperclip"></i> ${escape(message.attachment_name || 'Open attachment')}</a>` : '';
+      cards.push(`<div class="message-card${internalClass}"><i class="bi ${Number(message.is_internal) ? 'bi-lock' : 'bi-person-circle'}"></i><div><strong>${escape(message.sender_name || 'Support')}</strong><time>${formatDate(message.created_at)} ${formatTime(message.created_at)}</time><p>${escape(message.body)}</p>${attachment}</div></div>`);
     });
     return cards.length ? cards.join('') : '<p class="conversation-empty">No messages yet.</p>';
   };
@@ -86,20 +90,28 @@ export function renderSupportTickets(root = document.querySelector('#app')) {
   const sendReply = async (ticket) => {
     const textarea = details.querySelector('.reply-area textarea');
     const internal = details.querySelector('.reply-area input[type="checkbox"]')?.checked === true;
-    const body = textarea?.value.trim();
-    if (!body) return;
+    const body = String(textarea?.value ?? '').trim();
+    const fileInput = details.querySelector('.ticket-file-input');
+    const attachment = fileInput?.files?.[0];
+    if (!body && !attachment) return;
+    const messageBody = body || '[Attachment]';
     const sendButton = details.querySelector('.send-reply');
     if (sendButton) sendButton.disabled = true;
     try {
+      const formData = new FormData();
+      formData.set('body', messageBody);
+      formData.append('isInternal', String(internal));
+      if (attachment) formData.append('attachment', attachment);
       const response = await fetch(`${API}/support-tickets/${encodeURIComponent(ticket.id)}/messages`, {
         method: 'POST',
-        headers: headers(),
-        body: JSON.stringify({ body, isInternal: internal })
+        headers: { Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
+        body: formData
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || 'Unable to send message.');
       ticket.messages = [...(ticket.messages || []), result.data];
       textarea.value = '';
+      if (fileInput) fileInput.value = '';
       if (details.querySelector('.reply-area input[type="checkbox"]')) details.querySelector('.reply-area input[type="checkbox"]').checked = false;
       const conversation = details.querySelector('.conversation');
       if (conversation) conversation.innerHTML = `<h3>Conversation</h3>${renderConversation(ticket)}`;
@@ -117,14 +129,20 @@ export function renderSupportTickets(root = document.querySelector('#app')) {
     const priority = normalizePriority(ticket.priority);
     const user = ticket.requester_name || ticket.name || 'Unknown user';
     const email = ticket.requester_email || ticket.email || 'No email provided';
-    details.innerHTML = `<div class="ticket-detail-header"><div><h2>Ticket #${escape(ticket.id)}</h2><div class="ticket-badges"><span class="ticket-status ${status}">${status[0].toUpperCase() + status.slice(1)}</span><span class="ticket-priority ${priority}">${priority[0].toUpperCase() + priority.slice(1)}</span></div></div><div class="ticket-actions"><button>Assign</button><button data-status="pending">Mark Pending</button><button class="resolve-ticket" data-status="resolved">Resolve Ticket</button></div></div><div class="ticket-info-grid"><div><i class="bi bi-pencil"></i><small>SUBJECT</small><strong>${escape(ticket.subject || 'Support request')}</strong></div><div><i class="bi bi-person"></i><small>USER</small><strong>${escape(user)}</strong><span>${escape(email)}</span></div><div><i class="bi bi-folder"></i><small>CATEGORY</small><strong>${escape(ticket.category || 'Support')}</strong></div><div><i class="bi bi-calendar3"></i><small>CREATED</small><strong>${formatDate(ticket.created_at)}</strong></div></div><div class="conversation"><h3>Conversation</h3>${renderConversation(ticket)}</div><div class="reply-area"><textarea placeholder="Write a reply..."></textarea><div><button type="button" class="attach-file"><i class="bi bi-paperclip"></i> Attach</button><input class="ticket-file-input" type="file" hidden /><label><input type="checkbox" /> Internal note</label><button type="button" class="send-reply"><i class="bi bi-send"></i> Send Reply</button></div><small class="attachment-name"></small></div>`;
+    details.innerHTML = `<div class="ticket-detail-header"><div><h2>Ticket #${escape(ticket.id)}</h2><div class="ticket-badges"><span class="ticket-status ${status}">${status[0].toUpperCase() + status.slice(1)}</span><span class="ticket-priority ${priority}">${priority[0].toUpperCase() + priority.slice(1)}</span></div></div><div class="ticket-actions"><button>Assign</button><button data-status="pending">Mark Pending</button><button class="resolve-ticket" data-status="resolved">Resolve Ticket</button></div></div><div class="ticket-info-grid"><div><i class="bi bi-pencil"></i><small>SUBJECT</small><strong>${escape(ticket.subject || 'Support request')}</strong></div><div><i class="bi bi-person"></i><small>USER</small><strong>${escape(user)}</strong><span>${escape(email)}</span></div><div><i class="bi bi-folder"></i><small>CATEGORY</small><strong>${escape(ticket.category || 'Support')}</strong></div><div><i class="bi bi-calendar3"></i><small>CREATED</small><strong>${formatDate(ticket.created_at)}</strong></div></div><div class="conversation"><h3>Conversation</h3>${renderConversation(ticket)}</div><div class="reply-area"><textarea placeholder="Write a reply..."></textarea><div><button type="button" class="attach-file"><i class="bi bi-paperclip"></i> Attach</button><input class="ticket-file-input" type="file" hidden /><label><input type="checkbox" /> Internal note</label><button type="button" class="send-reply"><i class="bi bi-send"></i> Send</button></div><small class="attachment-name"></small></div>`;
+    const internalNoteCheckbox = details.querySelector('.reply-area input[type="checkbox"]');
+    internalNoteCheckbox.checked = state.internalNotes[String(ticket.id)] === true;
+    internalNoteCheckbox.addEventListener('change', () => { state.internalNotes[String(ticket.id)] = internalNoteCheckbox.checked; saveInternalNotes(); });
     details.querySelector('.ticket-actions button:first-child')?.addEventListener('click', () => assignTicket(ticket));
     details.querySelector('.resolve-ticket')?.addEventListener('click', () => updateStatus(ticket, 'resolved'));
     details.querySelector('[data-status="pending"]')?.addEventListener('click', () => updateStatus(ticket, 'pending'));
     details.querySelector('.send-reply')?.addEventListener('click', () => sendReply(ticket));
     const fileInput = details.querySelector('.ticket-file-input');
     details.querySelector('.attach-file')?.addEventListener('click', () => fileInput?.click());
-    fileInput?.addEventListener('change', () => { details.querySelector('.attachment-name').textContent = fileInput.files?.[0]?.name || ''; });
+    fileInput?.addEventListener('change', () => {
+      details.querySelector('.attachment-name').textContent = fileInput.files?.[0]?.name || '';
+      textarea?.focus();
+    });
     applyAdminPrivacy(details);
     loadMessages(ticket);
   };

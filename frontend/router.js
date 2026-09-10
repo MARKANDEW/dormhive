@@ -15,20 +15,32 @@ export function redirectForRole(role) { return home[role] || '/'; }
 export function navigate(path, replace = false) { const target = `#${path.startsWith('/') ? path : `/${path}`}`; history[replace ? 'replaceState' : 'pushState']({}, '', target); return renderRoute(); }
 function routeLocation() { const hash = location.hash.replace(/^#/, ''); const [path, search = ''] = (hash || '/').split('?'); return { path: path || '/', search: search ? `?${search}` : '' }; }
 let routeRenderId = 0;
+function resetAdminScroll() {
+  window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  const adminMain = ROOT().querySelector('.admin-main');
+  adminMain?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  return adminMain;
+}
 export async function renderRoute() { const renderId = ++routeRenderId; const { path, search } = routeLocation(); const user = currentUser(); const publicRoutes = ['/', '/login', '/register', '/oauth/callback']; if (path === '/' || path === '/login') { if (user) return navigate(redirectForRole(user.role), true); }
   const route = routes.find(([url]) => url === path);
   if (!route) return navigate(redirectForRole(user?.role), true);
   if (!user && !publicRoutes.includes(path)) return navigate('/login', true);
   if (user && publicRoutes.includes(path) && path !== '/') return navigate(redirectForRole(user.role), true);
+  if (path.startsWith('/admin/')) resetAdminScroll();
   window.DORMHIVE_ROUTE_SEARCH = search;
   try {
     const module = await import(`${route[2]}?routeRender=${renderId}`);
     await module[route[3]](ROOT());
     if (renderId !== routeRenderId) return;
+    if (path.startsWith('/admin/')) {
+      const adminMain = resetAdminScroll();
+      requestAnimationFrame(() => resetAdminScroll());
+      setTimeout(() => adminMain?.scrollTo({ top: 0, left: 0, behavior: 'auto' }), 100);
+    }
     if (path.startsWith('/admin/')) applyAdminPrivacy(ROOT());
   } catch (error) {
     ROOT().textContent = `Unable to load this page: ${error.message}`;
   }
 }
-export function installRouter() { addEventListener('hashchange', renderRoute); document.addEventListener('click', (event) => { const link = event.target.closest('a[href]'); if (!link || link.target || link.origin !== location.origin) return; const url = new URL(link.href); if (!url.hash.startsWith('#/')) return; event.preventDefault(); navigate(url.hash.slice(1)); }); }
+export function installRouter() { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; addEventListener('hashchange', renderRoute); document.addEventListener('click', (event) => { const link = event.target.closest('a[href]'); if (!link || link.target || link.origin !== location.origin) return; const url = new URL(link.href); if (!url.hash.startsWith('#/')) return; event.preventDefault(); navigate(url.hash.slice(1)); }); }
 export { routes };

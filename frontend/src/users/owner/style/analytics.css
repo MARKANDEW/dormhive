@@ -9,6 +9,7 @@
 }
 body {
   margin: 0;
+  background: #f0f0f0;
 }
 .analytics-page > section {
   width: min(92%, 70rem);

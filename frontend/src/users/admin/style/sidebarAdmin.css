@@ -18,6 +18,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.38rem;
+  overflow: hidden;
   box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.05);
   box-sizing: border-box;
 }
@@ -194,5 +195,48 @@
     font-size: 1.2rem;
     cursor: pointer;
     padding: 0.1rem 0.4rem;
+  }
+}
+
+@media (max-height: 700px) and (min-width: 981px) {
+  .admin-shell > .admin-nav {
+    gap: 0.2rem;
+    padding: 0.65rem 0.8rem 0.75rem;
+  }
+
+  .admin-shell > .admin-nav .admin-logo {
+    gap: 10px;
+    margin: 0 6px 8px;
+  }
+
+  .admin-shell > .admin-nav .admin-logo-mark {
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+  }
+
+  .admin-shell > .admin-nav .admin-logo strong {
+    font-size: 18px;
+  }
+
+  .admin-shell > .admin-nav .admin-logo small {
+    margin-top: 2px;
+    font-size: 11px;
+  }
+
+  .admin-shell > .admin-nav .nav-item {
+    gap: 0.55rem;
+    padding: 0.52rem 0.65rem;
+  }
+
+  .admin-shell > .admin-nav .nav-item .nav-icon {
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: 0.65rem;
+  }
+
+  .admin-shell > .admin-nav .privacy-toggle,
+  .admin-shell > .admin-nav .logout {
+    padding: 0.6rem 0.7rem;
   }
 }

@@ -126,7 +126,7 @@ export async function renderInquiries(root = document.querySelector('#app')) {
         </div>
         <div class="reply-modal-footer">
           <button type="button" class="secondary-btn reply-cancel">Cancel</button>
-          <button type="button" class="primary-btn reply-send">Send Reply</button>
+          <button type="button" class="primary-btn reply-send">Send</button>
         </div>
       </div>
     </div>

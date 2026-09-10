@@ -24,7 +24,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #f3f5f6;
+  background: #f0f0f0;
   overflow: hidden;
 }
 .owner-topbar {

@@ -393,23 +393,7 @@ a {
   padding: 1.4rem 1.5rem;
   overflow-y: auto;
   overflow-x: hidden;
-  background:
-    radial-gradient(
-      circle at 92% 4%,
-      rgba(207, 171, 84, 0.11),
-      transparent 30rem
-    ),
-    radial-gradient(
-      circle at 4% 82%,
-      rgba(125, 132, 91, 0.08),
-      transparent 27rem
-    ),
-    radial-gradient(
-      circle at 58% 105%,
-      rgba(151, 184, 164, 0.08),
-      transparent 30rem
-    ),
-    #f7f1e5;
+  background: #f0f0f0;
 }
 
 /* =========================

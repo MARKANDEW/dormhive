@@ -8,7 +8,13 @@ html:has(.user-support-main) {
   overflow-y: scroll;
   scrollbar-gutter: stable;
   padding: 28px 32px 42px;
-  background: #fffdf6;
+  background:
+    linear-gradient(rgba(247, 241, 229, 0.56), rgba(247, 241, 229, 0.56)),
+    url("../../../assets/images/b-owner2.png");
+  background-position: center top;
+  background-size: cover;
+  background-attachment: scroll;
+  background-repeat: no-repeat;
   color: #173e4d;
   font-family: Inter, system-ui, sans-serif;
 }
@@ -206,6 +212,42 @@ html:has(.user-support-main) {
   background: #fff;
   box-shadow: 0 5px 17px rgba(36, 75, 83, 0.045);
 }
+.support-tickets-card {
+  width: 100%;
+  max-width: 1310px;
+  margin: 20px auto 0;
+  padding: 19px;
+  border: 1px solid #e5ece9;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 5px 17px rgba(36, 75, 83, 0.045);
+}
+.support-tickets-card header { margin-bottom: 14px; }
+.support-tickets-card h2 { color: #173e4d; font-size: 1rem; }
+.support-tickets-card header p { margin-top: 5px; color: #83a2aa; font-size: 0.7rem; }
+.support-ticket-row { display: flex; justify-content: space-between; gap: 18px; padding: 14px 0; border-top: 1px solid #edf3f0; }
+.support-ticket-row strong, .support-ticket-row small { display: block; }
+.support-ticket-row strong { color: #234c5a; font-size: 0.82rem; }
+.support-ticket-row small { margin-top: 4px; color: #78929b; font-size: 0.72rem; }
+.support-ticket-meta { display: flex; align-items: center; gap: 12px; flex-shrink: 0; color: #78929b; font-size: 0.7rem; }
+.support-ticket-status { padding: 4px 8px; border-radius: 999px; background: #e6f7f0; color: #188466; font-size: 0.68rem; text-transform: capitalize; }
+.support-ticket-status.pending { background: #fff4dc; color: #a16b12; }
+.support-ticket-status.resolved, .support-ticket-status.closed { background: #edf0f2; color: #65747b; }
+.support-ticket-empty { padding: 14px 0 2px; color: #78929b; font-size: 0.75rem; }
+.support-ticket-row { cursor: pointer; }
+.support-ticket-row:focus-visible { outline: 2px solid #6ba79c; outline-offset: -2px; }
+.support-conversation { margin-top: 14px; padding-top: 16px; border-top: 1px solid #e5ece9; }
+.support-conversation h3 { color: #173e4d; font-size: 0.9rem; }
+.support-message { width: fit-content; max-width: min(100%, 720px); margin-top: 10px; padding: 11px 13px; border-radius: 8px; background: #f4faf8; overflow-wrap: anywhere; }
+.support-message strong { color: #234c5a; font-size: 0.72rem; }
+.support-message p { margin-top: 6px; color: #46646e; font-size: 0.74rem; line-height: 1.45; }
+.support-message-attachment { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; color: #168d79; font-size: 0.7rem; overflow-wrap: anywhere; }
+.support-message-wrap > time { display: block; margin: 3px 0 0 13px; color: #78929b; font-size: 0.68rem; }
+.support-message-wrap--self { display: flex; flex-direction: column; align-items: flex-end; }
+.support-message-wrap--self > time { margin: 3px 13px 0 0; }
+.support-reply-form { display: flex; gap: 10px; margin-top: 14px; }
+.support-reply-form textarea { min-width: 0; flex: 1; padding: 9px 10px; border: 1px solid #dce9e4; border-radius: 7px; resize: vertical; font: inherit; font-size: 0.74rem; }
+.support-reply-form button { align-self: flex-end; padding: 9px 12px; border: 0; border-radius: 7px; background: #168d79; color: #fff; font-size: 0.72rem; font-weight: 700; cursor: pointer; }
 .support-faq-card header h2,
 .support-contact-card header h2 {
   color: #173e4d;

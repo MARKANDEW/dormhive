@@ -30,16 +30,22 @@ async function ensureMessageTable() {
     ticket_id INT NOT NULL,
     sender_id INT NOT NULL,
     body TEXT NOT NULL,
+    attachment_url VARCHAR(500) NULL,
+    attachment_name VARCHAR(255) NULL,
     is_internal TINYINT(1) NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_ticket_messages_ticket (ticket_id),
     INDEX idx_ticket_messages_sender (sender_id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+  const fields = await query('SHOW COLUMNS FROM support_ticket_messages');
+  const names = fields.map((field) => field.Field);
+  if (!names.includes('attachment_url')) await query('ALTER TABLE support_ticket_messages ADD COLUMN attachment_url VARCHAR(500) NULL');
+  if (!names.includes('attachment_name')) await query('ALTER TABLE support_ticket_messages ADD COLUMN attachment_name VARCHAR(255) NULL');
 }
 
 export async function listMessages(ticketId) {
   await ensureMessageTable();
-  return query(`SELECT m.id, m.ticket_id, m.sender_id, m.body, m.is_internal, m.created_at,
+  return query(`SELECT m.id, m.ticket_id, m.sender_id, m.body, m.attachment_url, m.attachment_name, m.is_internal, m.created_at,
     COALESCE(CONCAT_WS(' ', u.first_name, u.last_name), u.name) AS sender_name,
     u.email AS sender_email, u.role AS sender_role
     FROM support_ticket_messages m
@@ -47,13 +53,13 @@ export async function listMessages(ticketId) {
     WHERE m.ticket_id = ? ORDER BY m.created_at ASC, m.id ASC`, [ticketId]);
 }
 
-export async function addMessage(ticketId, senderId, body, isInternal = false) {
+export async function addMessage(ticketId, senderId, body, isInternal = false, attachmentUrl = null, attachmentName = null) {
   await ensureMessageTable();
   const result = await query(
-    'INSERT INTO support_ticket_messages (ticket_id, sender_id, body, is_internal) VALUES (?, ?, ?, ?)',
-    [ticketId, senderId, body, isInternal ? 1 : 0]
+    'INSERT INTO support_ticket_messages (ticket_id, sender_id, body, attachment_url, attachment_name, is_internal) VALUES (?, ?, ?, ?, ?, ?)',
+    [ticketId, senderId, body, attachmentUrl, attachmentName, isInternal ? 1 : 0]
   );
-  const rows = await query(`SELECT m.id, m.ticket_id, m.sender_id, m.body, m.is_internal, m.created_at,
+  const rows = await query(`SELECT m.id, m.ticket_id, m.sender_id, m.body, m.attachment_url, m.attachment_name, m.is_internal, m.created_at,
     COALESCE(CONCAT_WS(' ', u.first_name, u.last_name), u.name) AS sender_name,
     u.email AS sender_email, u.role AS sender_role
     FROM support_ticket_messages m JOIN users u ON u.id = m.sender_id WHERE m.id = ?`, [result.insertId]);

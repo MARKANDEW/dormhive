@@ -27,6 +27,7 @@
   overflow-y: hidden;
   scrollbar-width: none;
 }
+}
 .owner-shell > .owner-sidebar::-webkit-scrollbar {
   display: none;
 }
@@ -118,7 +119,7 @@
 .owner-support-notice {
   display: grid;
   gap: 5px;
-  margin: auto 0 0;
+  margin: auto 0 12px 0;
   padding: 14px 12px;
   border: 1px solid rgb(255 255 255 / 14%);
   border-radius: 12px;
@@ -149,7 +150,6 @@
 }
 
 .owner-shell .owner-sidebar .logout {
-  margin-top: auto;
   padding: 0.8rem;
   border: 1px solid #4f8476;
   border-radius: 0.7rem;
@@ -217,7 +217,6 @@
 }
 
 .owner-shell > .owner-sidebar .logout {
-  margin-top: auto !important;
   padding: 0.8rem !important;
   border: 1px solid #4f8476 !important;
   border-radius: 0.7rem !important;

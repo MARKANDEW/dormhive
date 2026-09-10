@@ -70,13 +70,17 @@ body {
 }
 .updated-now {
   color: #63828b;
-  font-size: 0.65rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 .updated-now i {
   display: inline-block;
   width: 7px;
   height: 7px;
-  margin-right: 6px;
   border-radius: 50%;
   background: #18b98b;
 }
@@ -95,11 +99,11 @@ body {
   box-shadow: 0 8px 24px rgba(34, 77, 85, 0.05);
 }
 .kpi-card {
-  min-height: 122px;
+  min-height: 90px;
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 18px;
+  padding: 14px;
   position: relative;
   overflow: hidden;
 }
