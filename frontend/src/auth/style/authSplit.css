@@ -11,7 +11,7 @@
 
 body {
   min-height: 100vh;
-  background: linear-gradient(90deg, #e2e2e2, #c9d6ff);
+  background: #faf4f4;
   margin: 0;
   padding: 0;
 }
@@ -20,7 +20,7 @@ body {
   position: relative;
   width: 100vw;
   height: 100vh;
-  background: #fff;
+  background: #faf4f4;
   margin: 0;
   border-radius: 0;
   box-shadow: none;
@@ -58,15 +58,63 @@ form {
     visibility 0s 1s;
 }
 
+.form-box.login {
+  padding: 0;
+  background: transparent;
+}
+
+.form-box.login form,
+.form-box.register form {
+  width: min(100%, 360px);
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  padding: 18px 18px 14px;
+  box-shadow: 0 14px 24px rgba(15, 23, 42, 0.05);
+  margin: 0 auto;
+}
+
+.form-box.register {
+  padding: 0;
+  background: transparent;
+}
+
+.form-inner {
+  width: 100%;
+  max-width: 310px;
+  margin: 0 auto;
+}
+
+.form-inner .input-box {
+  margin: 10px 0;
+}
+
+.form-inner h1 {
+  margin-bottom: 2px;
+}
+
+.form-inner p {
+  margin: 10px 0;
+}
+
+.form-inner .checkbox-label {
+  margin: 10px 0 14px;
+}
+
 .container.active .form-box {
   right: 50%;
 }
 
 .form-box.register {
   visibility: hidden;
+  opacity: 0;
+}
+.container.active .form-box.login {
+  visibility: hidden;
+  opacity: 0;
 }
 .container.active .form-box.register {
   visibility: visible;
+  opacity: 1;
 }
 
 .input-box {
@@ -358,9 +406,13 @@ form {
   text-decoration: none;
 }
 
+.container.active .auth-brand {
+  display: none;
+}
+
 .form-inner {
   width: 100%;
-  max-width: 360px;
+  max-width: 310px;
   margin: 0 auto;
 }
 
@@ -375,7 +427,7 @@ form {
 
 .form-inner .input-box {
   width: 100%;
-  margin: 14px 0;
+  margin: 10px 0;
 }
 .form-inner .btn {
   width: 100%;

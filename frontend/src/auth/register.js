@@ -70,7 +70,6 @@ export async function renderRegister(root = document.querySelector('#app')) {
             <div class="input-box"><input id="password_r" name="password" type="password" placeholder="Password" required minlength="8"><button class="password-toggle" type="button" aria-label="Show password" aria-pressed="false"><i class='bx bx-show' aria-hidden="true"></i></button></div>
             <div class="input-box"><input id="confirm_password" name="confirmPassword" type="password" placeholder="Confirm password" required minlength="8"><button class="password-toggle" type="button" aria-label="Show password" aria-pressed="false"><i class='bx bx-show' aria-hidden="true"></i></button></div>
             <label class="checkbox-label"><input name="terms" type="checkbox" required> I agree to the terms of service.</label>
-            ${oauthButtonsMarkup()}
             <button class="btn auth-submit" type="submit">Register</button>
           </div>
         </form>
