@@ -35,6 +35,26 @@
   display: block;
   flex: 1;
 }
+.search-location-marker,
+.nearby-search-marker {
+  width: 24px !important;
+  height: 24px !important;
+  margin: 0 !important;
+  border: 3px solid #fff;
+  border-radius: 50% 50% 50% 0;
+  background: #dc2626;
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.35);
+  transform: rotate(-45deg);
+}
+.search-location-marker span,
+.nearby-search-marker span {
+  display: block;
+  width: 6px;
+  height: 6px;
+  margin: 6px auto;
+  border-radius: 50%;
+  background: #fff;
+}
 .map-panel .map {
   position: relative;
   overflow: hidden;

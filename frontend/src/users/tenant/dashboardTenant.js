@@ -63,13 +63,6 @@ function loadStyle() {
     }));
   }
 
-  if (!document.querySelector('[data-tenant-style="dashboard-font"]')) {
-    const style = document.createElement('style');
-    style.dataset.tenantStyle = 'dashboard-font';
-    style.textContent = '.dh-dashboard{font-family:Inter,ui-sans-serif,system-ui,sans-serif}.dh-dashboard .intro small,.dh-dashboard .intro h1,.dh-dashboard .intro p{color:#000}';
-    document.head.append(style);
-  }
-
   if (!document.querySelector('[data-tenant-style="amenities"]')) {
     const aLink = document.createElement('link');
     aLink.rel = 'stylesheet';
@@ -802,7 +795,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
 
   const syncMapLocation = (items = []) => {
     if (!mapFrame) return;
-    if (root.__leafletMapManager) updateLeafletMarkers(root, items);
+    if (mapFrame.__leafletMapManager) updateLeafletMarkers(mapFrame, items);
 
     const nearButton = root.querySelector('.near');
     const focusItem = items.find((item) => item.municipality || item.barangay || item.address) ?? state.all[0];
@@ -1078,18 +1071,59 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
 
   applyButton.addEventListener('click', renderCards);
   search.addEventListener('input', renderCards);
+  const focusSearchedLocation = async () => {
+    const query = search.value.trim();
+    if (!query || !mapFrame?.__leafletMapManager) return;
+    if (mapStatus) mapStatus.textContent = `Finding ${query}...`;
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`, {
+        headers: { Accept: 'application/json' }
+      });
+      if (!response.ok) throw new Error('Location search failed.');
+      const results = await response.json();
+      const result = results[0];
+      if (!result) {
+        if (mapStatus) mapStatus.textContent = `No map location found for ${query}.`;
+        return;
+      }
+      mapFrame.__leafletMapManager.setSearchLocation({
+        latitude: Number(result.lat),
+        longitude: Number(result.lon),
+        label: result.display_name || query
+      });
+      if (mapStatus) mapStatus.textContent = `Red pin shows ${result.display_name || query}.`;
+    } catch (error) {
+      if (mapStatus) mapStatus.textContent = error.message;
+    }
+  };
+  let searchTimer;
+  search.addEventListener('input', () => {
+    renderCards();
+    clearTimeout(searchTimer);
+    if (search.value.trim()) searchTimer = setTimeout(focusSearchedLocation, 600);
+  });
   search.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter') return;
     event.preventDefault();
     renderCards();
+    focusSearchedLocation();
   });
 
   // Add event listener for View nearby listings button
+  const getNearbySearchResults = () => {
+    const query = search.value.trim().toLowerCase();
+    if (!query) return state.visible;
+    return state.all.filter((item) => [item.municipality, item.city, item.barangay, item.address]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+      .includes(query));
+  };
   const nearButton = root.querySelector('.near');
   if (nearButton) {
     nearButton.addEventListener('click', async () => {
       try {
-        await showNearbyListingsModal(state.visible);
+        await showNearbyListingsModal(getNearbySearchResults());
       } catch (error) {
         console.error('Nearby listings modal error:', error);
         alert('Could not open nearby listings map.');
@@ -1102,7 +1136,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
   if (mapPanelButton) {
     mapPanelButton.addEventListener('click', async () => {
       try {
-        await showNearbyListingsModal(state.visible);
+        await showNearbyListingsModal(getNearbySearchResults());
       } catch (error) {
         console.error('Nearby listings modal error:', error);
         alert('Could not open nearby listings map.');

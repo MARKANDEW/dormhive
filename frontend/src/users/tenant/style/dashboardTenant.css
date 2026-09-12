@@ -587,21 +587,20 @@ legend {
   margin-bottom: 16px;
 }
 .cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  grid-auto-flow: row;
+  display: flex;
   align-items: stretch;
-  justify-content: start;
   gap: 14px;
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: hidden;
   padding-bottom: 7px;
+  scroll-snap-type: x proximity;
 }
 .listing {
   display: flex;
   flex-direction: column;
-  width: 100%;
-  max-width: none;
-  min-width: 0;
+  flex: 0 0 220px;
+  width: 220px;
+  min-width: 220px;
   height: 390px;
   overflow: hidden;
   border: 1px solid #e3eae7;
