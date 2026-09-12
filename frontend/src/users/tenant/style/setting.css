@@ -120,13 +120,14 @@ input {
 }
 
 .tenant-settings .tab:hover {
-  background: #e9e3d5;
+  background: #e9f7ef;
+  color: #1aa87a;
 }
 
 .tenant-settings .tab.active {
-  background: #d9b472;
-  color: #1d1d1d;
-  box-shadow: inset 0 0 0 1px rgba(118, 86, 13, 0.12);
+  background: #1aa87a;
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(20, 123, 93, 0.2);
 }
 
 .avatar-panel {
@@ -290,7 +291,7 @@ input {
   padding: 0.9rem 1.4rem;
   border: 0;
   border-radius: 12px;
-  background: #d39a2d;
+  background: #1aa87a;
   color: #fff;
   font-weight: 800;
   cursor: pointer;
@@ -298,7 +299,7 @@ input {
 }
 
 .save-btn:hover {
-  background: #c48a1f;
+  background: #147b5d;
 }
 
 .notice {

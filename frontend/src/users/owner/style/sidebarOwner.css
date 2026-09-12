@@ -1,8 +1,8 @@
 .owner-shell {
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
+  grid-template-columns: 248px minmax(0, 1fr);
   min-height: 100vh;
-  background: linear-gradient(180deg, #fff8e8 0%, #fff3d3 100%);
+  background: #edf3f7;
   width: 100%;
   font-family:
     Inter,
@@ -12,21 +12,58 @@
     "Segoe UI",
     sans-serif;
 }
-
 .owner-shell > .owner-sidebar {
   position: sticky;
   top: 0;
+  align-self: start;
   height: 100vh;
-  padding: 1.3rem 1rem;
-  background: #645403;
-  color: #f7dfaf;
+  padding: 1.25rem 0.9rem 1rem;
+  background: linear-gradient(180deg, #faf9f6 0%, #f3f5f5 48%, #e9eef2 100%);
+  color: #17344f;
+  border-right: 1px solid #dfeaf1;
+  font-size: 13px;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.28rem;
   box-sizing: border-box;
-  overflow-y: hidden;
-  scrollbar-width: none;
+  overflow: hidden;
+  box-shadow:
+    inset -10px 0 18px -18px rgba(22, 48, 71, 0.28),
+    8px 0 24px rgba(22, 48, 71, 0.035);
 }
+
+.owner-shell > .owner-sidebar::before,
+.owner-shell > .owner-sidebar::after {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  content: "";
+  border-radius: 48% 52% 44% 56%;
+  filter: blur(18px);
+  opacity: 0.28;
+}
+
+.owner-shell > .owner-sidebar::before {
+  top: -90px;
+  left: -70px;
+  width: 210px;
+  height: 310px;
+  background: radial-gradient(ellipse, rgba(232, 219, 195, 0.42) 0%, rgba(232, 219, 195, 0) 72%);
+  transform: rotate(-18deg);
+}
+
+.owner-shell > .owner-sidebar::after {
+  right: -90px;
+  bottom: -110px;
+  width: 240px;
+  height: 330px;
+  background: radial-gradient(ellipse, rgba(190, 209, 218, 0.34) 0%, rgba(190, 209, 218, 0) 72%);
+  transform: rotate(24deg);
+}
+
+.owner-shell > .owner-sidebar > * {
+  position: relative;
+  z-index: 1;
 }
 .owner-shell > .owner-sidebar::-webkit-scrollbar {
   display: none;
@@ -35,27 +72,27 @@
 .owner-shell .owner-brand {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin: 0 10px 16px;
-  color: #fff;
+  gap: 12px;
+  margin: 0 10px 1.1rem;
+  color: #17344f;
   text-decoration: none;
 }
 
 .owner-shell .owner-brand-mark {
   display: grid;
-  width: 51px;
-  height: 51px;
+  width: 44px;
+  height: 44px;
   place-items: center;
   border: 0;
-  border-radius: 16px;
-  background: #daa520;
+  border-radius: 13px;
+  background: #1aa87a;
   color: #fff;
-  box-shadow: 0 5px 9px rgb(218 165 32 / 24%);
+  box-shadow: 0 7px 14px rgba(26, 168, 122, 0.2);
 }
 
 .owner-shell .owner-brand-icon {
-  width: 25px;
-  height: 25px;
+  width: 22px;
+  height: 22px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.8;
@@ -75,31 +112,33 @@
 
 .owner-shell .owner-brand small {
   display: block;
-  margin-top: 5px;
-  color: #e8dfb8;
-  font-size: 14px;
+  margin-top: 4px;
+  color: #71869b;
+  font-size: 11px;
+  letter-spacing: 0.02em;
 }
 
 .owner-shell .owner-sidebar-rule {
-  height: 1px;
-  margin: 0 10px 8px;
-  background: rgb(255 255 255 / 24%);
+  display: none;
 }
 
 .owner-shell .owner-sidebar .nav-item {
   display: flex;
   align-items: center;
-  gap: 0.8rem;
-  padding: 0.8rem 0.85rem;
-  border-radius: 0.8rem;
-  color: #f7dfaf;
+  gap: 0.7rem;
+  min-height: 46px;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.7rem;
+  color: #5f7488;
+  font-weight: 600;
   text-decoration: none;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .owner-shell .owner-sidebar .nav-item:hover,
 .owner-shell .owner-sidebar .nav-item.active {
-  background: #8a5f1b;
+  background: #e9f7ef;
+  color: #147b5d;
 }
 
 .owner-shell .owner-sidebar .nav-copy {
@@ -109,57 +148,78 @@
 }
 
 .owner-shell .owner-sidebar .nav-copy strong {
-  font-size: 0.96rem;
+  font-size: 13px;
 }
 
 .owner-shell .owner-sidebar .nav-copy small {
-  font-size: 0.72rem;
-  opacity: 0.78;
+  margin-top: 2px;
+  color: #71869b;
+  font-size: 11px;
+  opacity: 1;
 }
 .owner-support-notice {
   display: grid;
   gap: 5px;
-  margin: auto 0 12px 0;
-  padding: 14px 12px;
-  border: 1px solid rgb(255 255 255 / 14%);
-  border-radius: 12px;
-  background: rgb(8 104 88 / 42%);
+  margin: auto 0 10px;
+  padding: 10px 12px;
+  border: 1px solid #dfeaf1;
+  border-radius: 0.7rem;
+  background: #f8fbfc;
 }
 .owner-support-notice strong {
-  color: #fff;
-  font-size: 13px;
+  color: #17344f;
+  font-size: 12px;
 }
 .owner-support-notice span {
-  color: #c5ddd5;
-  font-size: 11px;
+  color: #71869b;
+  font-size: 10px;
 }
 .owner-support-notice a {
-  color: #daa520;
-  font-size: 12px;
+  color: #147b5d;
+  font-size: 11px;
   font-weight: 700;
   text-decoration: none;
 }
 .owner-support-notice a:hover {
-  color: #f0c34e;
+  color: #24516f;
 }
 
 .owner-shell .owner-sidebar .nav-icon {
-  width: 1.5rem;
+  width: 1.95rem;
+  height: 1.95rem;
+  display: grid;
+  place-items: center;
+  border-radius: 0.62rem;
+  background: #f1f6f8;
+  color: #6b8396;
   text-align: center;
-  font-size: 1.05rem;
+  font-size: 1rem;
+  line-height: 1;
+}
+.owner-shell .owner-sidebar .nav-item:hover .nav-icon,
+.owner-shell .owner-sidebar .nav-item.active .nav-icon {
+  background: #c9f0e2;
+  color: #147b5d;
 }
 
 .owner-shell .owner-sidebar .logout {
-  padding: 0.8rem;
-  border: 1px solid #4f8476;
+  margin-top: auto;
+  border: 0;
   border-radius: 0.7rem;
-  background: transparent;
+  padding: 0.65rem 0.75rem;
+  background: #17344f;
   color: #fff;
   cursor: pointer;
   font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  transition: background-color 0.2s ease;
+}
+.owner-shell .owner-sidebar .logout:hover {
+  background: #24516f;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 980px) {
   .owner-shell {
     grid-template-columns: 1fr;
   }
@@ -168,7 +228,7 @@
     position: fixed;
     left: 0;
     top: 0;
-    width: 240px;
+    width: 248px;
     transform: translateX(-105%);
     transition: 0.2s;
     z-index: 5;
@@ -187,14 +247,18 @@
   position: sticky !important;
   top: 0 !important;
   height: 100vh !important;
-  padding: 1.3rem 1rem !important;
-  background: #645403 !important;
-  color: #f7dfaf !important;
+  padding: 1.25rem 0.9rem 1rem !important;
+  background: linear-gradient(180deg, #faf9f6 0%, #f3f5f5 48%, #e9eef2 100%) !important;
+  color: #17344f !important;
+  border-right: 1px solid #dfeaf1 !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 0.35rem !important;
+  gap: 0.28rem !important;
   box-sizing: border-box !important;
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  box-shadow:
+    inset -10px 0 18px -18px rgba(22, 48, 71, 0.28),
+    8px 0 24px rgba(22, 48, 71, 0.035) !important;
 }
 
 .owner-shell > .owner-sidebar * {
@@ -204,65 +268,68 @@
 .owner-shell > .owner-sidebar .nav-item {
   display: flex !important;
   align-items: center !important;
-  gap: 0.8rem !important;
-  padding: 0.8rem 0.85rem !important;
-  border-radius: 0.8rem !important;
-  color: #f7dfaf !important;
+  gap: 0.7rem !important;
+  min-height: 46px !important;
+  padding: 0.55rem 0.65rem !important;
+  border-radius: 0.7rem !important;
+  color: #5f7488 !important;
   text-decoration: none !important;
 }
 
 .owner-shell > .owner-sidebar .nav-item:hover,
 .owner-shell > .owner-sidebar .nav-item.active {
-  background: #8a5f1b !important;
+  background: #e9f7ef !important;
+  color: #147b5d !important;
 }
 
 .owner-shell > .owner-sidebar .logout {
-  padding: 0.8rem !important;
-  border: 1px solid #4f8476 !important;
+  margin-top: auto !important;
+  padding: 0.65rem 0.75rem !important;
+  border: 0 !important;
   border-radius: 0.7rem !important;
-  background: transparent !important;
+  background: #17344f !important;
   color: #fff !important;
   cursor: pointer !important;
 }
 
-@media (max-height: 700px) and (min-width: 861px) {
+@media (max-height: 700px) and (min-width: 981px) {
   .owner-shell > .owner-sidebar {
-    padding-top: 12px !important;
-    padding-bottom: 12px !important;
-    gap: 2px !important;
+    gap: 0.2rem !important;
+    padding: 0.65rem 0.8rem 0.75rem !important;
   }
   .owner-shell .owner-brand {
-    margin-bottom: 4px;
+    gap: 10px;
+    margin: 0 6px 8px;
   }
   .owner-shell .owner-brand-mark {
-    width: 38px;
-    height: 38px;
-    border-radius: 11px;
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
   }
   .owner-shell .owner-brand-icon {
-    width: 19px;
-    height: 19px;
+    width: 22px;
+    height: 22px;
   }
   .owner-shell .owner-brand strong {
     font-size: 18px;
   }
   .owner-shell .owner-brand small {
     margin-top: 2px;
-    font-size: 12px;
-  }
-  .owner-shell .owner-sidebar-rule {
-    margin-bottom: 3px;
+    font-size: 11px;
   }
   .owner-shell > .owner-sidebar .nav-item {
-    padding-top: 4px !important;
-    padding-bottom: 4px !important;
+    gap: 0.55rem !important;
+    padding: 0.52rem 0.65rem !important;
+  }
+  .owner-shell .owner-sidebar .nav-icon {
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: 0.65rem;
   }
   .owner-support-notice {
-    padding-top: 7px;
-    padding-bottom: 7px;
+    padding: 0.6rem 0.7rem;
   }
   .owner-shell > .owner-sidebar .logout {
-    padding-top: 4px !important;
-    padding-bottom: 4px !important;
+    padding: 0.6rem 0.7rem !important;
   }
 }

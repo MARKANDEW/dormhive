@@ -158,6 +158,7 @@ const openPropertyDetails = (property) => {
     ? property.amenities.join(', ')
     : String(property.amenities ?? '').replace(/[\[\]"']/g, '').replace(/,/g, ', ');
   const modal = createModal({ title: property.title || 'Property Details', content: '', closeLabel: 'Close' });
+  modal.classList.add('tenant-message-modal');
   modal.querySelector('.ui-modal__body').innerHTML = `
     <div class="message-property-details">
       ${image ? `<img class="message-property-image" src="${escape(image)}" alt="${escape(property.title || 'Property')} photo" />` : ''}
@@ -186,6 +187,7 @@ const openParticipantProfile = (conversation, property) => {
   if (!conversation) return;
   const name = conversation.participant_name || 'Conversation participant';
   const modal = createModal({ title: name, content: '', closeLabel: 'Close' });
+  modal.classList.add('tenant-message-modal');
   modal.querySelector('.ui-modal__body').innerHTML = `
     <div class="message-participant-profile">
       <div class="message-participant-avatar">${participantAvatar(conversation)}</div>

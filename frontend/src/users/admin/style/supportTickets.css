@@ -48,9 +48,9 @@ body {
 .create-ticket {
   margin-top: 0;
   padding: 10px 14px;
-  border: 1px solid #d69a18;
+  border: 1px solid #147b5d;
   border-radius: 9px;
-  background: #d79a19;
+  background: #1aa87a;
   color: #fff;
   font: inherit;
   font-size: 0.7rem;
@@ -216,8 +216,8 @@ body {
   font-size: 0.6rem;
 }
 .support-tabs button.active {
-  border-color: #d79a19;
-  background: #d79a19;
+  border-color: #1aa87a;
+  background: #1aa87a;
   color: #fff;
 }
 .support-tabs button.active strong {
@@ -591,7 +591,7 @@ body {
   margin-left: auto;
   padding: 8px 10px;
   border-radius: 7px;
-  background: #d79a19;
+  background: #1aa87a;
   color: #fff;
   font-weight: 800;
 }

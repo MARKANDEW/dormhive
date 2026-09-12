@@ -206,6 +206,7 @@ export function renderMessage(root = document.querySelector('#app')) {
       <button type="button" class="property-context-link" data-owner-property>View Property</button>`;
     propertyContext.querySelector('[data-owner-property]')?.addEventListener('click', () => {
       const modal = createModal({ title: property.title || 'Property Details', content: '', closeLabel: 'Close' });
+      modal.classList.add('owner-message-modal');
       const location = [property.address, property.barangay, property.municipality, property.city].filter(Boolean).join(', ') || 'Not specified';
       modal.querySelector('.ui-modal__body').innerHTML = `<div class="owner-property-details"><h3>${esc(property.title || 'Property')}</h3><p><strong>Location:</strong> ${esc(location)}</p><p><strong>Room type:</strong> ${esc(property.room_type || 'Not specified')}</p><p><strong>Monthly rent:</strong> ${property.monthly_rent ? `PHP ${Number(property.monthly_rent).toLocaleString('en-PH')}` : 'Not specified'}</p><p><strong>Description:</strong> ${esc(property.description || 'No description provided.')}</p></div>`;
       openModal(modal);
@@ -373,6 +374,7 @@ export function renderMessage(root = document.querySelector('#app')) {
   profileButton?.addEventListener('click', () => {
     if (!state.selected) return;
     const modal = createModal({ title: state.selected.participant_name || 'Tenant profile', content: '', closeLabel: 'Close' });
+    modal.classList.add('owner-message-modal');
     modal.querySelector('.ui-modal__body').innerHTML = `
       <div class="owner-tenant-profile">
         <div class="tenant-avatar-section">

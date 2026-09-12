@@ -1,7 +1,7 @@
 .dh-app {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
+  grid-template-columns: 248px minmax(0, 1fr);
   width: 100%;
   background: #f7f9f8;
 }
@@ -20,29 +20,68 @@
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  padding: 20px 16px 24px;
-  background: #645403;
-  color: #f8f5e9;
+  padding: 1.25rem 0.9rem 1rem;
+  background: linear-gradient(180deg, #faf9f6 0%, #f3f5f5 48%, #e9eef2 100%);
+  color: #17344f;
+  border-right: 1px solid #d5dee4;
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   font-size: 12px;
+  overflow: hidden;
+  box-shadow:
+    inset -10px 0 18px -18px rgba(22, 48, 71, 0.28),
+    8px 0 24px rgba(22, 48, 71, 0.035);
+}
+
+.dh-sidebar::before,
+.dh-sidebar::after {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  content: "";
+  border-radius: 48% 52% 44% 56%;
+  filter: blur(18px);
+  opacity: 0.28;
+}
+
+.dh-sidebar::before {
+  top: -90px;
+  left: -70px;
+  width: 210px;
+  height: 310px;
+  background: radial-gradient(ellipse, rgba(232, 219, 195, 0.42) 0%, rgba(232, 219, 195, 0) 72%);
+  transform: rotate(-18deg);
+}
+
+.dh-sidebar::after {
+  right: -90px;
+  bottom: -110px;
+  width: 240px;
+  height: 330px;
+  background: radial-gradient(ellipse, rgba(190, 209, 218, 0.34) 0%, rgba(190, 209, 218, 0) 72%);
+  transform: rotate(24deg);
+}
+
+.dh-sidebar > * {
+  position: relative;
+  z-index: 1;
 }
 .dh-logo {
   display: flex;
   gap: 12px;
   align-items: center;
-  margin: 0 8px 14px;
-  color: #fff;
+  margin: 0 10px 1.1rem;
+  color: #17344f;
   text-decoration: none;
 }
 .dh-logo b {
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  background: #daa520;
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  background: #1aa87a;
   color: #fff;
-  box-shadow: 0 5px 9px rgb(218 165 32 / 24%);
+  box-shadow: 0 7px 14px rgba(26, 168, 122, 0.2);
 }
 .dh-logo b .icon {
   width: 20px;
@@ -57,54 +96,64 @@
   line-height: 1.1;
 }
 .dh-logo small {
-  margin-top: 3px;
-  color: #e8dfb8;
-  font-size: 12px;
+  margin-top: 4px;
+  color: #71869b;
+  font-size: 11px;
+  letter-spacing: 0.02em;
 }
 .dh-sidebar-rule {
-  height: 1px;
-  margin: 0 8px 8px;
-  background: rgb(255 255 255 / 24%);
+  height: 0;
+  margin: 0;
+  background: transparent;
 }
 .dh-sidebar nav {
   display: grid;
-  gap: 6px;
+  gap: 0.28rem;
 }
 .dh-sidebar nav a {
   display: flex;
-  gap: 12px;
+  gap: 0.7rem;
   align-items: center;
-  min-height: 48px;
-  padding: 0 14px;
-  border-radius: 12px;
-  color: #f8f5e9;
-  font-size: 12px;
-  font-weight: 500;
+  min-height: 46px;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.7rem;
+  color: #5f7488;
+  font-size: 13px;
+  font-weight: 600;
   text-decoration: none;
 }
 .dh-sidebar nav a:hover,
 .dh-sidebar nav .active {
-  background: rgb(255 255 255 / 14%);
-  color: #daa520;
+  background: #eafaf4;
+  color: #147b5d;
 }
 .dh-sidebar .icon {
-  width: 20px;
-  height: 20px;
-  flex: 0 0 20px;
+  width: 1.95rem;
+  height: 1.95rem;
+  flex: 0 0 1.95rem;
+  padding: 0.45rem;
+  border-radius: 0.62rem;
+  background: #f1f6f8;
+  color: #6b8396;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+.dh-sidebar nav a:hover .icon,
+.dh-sidebar nav .active .icon {
+  background: #c9f0e2;
+  color: #147b5d;
+}
 .dh-sidebar nav em {
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: 1.35rem;
+  height: 1.35rem;
   margin-left: auto;
   border-radius: 50%;
-  background: #daa520;
+  background: #1aa87a;
   color: #fff;
   font-size: 13px;
   font-style: normal;
@@ -112,34 +161,34 @@
 }
 .dh-sidebar-footer {
   margin-top: auto;
-  padding-top: 12px;
-  border-top: 1px solid rgb(255 255 255 / 24%);
+  padding-top: 10px;
+  border-top: 0;
 }
 .dh-support-notice {
   display: grid;
   gap: 5px;
-  margin: 0 0 12px;
-  padding: 14px 12px;
-  border: 1px solid rgb(255 255 255 / 14%);
-  border-radius: 12px;
-  background: rgb(8 104 88 / 42%);
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border: 1px solid #dfeaf1;
+  border-radius: 0.7rem;
+  background: #f8fbfc;
 }
 .dh-support-notice strong {
-  color: #fff;
-  font-size: 13px;
+  color: #17344f;
+  font-size: 12px;
 }
 .dh-support-notice span {
-  color: #c5ddd5;
-  font-size: 11px;
+  color: #71869b;
+  font-size: 10px;
 }
 .dh-support-notice a {
-  color: #daa520;
-  font-size: 12px;
+  color: #147b5d;
+  font-size: 11px;
   font-weight: 700;
   text-decoration: none;
 }
 .dh-support-notice a:hover {
-  color: #f0c34e;
+  color: #24516f;
 }
 .dh-sidebar .logout {
   display: flex;
@@ -147,13 +196,13 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 46px;
-  margin-top: 12px;
+  min-height: 42px;
+  margin-top: 10px;
   padding: 0 14px;
-  border: 1px solid rgb(255 255 255 / 10%);
-  border-radius: 8px;
-  background: transparent !important;
-  color: #f8f5e9;
+  border: 0;
+  border-radius: 0.7rem;
+  background: #17344f !important;
+  color: #fff;
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   font-size: 12px;
   font-weight: 500;
@@ -169,7 +218,8 @@
   color: inherit;
 }
 .dh-sidebar .logout:hover {
-  color: #daa520;
+  background: #24516f !important;
+  color: #fff;
 }
 
 @media (max-width: 900px) {
@@ -182,7 +232,7 @@
   }
   .dh-sidebar {
     position: fixed;
-    width: 300px;
+    width: 248px;
     transform: translateX(-103%);
     transition: 0.2s;
   }

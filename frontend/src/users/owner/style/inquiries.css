@@ -51,7 +51,7 @@ textarea {
 
 .page-kicker {
   margin: 0 0 8px;
-  color: var(--dormhive-gold);
+  color: #0d8c75;
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.09em;
@@ -145,8 +145,8 @@ textarea {
 }
 
 .pill.active {
-  background: var(--dormhive-gold);
-  border-color: var(--dormhive-gold);
+  background: #1aa87a;
+  border-color: #1aa87a;
   color: #fff;
 }
 

@@ -95,7 +95,7 @@ body {
 }
 
 .eyebrow {
-  color: #f28c28;
+  color: #0d8c75;
   font-size: 0.76rem;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -135,6 +135,12 @@ body {
   -moz-appearance: none;
 }
 
+.property-filter select:focus {
+  outline: none;
+  border-color: #1aa87a;
+  box-shadow: 0 0 0 3px rgba(26, 168, 122, 0.14);
+}
+
 .property-filter select option {
   background: #fff;
   color: #17332e;
@@ -151,7 +157,7 @@ body {
   padding: 0.9rem 1.15rem;
   border: 0;
   border-radius: 9px;
-  background: #f28c28;
+  background: #1aa87a;
   color: #fff;
   font-weight: 800;
   cursor: pointer;
@@ -236,15 +242,15 @@ body {
 }
 
 .step-marker.active .step-number {
-  background: #c79f2f;
+  background: #1aa87a;
   color: #fff;
-  border-color: #c79f2f;
+  border-color: #1aa87a;
 }
 
 .step-marker.completed .step-number {
   background: #d4e6dd;
-  color: #c79f2f;
-  border-color: #c79f2f;
+  color: #147b5d;
+  border-color: #1aa87a;
 }
 
 .step-marker .step-label {
@@ -256,11 +262,11 @@ body {
 }
 
 .step-marker.active .step-label {
-  color: #c79f2f;
+  color: #147b5d;
 }
 
 .step-marker.completed .step-label {
-  color: #c79f2f;
+  color: #147b5d;
 }
 
 .step-connector {
@@ -272,7 +278,7 @@ body {
 }
 
 .step-marker.completed ~ .step-connector {
-  background: #c79f2f;
+  background: #1aa87a;
 }
 
 /* Form Step Styles */
@@ -749,7 +755,7 @@ body {
 
 .btn-primary {
   border: 0;
-  background: #c79f2f;
+  background: #1aa87a;
   color: #fff;
 }
 

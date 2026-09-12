@@ -65,17 +65,18 @@ html:has(.user-support-main) {
   gap: 7px;
   margin-top: 5px;
   padding: 9px 12px;
-  border: 1px solid #dce6e2;
+  border: 1px solid #1aa87a;
   border-radius: 8px;
   background: #fff;
-  color: #52707a;
+  color: #0a6a4f;
   font-size: 0.7rem;
   font-weight: 700;
   text-decoration: none;
 }
 .support-dashboard-link:hover {
-  border-color: #d79a19;
-  color: #b47708;
+  border-color: #147b5d;
+  color: #147b5d;
+  background: #e9f7ef;
 }
 .user-support-kicker {
   display: inline-flex;
@@ -134,13 +135,13 @@ html:has(.user-support-main) {
 }
 .support-contact {
   padding: 11px 17px;
-  border: 1px solid #d99b13;
+  border: 1px solid #1aa87a;
   border-radius: 8px;
-  background: #d99b13;
+  background: #1aa87a;
   color: #fff;
   font-size: 0.73rem;
   font-weight: 800;
-  box-shadow: 0 4px 10px rgba(217, 155, 19, 0.18);
+  box-shadow: 0 4px 10px rgba(26, 168, 122, 0.18);
 }
 .support-illustration {
   position: relative;
@@ -414,9 +415,9 @@ html:has(.user-support-main) {
 }
 .support-submit {
   padding: 10px 13px;
-  border: 1px solid #d99b13;
+  border: 1px solid #1aa87a;
   border-radius: 7px;
-  background: #d99b13;
+  background: #1aa87a;
   color: #fff;
   font-size: 0.7rem;
   font-weight: 800;

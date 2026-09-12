@@ -247,8 +247,8 @@ body {
 }
 .messages-page .conversation-item:hover,
 .messages-page .conversation-item.active {
-  background: #f9f2e0;
-  border-color: #e3d2a0;
+  background: #e9f7ef;
+  border-color: #c9f0e2;
 }
 .messages-page .conversation-item.is-unread {
   background: #fffaf0;
@@ -549,11 +549,14 @@ body {
   padding: 0.65rem 0.9rem;
   border: 0;
   border-radius: 9px;
-  background: #c69b2e;
+  background: #1aa87a;
   color: #fff;
   font: inherit;
   font-weight: 800;
   cursor: pointer;
+}
+.tenant-message-modal .ui-modal__footer button {
+  background: #1aa87a;
 }
 .messages-page .message-list {
   flex: 1;
@@ -577,9 +580,9 @@ body {
 .messages-page .message.is-mine {
   align-self: flex-end;
   border-radius: 16px 16px 6px 16px;
-  background: #b48628;
+  background: #1aa87a;
   color: #fff;
-  border-color: #b48628;
+  border-color: #1aa87a;
 }
 .messages-page .bubble-body {
   color: inherit;
@@ -744,7 +747,7 @@ body {
   height: 48px;
   border: 0;
   border-radius: 12px;
-  background: #c69b2e;
+  background: #1aa87a;
   color: #fff;
   font-weight: 800;
   cursor: pointer;

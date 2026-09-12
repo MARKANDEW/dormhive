@@ -93,14 +93,14 @@ body {
 }
 
 .tab:hover {
-  color: #daa520;
-  background: rgba(218, 165, 32, 0.05);
+  color: #1aa87a;
+  background: rgba(26, 168, 122, 0.08);
 }
 
 .tab.active {
-  background: linear-gradient(135deg, #daa520 0%, #b8860b 100%);
+  background: linear-gradient(135deg, #1aa87a 0%, #147b5d 100%);
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(218, 165, 32, 0.25);
+  box-shadow: 0 4px 12px rgba(26, 168, 122, 0.25);
 }
 
 .pill {

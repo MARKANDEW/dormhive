@@ -1,8 +1,8 @@
 ﻿.admin-shell {
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
+  grid-template-columns: 248px minmax(0, 1fr);
   min-height: 100vh;
-  background: linear-gradient(180deg, #f7faf9 0%, #fff3d3 100%);
+  background: #edf3f7;
   width: 100%;
 }
 
@@ -11,41 +11,78 @@
   top: 0;
   align-self: start;
   height: 100vh;
-  padding: 1rem 1rem 1.2rem;
-  background: #645403;
-  color: #effaf6;
-  font-size: 12px;
+  padding: 1.25rem 0.9rem 1rem;
+  background: linear-gradient(180deg, #faf9f6 0%, #f3f5f5 48%, #e9eef2 100%);
+  color: #17344f;
+  border-right: 1px solid #d5dee4;
+  font-size: 13px;
   display: flex;
   flex-direction: column;
-  gap: 0.38rem;
+  gap: 0.28rem;
   overflow: hidden;
-  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.05);
+  box-shadow:
+    inset -10px 0 18px -18px rgba(22, 48, 71, 0.28),
+    8px 0 24px rgba(22, 48, 71, 0.035);
   box-sizing: border-box;
+}
+
+.admin-shell > .admin-nav::before,
+.admin-shell > .admin-nav::after {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  content: "";
+  border-radius: 48% 52% 44% 56%;
+  filter: blur(18px);
+  opacity: 0.28;
+}
+
+.admin-shell > .admin-nav::before {
+  top: -90px;
+  left: -70px;
+  width: 210px;
+  height: 310px;
+  background: radial-gradient(ellipse, rgba(232, 219, 195, 0.42) 0%, rgba(232, 219, 195, 0) 72%);
+  transform: rotate(-18deg);
+}
+
+.admin-shell > .admin-nav::after {
+  right: -90px;
+  bottom: -110px;
+  width: 240px;
+  height: 330px;
+  background: radial-gradient(ellipse, rgba(190, 209, 218, 0.34) 0%, rgba(190, 209, 218, 0) 72%);
+  transform: rotate(24deg);
+}
+
+.admin-shell > .admin-nav > * {
+  position: relative;
+  z-index: 1;
 }
 
 .admin-shell > .admin-nav .admin-logo {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin: 0 10px 16px;
-  color: #fff;
+  gap: 12px;
+  margin: 0 10px 1.1rem;
+  color: #17344f;
   text-decoration: none;
 }
 
 .admin-shell > .admin-nav .admin-logo-mark {
   display: grid;
-  width: 51px;
-  height: 51px;
+  width: 44px;
+  height: 44px;
   place-items: center;
-  border-radius: 16px;
-  background: #daa520;
+  border-radius: 13px;
+  background: #1aa87a;
   color: #fff;
-  box-shadow: 0 5px 9px rgb(218 165 32 / 24%);
+  box-shadow: 0 7px 14px rgba(26, 168, 122, 0.2);
 }
 
 .admin-shell > .admin-nav .admin-logo-icon {
-  width: 25px;
-  height: 25px;
+  width: 22px;
+  height: 22px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.8;
@@ -63,79 +100,92 @@
 }
 
 .admin-shell > .admin-nav .admin-logo strong {
-  font-size: 21px;
+  font-size: 18px;
   line-height: 1.1;
 }
 
 .admin-shell > .admin-nav .admin-logo small {
-  margin-top: 5px;
-  color: #e8dfb8;
-  font-size: 14px;
+  margin-top: 4px;
+  color: #71869b;
+  font-size: 11px;
+  letter-spacing: 0.02em;
 }
 
 .admin-shell > .admin-nav .nav-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.78rem 0.85rem;
-  border-radius: 0.8rem;
-  color: #e6f6ef;
+  gap: 0.7rem;
+  min-height: 46px;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.7rem;
+  color: #5f7488;
   text-decoration: none;
-  transition: background-color 0.2s ease;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .admin-shell > .admin-nav .nav-item:hover,
 .admin-shell > .admin-nav .nav-item.active {
-  background: #8d5f1d;
-  color: #fff;
+  background: #eafaf4;
+  color: #147b5d;
 }
 
 .admin-shell > .admin-nav .nav-item .nav-icon {
-  width: 2.2rem;
-  height: 2.2rem;
+  width: 1.95rem;
+  height: 1.95rem;
   display: grid;
   place-items: center;
-  border-radius: 0.8rem;
-  background: rgba(255, 255, 255, 0.16);
-  color: #fff;
+  border-radius: 0.62rem;
+  background: #f1f6f8;
+  color: #6b8396;
   font-size: 1rem;
   line-height: 1;
 }
 .admin-shell > .admin-nav .nav-item .nav-icon i {
-  color: #fff;
+  color: inherit;
 }
 
 .admin-shell > .admin-nav .nav-item:hover .nav-icon,
 .admin-shell > .admin-nav .nav-item.active .nav-icon {
-  background: rgba(255, 255, 255, 0.28);
+  background: #c9f0e2;
+  color: #147b5d;
 }
 
 .admin-shell > .admin-nav .privacy-toggle {
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 0.8rem;
-  padding: 0.8rem 0.9rem;
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  border: 1px solid #dfeaf1;
+  border-radius: 0.7rem;
+  padding: 0.65rem 0.75rem;
+  background: #f8fbfc;
+  color: #5f7488;
   cursor: pointer;
   font: inherit;
+  font-size: 12px;
+  font-weight: 700;
   text-align: left;
 }
 
 .admin-shell > .admin-nav .privacy-toggle.active {
-  background: #d8b457;
-  color: #1a1a1a;
+  background: #fff2e7;
+  color: #b56724;
   border-color: transparent;
 }
 
 .admin-shell > .admin-nav .logout {
   margin-top: auto;
   border: 0;
-  border-radius: 0.8rem;
-  padding: 0.8rem 0.9rem;
-  background: #8a5f1b;
+  border-radius: 0.7rem;
+  padding: 0.65rem 0.75rem;
+  background: #17344f;
   color: #fff;
   cursor: pointer;
   font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  transition: background-color 0.2s ease;
+}
+
+.admin-shell > .admin-nav .logout:hover {
+  background: #24516f;
 }
 
 .privacy-reveal {
@@ -178,7 +228,7 @@
     position: fixed;
     left: 0;
     top: 0;
-    width: 240px;
+    width: 248px;
     transform: translateX(-105%);
     transition: transform 0.2s ease;
     z-index: 6;

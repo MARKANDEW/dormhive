@@ -24,7 +24,7 @@ export function renderSupportTickets(root = document.querySelector('#app')) {
   css();
   ensureAdminSidebarStyles();
   root.innerHTML = `<div class="admin-shell">${renderAdminSidebar('supportTickets')}<div class="admin-main"><main class="support-page">
-    <header class="support-header"><div><span class="support-kicker"><i class="bi bi-headset" aria-hidden="true"></i> Support</span><h1>Support</h1><p>Manage user requests, questions, and support tickets.</p></div><button type="button" class="create-ticket"><i class="bi bi-plus-lg" aria-hidden="true"></i> Create Ticket</button></header>
+    <header class="support-header"><div><span class="support-kicker"><i class="bi bi-headset" aria-hidden="true"></i> Support</span><h1>Support</h1><p>Manage user requests, questions, and support tickets.</p></div></header>
     <section class="support-content">
       <section class="support-summary"><article class="support-summary-card support-blue"><i class="bi bi-ticket-perforated"></i><div><span>Open Tickets</span><strong data-summary="open">0</strong><small>Currently open</small></div></article><article class="support-summary-card support-orange"><i class="bi bi-clock"></i><div><span>Pending</span><strong data-summary="pending">0</strong><small>Waiting for response</small></div></article><article class="support-summary-card support-red"><i class="bi bi-exclamation-triangle"></i><div><span>High Priority</span><strong data-summary="high">0</strong><small>Needs attention</small></div></article><article class="support-summary-card support-green"><i class="bi bi-check-circle"></i><div><span>Resolved</span><strong data-summary="resolved">0</strong><small>Resolved tickets</small></div></article></section>
       <section class="support-filter-bar"><label class="support-search"><i class="bi bi-search"></i><input id="ticket-search" type="search" placeholder="Search tickets, users, or subjects..." /></label><select id="status-filter"><option value="all">All Statuses</option><option value="open">Open</option><option value="pending">Pending</option><option value="resolved">Resolved</option></select><select id="priority-filter"><option value="all">All Priorities</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select><select id="category-filter"><option value="all">All Categories</option></select><button type="button" class="reset-filters"><i class="bi bi-arrow-clockwise"></i> Reset</button></section>
@@ -189,25 +189,11 @@ export function renderSupportTickets(root = document.querySelector('#app')) {
     } catch (error) { window.alert(error.message); }
   };
 
-  const createTicket = async () => {
-    const subject = window.prompt('Ticket subject:')?.trim();
-    if (!subject) return;
-    const description = window.prompt('Describe the issue:')?.trim();
-    if (!description) return;
-    try {
-      const response = await fetch(`${API}/support-tickets`, { method: 'POST', headers: headers(), body: JSON.stringify({ subject, description, priority: 'medium' }) });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.message || 'Unable to create ticket.');
-      await loadTickets();
-    } catch (error) { window.alert(error.message); }
-  };
-
   search.addEventListener('input', () => { state.search = search.value.toLowerCase().trim(); renderList(); });
   statusFilter.addEventListener('change', () => { state.status = statusFilter.value; renderList(); });
   priorityFilter.addEventListener('change', () => { state.priority = priorityFilter.value; renderList(); });
   categoryFilter.addEventListener('change', () => { state.category = categoryFilter.value; renderList(); });
   root.querySelector('.reset-filters').addEventListener('click', () => { search.value = ''; statusFilter.value = 'all'; priorityFilter.value = 'all'; categoryFilter.value = 'all'; state.search = ''; state.status = 'all'; state.priority = 'all'; state.category = 'all'; state.tab = 'all'; root.querySelectorAll('.support-tabs button').forEach((button) => button.classList.toggle('active', button.dataset.tab === 'all')); renderList(); });
   root.querySelectorAll('.support-tabs button').forEach((button) => button.addEventListener('click', () => { state.tab = button.dataset.tab; root.querySelectorAll('.support-tabs button').forEach((item) => item.classList.toggle('active', item === button)); renderList(); }));
-  root.querySelector('.create-ticket').addEventListener('click', createTicket);
   loadTickets();
 }

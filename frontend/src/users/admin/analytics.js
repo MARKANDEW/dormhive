@@ -36,6 +36,33 @@ export function buildDashboardMetrics({ users = [], properties = [], bookings = 
   };
 }
 
+export function buildAnalyticsCsv({ metrics, users = [], properties = [], bookings = [] }) {
+  const rows = [
+    ['Metric', 'Value'],
+    ['Total Users', metrics.totalUsers],
+    ['Active Listings', countByStatus(properties, 'approved')],
+    ['Booking Requests', metrics.totalBookings],
+    ['Pending Moderation', metrics.pendingModeration],
+    ['Booking Approval Rate', `${metrics.approvalRate}%`],
+    [],
+    ['User Role', 'Count'],
+    ['Tenants', countByRole(users, 'tenant')],
+    ['Landlords', countByRole(users, 'owner')],
+    ['Administrators', countByRole(users, 'admin')],
+    [],
+    ['Property Status', 'Count'],
+    ['Published Listings', countByStatus(properties, 'approved')],
+    ['Pending Listings', countByStatus(properties, 'pending')],
+    ['Rejected Listings', countByStatus(properties, 'rejected')],
+    [],
+    ['Booking Status', 'Count'],
+    ['Approved Bookings', countByStatus(bookings, 'approved')],
+    ['Pending Bookings', countByStatus(bookings, 'pending')],
+    ['Rejected Bookings', countByStatus(bookings, 'rejected')]
+  ];
+  return rows.map((row) => row.map((value) => `"${String(value ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+}
+
 export function formatTimeAgo(timestamp) {
   if (!timestamp) return 'unknown';
   const now = new Date();
@@ -138,6 +165,15 @@ export async function renderAnalytics(root = document.querySelector('#app')) {
     const bookings = bodies[1].data ?? [];
     const properties = bodies[2].data ?? [];
     const metrics = buildDashboardMetrics({ users, properties, bookings });
+    root.querySelector('.export-button')?.addEventListener('click', () => {
+      const blob = new Blob([buildAnalyticsCsv({ metrics, users, properties, bookings })], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `dormhive-analytics-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    });
     root.querySelector('[data-kpi="users"]').textContent = metrics.totalUsers;
     root.querySelector('[data-kpi="listings"]').textContent = statusCount(properties, 'approved');
     root.querySelector('[data-kpi="bookings"]').textContent = metrics.totalBookings;

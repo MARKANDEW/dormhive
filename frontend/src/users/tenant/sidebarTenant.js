@@ -42,7 +42,7 @@ export function renderTenantSidebar(activePage = 'dashboardTenant') {
     </nav>
     <div class="dh-sidebar-footer">
       <div class="dh-support-notice"><strong>Need help?</strong><span>Our support team is here.</span><a href="#/tenant/support">Contact support</a></div>
-      <button class="logout" type="button">${icon('logout')}<span>Sign Out</span></button>
+      <button class="logout" type="button"><span>Sign Out</span></button>
     </div>
   </aside>`;
 }

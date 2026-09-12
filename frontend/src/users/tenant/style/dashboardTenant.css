@@ -224,7 +224,7 @@ input {
 .map-head h2,
 .featured h2 {
   margin: 0;
-  color: #645403;
+  color: #000;
   font-size: 16px;
   font-weight: 700;
 }
@@ -232,7 +232,7 @@ input {
 .section-title button {
   border: 0;
   background: transparent;
-  color: #daa520;
+  color: #1aa87a;
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
@@ -250,7 +250,7 @@ fieldset {
 legend {
   font-size: 13px;
   font-weight: 800;
-  color: #645403;
+  color: #000;
 }
 .filters fieldset > label {
   display: block;
@@ -259,12 +259,12 @@ legend {
   font-size: 12px;
 }
 .filters input[type="checkbox"] {
-  accent-color: #daa520;
+  accent-color: #1aa87a;
 }
 .filters input[type="range"] {
   width: 100%;
   margin: 13px 0;
-  accent-color: #daa520;
+  accent-color: #1aa87a;
 }
 .price-input {
   display: grid;
@@ -290,7 +290,7 @@ legend {
 .price-input > span {
   padding-bottom: 8px;
   text-align: center;
-  color: #645403;
+  color: #000;
 }
 .filters fieldset p {
   margin: 9px 0 0;
@@ -311,14 +311,14 @@ legend {
   text-align: center;
   font-size: 11px;
   background: #f9fafb;
-  color: #645403;
+  color: #000;
 }
 .chips input {
   position: absolute;
   opacity: 0;
 }
 .chips label:has(input:checked) {
-  border-color: #daa520;
+  border-color: #1aa87a;
   background: #fff7e6;
   color: #645403;
 }
@@ -362,7 +362,7 @@ legend {
   transition: 0.18s;
 }
 .switch input:checked + i {
-  background: #daa520;
+  background: #1aa87a;
 }
 .switch input:checked + i:after {
   transform: translateX(14px);
@@ -373,12 +373,12 @@ legend {
   padding: 10px;
   border: 0;
   border-radius: 8px;
-  background: #daa520;
+  background: #1aa87a;
   color: #fff;
   font-size: 12px;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 8px 16px rgba(218, 165, 32, 0.24);
+  box-shadow: 0 8px 16px rgba(26, 168, 122, 0.24);
 }
 .apply:hover {
   filter: brightness(0.98);
@@ -408,6 +408,23 @@ legend {
   padding: 0.6rem 0.8rem;
   border-radius: 0.7rem;
   cursor: pointer;
+}
+.dh-dashboard .map-panel .panel-button {
+  background: #e9f7ef;
+  color: #0a6a4f;
+}
+.dh-dashboard .map-panel .panel-button:hover {
+  background: #dff1e9;
+  color: #0a6a4f;
+}
+.dh-dashboard .map-panel .key {
+  background: #e9f7ef;
+  color: #0a6a4f;
+}
+
+.dh-dashboard .map-panel .key:hover {
+  background: #dff1e9;
+  color: #0a6a4f;
 }
 .map-head {
   margin-bottom: 15px;

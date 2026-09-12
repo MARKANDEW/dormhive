@@ -310,8 +310,8 @@ function propertyDetailsMarkup(property) {
         <label>Move-in Date<input type="date" name="moveInDate" required /></label>
         <label>Move-out Date<input type="date" name="moveOutDate" /></label>
         <label>Occupants<input type="number" name="occupants" min="1" value="1" required /></label>
-        <button type="button" class="dashboard-chat-owner">💬 Chat Owner</button>
-        <button type="submit" class="dashboard-send-request">📨 Send Request</button>
+        <button type="button" class="dashboard-chat-owner">Chat Owner</button>
+        <button type="submit" class="dashboard-send-request">Send Request</button>
       </div>
       <p class="dashboard-request-status" role="status"></p>
     </form>
@@ -336,7 +336,7 @@ function loadPropertyDetailsStyle() {
     .property-detail-gallery-dot.is-active { background: #b48421; transform: scale(1.2); }
     .property-detail-modal-heading { display: flex; justify-content: space-between; align-items: baseline; gap: .75rem; }
     .property-detail-modal-heading h3 { margin: 0; font-size: 1.35rem; }
-    .property-detail-modal-heading strong { color: #9a6a24; white-space: nowrap; }
+    .property-detail-modal-heading strong { color: #4b5d5b; white-space: nowrap; }
     .property-detail-modal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem 1rem; margin-top: .9rem; }
     .property-detail-modal-grid p, .property-detail-modal-amenities { display: grid; gap: .1rem; margin: 0; }
     .property-detail-modal-grid span, .property-detail-modal-amenities span { color: #847871; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
@@ -345,7 +345,8 @@ function loadPropertyDetailsStyle() {
     .dashboard-request-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto auto; gap: .65rem; align-items: end; }
     .dashboard-request-fields label { display: grid; gap: .3rem; color: #443d39; font-size: .8rem; font-weight: 700; }
     .dashboard-request-fields input { width: 100%; height: 42px; padding: 0 .65rem; border: 1px solid #d8d0c9; border-radius: .55rem; font: inherit; }
-    .dashboard-request-fields button { height: 42px; padding: 0 .8rem; border: 0; border-radius: .55rem; background: #b48421; color: #fff; font-weight: 700; cursor: pointer; white-space: nowrap; }
+    .dashboard-request-fields button { height: 42px; padding: 0 .8rem; border: 0; border-radius: .55rem; background: #1aa87a; color: #fff; font-weight: 700; cursor: pointer; white-space: nowrap; }
+    .tenant-property-detail-modal .ui-modal__footer button { background: #1aa87a; color: #fff; }
     .dashboard-request-status { min-height: 1.2rem; margin: .55rem 0 0; color: #7b4b2d; font-size: .82rem; }
     @media (max-width: 700px) { .property-detail-modal-content, .dashboard-request-fields { grid-template-columns: 1fr; } .property-detail-gallery { height: 180px; } .property-detail-modal-image { height: 180px; } }
   `;
@@ -824,6 +825,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
     }
 
     const modal = createModal({ title: property.title || 'Property Details', content: '', closeLabel: 'Close' });
+    modal.classList.add('tenant-property-detail-modal');
     modal.querySelector('.ui-modal__body').innerHTML = propertyDetailsMarkup(property);
     const gallery = modal.querySelector('.property-detail-gallery');
     if (gallery) {

@@ -48,6 +48,10 @@ async function ensureLeafletLoaded() {
   }
   return Promise.resolve();
 }
+function clearTenantRouteStyles() {
+  document.querySelectorAll('[data-tenant-style], [data-tenant-sidebar-style], [data-tenant-modal-css], [data-user-style="tenant-support"]').forEach((node) => node.remove());
+}
+
 function css() { if (!document.querySelector('[data-owner-style="dashboard"]')) { const link = document.createElement('link'); link.rel = 'stylesheet'; link.href = new URL('./style/dashboardOwner.css', import.meta.url); link.dataset.ownerStyle = 'dashboard'; document.head.append(link); } }
 async function get(path) { const response = await fetch(`${API}${path}`, { headers: auth() }); const body = await readApiResponse(response); if (!response.ok) throw new Error(getApiErrorMessage(body, 'Unable to load this information.')); return body; }
 function metricCard(label, value, note, icon, trend = false) {
@@ -285,7 +289,7 @@ function generatePerformanceReportHtml(properties = [], bookings = [], metrics =
   `;
 }
 export function renderDashboardOwner(root = document.querySelector('#app')) {
-  if (!root) throw new Error('Owner dashboard requires #app.'); css(); ensureOwnerSidebarStyles(); const user = session();
+  if (!root) throw new Error('Owner dashboard requires #app.'); clearTenantRouteStyles(); css(); ensureOwnerSidebarStyles(); const user = session();
   const profileName = user.name || 'Owner';
   const profileInitials = profileName
     .split(' ')
@@ -300,15 +304,16 @@ export function renderDashboardOwner(root = document.querySelector('#app')) {
     <div class="owner-shell owner-shell--dashboard">
       ${renderOwnerSidebar('dashboardOwner')}
       <div class="owner-main">
-        <header class="owner-topbar">
-          <div class="topbar-left">
-            <button class="menu" aria-label="Toggle menu">☰</button>
-          </div>
-          <label class="search-bar" aria-label="Search my listings, inquiries, tenants">
-            <span>⌕</span>
-            <input type="search" placeholder="Search my listings, inquiries, tenants..." />
-          </label>
-          <div class="topbar-right">
+        <main class="owner-dashboard">
+          <section class="dashboard-greeting dashboard-greeting--with-tools">
+            <div class="dashboard-greeting-copy">
+              <p class="eyebrow">OWNER OVERVIEW</p>
+              <h1 data-dashboard-greeting>${greeting}, ${escape(firstName)}</h1>
+              <p>Here's what's happening with your properties today.</p>
+            </div>
+            <div class="dashboard-tools">
+              <button class="menu" aria-label="Toggle menu">☰</button>
+              <div class="topbar-right">
             <div class="notification-menu">
               <button class="top-icon notification-trigger" type="button" aria-label="Notifications" aria-expanded="false">
                 <span aria-hidden="true">&#128276;</span>
@@ -320,13 +325,8 @@ export function renderDashboardOwner(root = document.querySelector('#app')) {
               </div>
             </div>
             ${renderOwnerProfileCard()}
-          </div>
-        </header>
-        <main class="owner-dashboard">
-          <section class="dashboard-greeting">
-            <p class="eyebrow">OWNER OVERVIEW</p>
-            <h1 data-dashboard-greeting>${greeting}, ${escape(firstName)}</h1>
-            <p>Here's what's happening with your properties today.</p>
+              </div>
+            </div>
           </section>
           <section class="metrics-grid">
             <article class="metric-card metric-card--highlight">
@@ -375,30 +375,6 @@ export function renderDashboardOwner(root = document.querySelector('#app')) {
     </div>`;
   const shell = root.querySelector('.owner-shell');
   const listingGrid = root.querySelector('.listings-card-grid');
-  const searchInput = root.querySelector('.search-bar input');
-  const applyListingSearch = () => {
-    const query = searchInput.value.trim().toLowerCase();
-    const cards = [...listingGrid.querySelectorAll('.listing-card')];
-    let visibleCount = 0;
-    cards.forEach((card) => {
-      const matches = !query || card.textContent.toLowerCase().includes(query);
-      card.hidden = !matches;
-      if (matches) visibleCount += 1;
-    });
-    let emptySearch = listingGrid.querySelector('[data-search-empty]');
-    if (query && cards.length && visibleCount === 0) {
-      if (!emptySearch) {
-        emptySearch = document.createElement('p');
-        emptySearch.className = 'empty';
-        emptySearch.dataset.searchEmpty = 'true';
-        listingGrid.append(emptySearch);
-      }
-      emptySearch.textContent = `No listings match "${searchInput.value.trim()}".`;
-    } else {
-      emptySearch?.remove();
-    }
-  };
-  searchInput.addEventListener('input', applyListingSearch);
   root.querySelector('.menu').addEventListener('click', () => shell.classList.toggle('nav-open'));
   root.querySelector('[data-route="#/owner/myListing"]').addEventListener('click', () => location.hash = '#/owner/myListing');
   root.querySelector('.logout').addEventListener('click', () => { localStorage.clear(); location.assign('#/login'); });
@@ -512,7 +488,6 @@ export function renderDashboardOwner(root = document.querySelector('#app')) {
         </article>`;
     }).join('');
     listingGrid.innerHTML = cards || '<p class="empty">No property listings yet for this account.</p>';
-    applyListingSearch();
     listingGrid.querySelectorAll('.manage-listing').forEach((button) => {
       button.addEventListener('click', () => {
         location.hash = `#/owner/inquiries?propertyId=${encodeURIComponent(button.dataset.propertyId)}`;
