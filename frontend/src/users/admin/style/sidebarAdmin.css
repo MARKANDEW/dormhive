@@ -1,6 +1,6 @@
 ﻿.admin-shell {
   display: grid;
-  grid-template-columns: 248px minmax(0, 1fr);
+  grid-template-columns: 72px minmax(0, 1fr);
   min-height: 100vh;
   background: #edf3f7;
   width: 100%;
@@ -24,6 +24,17 @@
     inset -10px 0 18px -18px rgba(22, 48, 71, 0.28),
     8px 0 24px rgba(22, 48, 71, 0.035);
   box-sizing: border-box;
+  width: 72px;
+  z-index: 1000;
+  transition: width 220ms ease, box-shadow 220ms ease;
+}
+
+.admin-shell > .admin-nav:hover,
+.admin-shell > .admin-nav:focus-within {
+  width: 248px;
+  box-shadow:
+    inset -10px 0 18px -18px rgba(22, 48, 71, 0.28),
+    8px 0 24px rgba(22, 48, 71, 0.1);
 }
 
 .admin-shell > .admin-nav::before,
@@ -67,6 +78,7 @@
   margin: 0 10px 1.1rem;
   color: #17344f;
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .admin-shell > .admin-nav .admin-logo-mark {
@@ -78,6 +90,7 @@
   background: #1aa87a;
   color: #fff;
   box-shadow: 0 7px 14px rgba(26, 168, 122, 0.2);
+  flex: 0 0 44px;
 }
 
 .admin-shell > .admin-nav .admin-logo-icon {
@@ -92,6 +105,17 @@
 
 .admin-shell > .admin-nav .admin-logo > span {
   display: block;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-8px);
+  transition: opacity 140ms ease, transform 220ms ease;
+}
+
+.admin-shell > .admin-nav:hover .admin-logo > span,
+.admin-shell > .admin-nav:focus-within .admin-logo > span {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
 }
 
 .admin-shell > .admin-nav .admin-logo strong,
@@ -122,6 +146,20 @@
   text-decoration: none;
   font-weight: 600;
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.admin-shell > .admin-nav .nav-item > span:last-child {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-8px);
+  transition: opacity 140ms ease, transform 220ms ease;
+}
+
+.admin-shell > .admin-nav:hover .nav-item > span:last-child,
+.admin-shell > .admin-nav:focus-within .nav-item > span:last-child {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
 }
 
 .admin-shell > .admin-nav .nav-item:hover,
@@ -162,6 +200,17 @@
   font-size: 12px;
   font-weight: 700;
   text-align: left;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-8px);
+  transition: opacity 140ms ease, transform 220ms ease;
+}
+
+.admin-shell > .admin-nav:hover .privacy-toggle,
+.admin-shell > .admin-nav:focus-within .privacy-toggle {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
 }
 
 .admin-shell > .admin-nav .privacy-toggle.active {
@@ -182,6 +231,17 @@
   font-size: 12px;
   font-weight: 700;
   transition: background-color 0.2s ease;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-8px);
+  transition: opacity 140ms ease, transform 220ms ease, background-color 0.2s ease;
+}
+
+.admin-shell > .admin-nav:hover .logout,
+.admin-shell > .admin-nav:focus-within .logout {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
 }
 
 .admin-shell > .admin-nav .logout:hover {
@@ -219,6 +279,11 @@
   display: none;
 }
 
+.admin-mobile-menu,
+.admin-nav-backdrop {
+  display: none;
+}
+
 @media (max-width: 980px) {
   .admin-shell {
     grid-template-columns: 1fr;
@@ -232,19 +297,66 @@
     transform: translateX(-105%);
     transition: transform 0.2s ease;
     z-index: 6;
+    width: 248px;
   }
 
   .admin-shell.nav-open > .admin-nav {
     transform: none;
   }
 
-  .menu {
+  .admin-mobile-menu {
     display: block;
+    position: fixed;
+    top: 0.85rem;
+    left: 0.85rem;
+    z-index: 8;
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 1px solid #d5dee4;
+    border-radius: 0.7rem;
+    background: #fff;
+    color: #17344f;
+    box-shadow: 0 5px 16px rgba(22, 48, 71, 0.12);
+    font-size: 1.4rem;
     border: 0;
-    background: none;
-    font-size: 1.2rem;
     cursor: pointer;
-    padding: 0.1rem 0.4rem;
+  }
+
+  .admin-nav-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    border: 0;
+    background: rgba(23, 52, 79, 0.28);
+  }
+
+  .admin-shell.nav-open > .admin-nav-backdrop {
+    display: block;
+  }
+}
+
+@media (min-width: 981px) {
+  .admin-shell > .admin-nav .admin-logo {
+    justify-content: flex-start;
+    gap: 12px;
+    margin-left: 5px;
+    margin-right: 10px;
+  }
+
+  .admin-shell > .admin-nav:hover .admin-logo,
+  .admin-shell > .admin-nav:focus-within .admin-logo {
+    margin-left: 10px;
+  }
+}
+
+@media (max-width: 980px) {
+  .admin-shell > .admin-nav .admin-logo > span,
+  .admin-shell > .admin-nav .nav-item > span:last-child,
+  .admin-shell > .admin-nav .privacy-toggle,
+  .admin-shell > .admin-nav .logout {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
   }
 }
 

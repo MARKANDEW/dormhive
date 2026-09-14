@@ -1,11 +1,11 @@
 const glyphs = {
-  dashboardOwner: '▣',
-  myListing: '⌂',
-  inquiries: '✉',
+  dashboardOwner: '<i class="bi bi-grid-1x2-fill" aria-hidden="true"></i>',
+  myListing: '<i class="bi bi-buildings" aria-hidden="true"></i>',
+  inquiries: '<i class="bi bi-envelope" aria-hidden="true"></i>',
   activeTenant: '<i class="bi bi-people" aria-hidden="true"></i>',
-  analytics: '◔',
+  analytics: '<i class="bi bi-bar-chart-line-fill" aria-hidden="true"></i>',
   message: '<i class="bi bi-chat-fill" aria-hidden="true"></i>',
-  setting: '⚙'
+  setting: '<i class="bi bi-gear-fill" aria-hidden="true"></i>'
 };
 
 const sidebarLinks = [
@@ -163,9 +163,11 @@ export function ensureOwnerSidebarStyles() {
 }
 
 export function renderOwnerSidebar(active = 'dashboardOwner') {
-  return `<aside class="owner-sidebar">
+  return `<button type="button" class="owner-mobile-menu" aria-label="Open owner menu" aria-expanded="false"><i class="bi bi-list" aria-hidden="true"></i></button>
+  <button type="button" class="owner-nav-backdrop" aria-label="Close owner menu"></button>
+  <aside class="owner-sidebar">
     <a class="owner-brand" href="#/owner/dashboardOwner">
-      <b class="owner-brand-mark" aria-hidden="true"><svg class="owner-brand-icon" viewBox="0 0 24 24"><path d="m4 10 8-6 8 6v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-9Z"/><path d="M9 20v-6h6v6"/></svg></b>
+      <b class="owner-brand-mark" aria-hidden="true"><svg class="owner-brand-icon" viewBox="0 0 24 24"><path d="m12 3 7.8 4.5v9L12 21l-7.8-4.5v-9L12 3Z"/><path d="m8 10 4-2.3 4 2.3v6.2H8V10Z"/><path d="M10.5 16.2v-3.5h3v3.5M8.2 10.2h7.6"/></svg></b>
       <span><strong>DormHive</strong><small>Owner Portal</small></span>
     </a>
     <div class="owner-sidebar-rule" aria-hidden="true"></div>
@@ -176,6 +178,29 @@ export function renderOwnerSidebar(active = 'dashboardOwner') {
 }
 
 document.addEventListener('click', (event) => {
+  const menuButton = event.target.closest('.owner-mobile-menu');
+  if (menuButton) {
+    const shell = menuButton.closest('.owner-shell');
+    const isOpen = shell?.classList.toggle('nav-open');
+    menuButton.setAttribute('aria-expanded', String(Boolean(isOpen)));
+    return;
+  }
+
+  const backdrop = event.target.closest('.owner-nav-backdrop');
+  if (backdrop) {
+    const shell = backdrop.closest('.owner-shell');
+    shell?.classList.remove('nav-open');
+    shell?.querySelector('.owner-mobile-menu')?.setAttribute('aria-expanded', 'false');
+    return;
+  }
+
+  const navLink = event.target.closest('.owner-sidebar a[href^="#/owner/"]');
+  if (navLink) {
+    const shell = navLink.closest('.owner-shell');
+    shell?.classList.remove('nav-open');
+    shell?.querySelector('.owner-mobile-menu')?.setAttribute('aria-expanded', 'false');
+  }
+
   const logoutButton = event.target.closest('.logout');
   if (logoutButton) {
     localStorage.clear();

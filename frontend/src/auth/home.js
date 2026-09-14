@@ -24,14 +24,9 @@ export function renderHomePage(root = document.querySelector('#app')) {
       <header class="dh-header">
         <div class="dh-header-inner">
           <a class="dh-brand" href="#/" aria-label="DormHive home">
-            <span class="dh-brand-mark" aria-hidden="true"></span>
+            <span class="dh-brand-mark" aria-hidden="true"><svg class="dh-brand-icon" viewBox="0 0 24 24"><path d="m12 3 7.8 4.5v9L12 21l-7.8-4.5v-9L12 3Z"/><path d="m8 10 4-2.3 4 2.3v6.2H8V10Z"/><path d="M10.5 16.2v-3.5h3v3.5M8.2 10.2h7.6"/></svg></span>
             <span>DormHive</span>
           </a>
-
-          <label class="dh-search" aria-label="Search dorms">
-            <span aria-hidden="true">⌕</span>
-            <input type="search" placeholder="Search dorms, universities..." />
-          </label>
 
           <nav class="dh-nav" aria-label="Main navigation">
             <a href="#about-title">About</a>

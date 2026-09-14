@@ -1120,6 +1120,34 @@ a {
     padding: 1rem;
   }
 
+  .dashboard-greeting--with-tools {
+    gap: 0.9rem;
+  }
+
+  .dashboard-greeting h1 {
+    font-size: 1.55rem;
+  }
+
+  .dashboard-tools {
+    align-items: stretch;
+  }
+
+  .dashboard-tools .topbar-right {
+    flex: 1 1 auto;
+  }
+
+  .panel-title-row {
+    flex-wrap: wrap;
+  }
+
+  .panel-title-row h2 {
+    flex: 1 1 10rem;
+  }
+
+  .panel-button {
+    max-width: 100%;
+  }
+
   .dashboard-tools {
     gap: 0.6rem;
   }
@@ -1171,7 +1199,19 @@ a {
   }
 
   .listings-panel .listings-card-grid {
-    height: 21rem;
+    height: auto;
+    flex-direction: column;
+    overflow: visible;
+  }
+
+  .listing-card {
+    width: 100%;
+    min-width: 0;
+    flex-basis: auto;
+  }
+
+  .listing-card-image {
+    height: 9rem;
   }
 
   .panel {
@@ -1203,6 +1243,37 @@ a {
   .dashboard-tools .profile-identity {
     width: 100%;
     justify-content: center;
+  }
+
+  .dashboard-tools .topbar-right {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .notification-dropdown {
+    position: fixed;
+    top: 4.5rem;
+    left: 0.75rem;
+    right: 0.75rem;
+    width: auto;
+  }
+
+  .panel-title-row {
+    gap: 0.65rem;
+  }
+
+  .panel-title-row a,
+  .panel-button {
+    width: 100%;
+    text-align: center;
+  }
+
+  .map-panel .leaflet-map {
+    height: 14rem !important;
+  }
+
+  .action-panel .action-button {
+    min-height: 2.8rem;
   }
 
   .tenant-link {

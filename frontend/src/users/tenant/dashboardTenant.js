@@ -688,6 +688,12 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
     </div>
   `;
 
+  const tenantApp = root.querySelector('.dh-app');
+  const hamburger = root.querySelector('.hamburger');
+  hamburger?.addEventListener('click', () => {
+    tenantApp?.classList.toggle('open');
+  });
+
   const notificationMenu = root.querySelector('.notification-menu');
   const notificationTrigger = root.querySelector('.notification-trigger');
   const notificationBadge = root.querySelector('.notification-badge');

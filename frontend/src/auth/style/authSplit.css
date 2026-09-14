@@ -1,5 +1,11 @@
 @import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
 
+:root {
+  --dormhive-primary: #1aa87a;
+  --dormhive-primary-dark: #147b5d;
+  --dormhive-primary-soft: #e7f8f2;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -11,7 +17,7 @@
 
 body {
   min-height: 100vh;
-  background: #faf4f4;
+  background: #f4f8f6;
   margin: 0;
   padding: 0;
 }
@@ -20,7 +26,7 @@ body {
   position: relative;
   width: 100vw;
   height: 100vh;
-  background: #faf4f4;
+  background: #f4f8f6;
   margin: 0;
   border-radius: 0;
   box-shadow: none;
@@ -217,7 +223,7 @@ form {
 .checkbox-label input {
   width: 16px;
   height: 16px;
-  accent-color: #7494ec;
+  accent-color: var(--dormhive-primary);
 }
 
 .auth-message {
@@ -242,7 +248,7 @@ form {
 .btn {
   width: 100%;
   height: 48px;
-  background: #645403;
+  background: var(--dormhive-primary-dark);
   border-radius: 8px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   border: none;
@@ -289,17 +295,17 @@ form {
 }
 
 .social-icons button:hover:not(:disabled) {
-  border-color: #7494ec;
-  color: #7494ec;
+  border-color: var(--dormhive-primary);
+  color: var(--dormhive-primary-dark);
 }
 
 .form-box.register .auth-submit {
   margin-top: 16px;
-  background: linear-gradient(to right, #645403 0%, #daa520 100%);
+  background: linear-gradient(110deg, var(--dormhive-primary-dark) 0%, var(--dormhive-primary) 100%);
 }
 
 .form-box.login .auth-submit {
-  background: linear-gradient(to right, #645403 0%, #daa520 100%);
+  background: linear-gradient(110deg, var(--dormhive-primary-dark) 0%, var(--dormhive-primary) 100%);
 }
 
 .social-icons button:disabled {
@@ -342,7 +348,7 @@ form {
   left: -250%;
   width: 300%;
   height: 100%;
-  background: #daa520;
+  background: var(--dormhive-primary);
   border-radius: 150px;
   z-index: 2;
   transition: 1.8s ease-in-out;
@@ -350,7 +356,7 @@ form {
 
 .container.active .toggle-box::before {
   left: 50%;
-  background: #645403;
+  background: var(--dormhive-primary-dark);
 }
 
 .toggle-panel {

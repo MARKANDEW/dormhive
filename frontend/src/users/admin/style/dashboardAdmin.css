@@ -359,6 +359,7 @@ body {
 }
 
 .user-name {
+  overflow-wrap: anywhere;
   color: var(--overview-text);
   font-size: 1.05rem;
   font-weight: 700;
@@ -366,6 +367,7 @@ body {
 }
 
 .user-meta {
+  overflow-wrap: anywhere;
   color: var(--overview-muted);
   font-size: 12px;
   line-height: 1.5;
@@ -598,7 +600,7 @@ body {
 
 @media (max-width: 560px) {
   .admin-dashboard {
-    padding: 18px 14px 30px;
+    padding: 4.5rem 14px 30px;
   }
 
   .stats-grid {
@@ -619,13 +621,17 @@ body {
     width: 58px;
   }
 
+  .user-grid {
+    grid-template-columns: 1fr;
+  }
+
   .user-card {
-    grid-template-columns: auto 1fr;
+    grid-template-columns: 1fr;
   }
 
   .user-actions {
-    grid-column: 2;
-    align-items: flex-start;
+    grid-column: auto;
+    align-items: stretch;
     min-width: 0;
     margin-top: 6px;
   }

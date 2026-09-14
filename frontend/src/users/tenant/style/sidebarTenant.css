@@ -1,7 +1,7 @@
 .dh-app {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 248px minmax(0, 1fr);
+  grid-template-columns: 72px minmax(0, 1fr);
   width: 100%;
   background: #f7f9f8;
 }
@@ -14,8 +14,9 @@
 .dh-sidebar {
   position: sticky;
   top: 0;
-  align-self: stretch;
+  width: 72px;
   height: 100vh;
+  box-sizing: border-box;
   z-index: 3;
   display: flex;
   flex-direction: column;
@@ -27,9 +28,23 @@
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   font-size: 12px;
   overflow: hidden;
+  transition: width 220ms ease, box-shadow 220ms ease;
   box-shadow:
     inset -10px 0 18px -18px rgba(22, 48, 71, 0.28),
     8px 0 24px rgba(22, 48, 71, 0.035);
+}
+
+.tenant-mobile-menu,
+.tenant-nav-backdrop {
+  display: none;
+}
+
+.dh-sidebar:hover,
+.dh-sidebar:focus-within {
+  width: 248px;
+  box-shadow:
+    inset -10px 0 18px -18px rgba(22, 48, 71, 0.28),
+    8px 0 24px rgba(22, 48, 71, 0.1);
 }
 
 .dh-sidebar::before,
@@ -72,6 +87,7 @@
   margin: 0 10px 1.1rem;
   color: #17344f;
   text-decoration: none;
+  white-space: nowrap;
 }
 .dh-logo b {
   display: grid;
@@ -84,12 +100,28 @@
   box-shadow: 0 7px 14px rgba(26, 168, 122, 0.2);
 }
 .dh-logo b .icon {
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #fff;
+  stroke: currentColor;
 }
 .dh-logo strong,
 .dh-logo small {
   display: block;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity 140ms ease, transform 220ms ease;
+}
+.dh-sidebar:hover .dh-logo strong,
+.dh-sidebar:hover .dh-logo small,
+.dh-sidebar:focus-within .dh-logo strong,
+.dh-sidebar:focus-within .dh-logo small {
+  opacity: 1;
+  transform: none;
 }
 .dh-logo strong {
   font-size: 18px;
@@ -121,6 +153,23 @@
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
+  white-space: nowrap;
+  transition: background 160ms ease, color 160ms ease;
+}
+.dh-sidebar nav a > span,
+.dh-sidebar .logout span {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-8px);
+  transition: opacity 140ms ease, transform 220ms ease;
+}
+.dh-sidebar:hover nav a > span,
+.dh-sidebar:hover .logout span,
+.dh-sidebar:focus-within nav a > span,
+.dh-sidebar:focus-within .logout span {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
 }
 .dh-sidebar nav a:hover,
 .dh-sidebar nav .active {
@@ -140,6 +189,7 @@
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
+  transition: background 160ms ease, color 160ms ease;
 }
 .dh-sidebar nav a:hover .icon,
 .dh-sidebar nav .active .icon {
@@ -163,6 +213,19 @@
   margin-top: auto;
   padding-top: 10px;
   border-top: 0;
+}
+.dh-support-notice,
+.dh-sidebar .logout {
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity 140ms ease, transform 220ms ease;
+}
+.dh-sidebar:hover .dh-support-notice,
+.dh-sidebar:hover .logout,
+.dh-sidebar:focus-within .dh-support-notice,
+.dh-sidebar:focus-within .logout {
+  opacity: 1;
+  transform: none;
 }
 .dh-support-notice {
   display: grid;
@@ -232,9 +295,65 @@
   }
   .dh-sidebar {
     position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 10;
     width: 248px;
+    height: 100vh;
     transform: translateX(-103%);
     transition: 0.2s;
+  }
+
+  .tenant-mobile-menu {
+    position: fixed;
+    top: 0.85rem;
+    left: 0.85rem;
+    z-index: 12;
+    display: grid;
+    width: 2.75rem;
+    height: 2.75rem;
+    place-items: center;
+    border: 1px solid #d5dee4;
+    border-radius: 0.7rem;
+    background: #fff;
+    color: #17344f;
+    box-shadow: 0 5px 16px rgba(22, 48, 71, 0.12);
+  }
+
+  .dh-dashboard .tenant-mobile-menu {
+    display: none;
+  }
+
+  .tenant-mobile-menu .icon {
+    width: 1.35rem;
+    height: 1.35rem;
+  }
+
+  .tenant-nav-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 9;
+    display: none;
+    border: 0;
+    background: rgba(23, 52, 79, 0.28);
+  }
+
+  .dh-app.open .tenant-nav-backdrop {
+    display: block;
+  }
+  .dh-sidebar:hover,
+  .dh-sidebar:focus-within {
+    width: 248px;
+  }
+  .dh-sidebar .dh-logo strong,
+  .dh-sidebar .dh-logo small,
+  .dh-sidebar .dh-support-notice,
+  .dh-sidebar .logout,
+  .dh-sidebar nav a > span,
+  .dh-sidebar .logout span {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
   }
   .dh-app.open .dh-sidebar {
     transform: none;

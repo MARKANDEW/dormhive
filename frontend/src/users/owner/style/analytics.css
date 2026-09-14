@@ -12,8 +12,9 @@ body {
   background: #f0f0f0;
 }
 .analytics-page > section {
-  width: min(92%, 70rem);
-  margin: 2.5rem auto;
+  width: 100%;
+  margin: 0;
+  padding: 2.5rem 24px;
 }
 .eyebrow {
   margin: 0 0 0.35rem;
@@ -256,7 +257,8 @@ body {
 }
 @media (max-width: 550px) {
   .analytics-page > section {
-    margin: 1.5rem auto;
+    margin: 0;
+    padding: 1.5rem 16px;
   }
   .analytics-grid {
     grid-template-columns: 1fr 1fr;

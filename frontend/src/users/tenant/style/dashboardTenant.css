@@ -804,10 +804,24 @@ legend {
   }
 }
 @media (max-width: 790px) {
+  html,
+  body {
+    overflow: auto !important;
+  }
+
+  .dh-app.dh-dashboard,
+  .dh-app.dh-dashboard > main {
+    height: 100vh;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
   .dh-app.open .dh-app main {
     padding: 0 18px 34px;
   }
   .topbar {
+    flex-wrap: wrap;
     min-height: 68px;
     gap: 12px;
   }
@@ -831,6 +845,10 @@ legend {
     flex: 1;
     width: auto;
   }
+
+  .top-actions {
+    margin-left: auto;
+  }
   .message-link,
   .profile .icon {
     display: none;
@@ -843,7 +861,15 @@ legend {
     justify-self: start;
   }
   .layout {
-    grid-template-columns: minmax(0, 75%) minmax(260px, 25%);
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .map-column {
+    order: 1;
+  }
+
+  .filters {
+    order: 2;
   }
   .filters {
     display: grid;
@@ -860,7 +886,13 @@ legend {
   }
 }
 @media (max-width: 510px) {
+  .topbar {
+    align-items: center;
+  }
+
   .search {
+    order: 4;
+    flex-basis: 100%;
     padding: 9px;
   }
   .search input::placeholder {
@@ -880,7 +912,15 @@ legend {
     height: 130px;
   }
   .cards {
-    grid-template-columns: minmax(0, 1fr);
-    justify-content: center;
+    flex-direction: column;
+    overflow-x: visible;
+  }
+
+  .listing {
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    min-height: 350px;
+    flex-basis: auto;
   }
 }
