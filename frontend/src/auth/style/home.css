@@ -73,24 +73,39 @@ a {
   font-size: 1.02rem;
 }
 
+.dh-brand-name {
+  display: inline-flex;
+  color: #0d5f4a;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.dh-brand-name span:last-child {
+  color: #c68a16;
+}
+
 .dh-brand-mark {
   display: grid;
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   place-items: center;
-  border-radius: 8px;
-  background: #1aa87a;
-  box-shadow: 0 4px 8px rgba(26, 168, 122, 0.2);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+  transform: translateY(-1px);
 }
 
 .dh-brand-icon {
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
+  display: block;
   fill: none;
-  stroke: #fff;
+  stroke: none;
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
+  filter: drop-shadow(0 2px 6px rgba(12, 68, 60, 0.18));
 }
 
 .dh-nav {

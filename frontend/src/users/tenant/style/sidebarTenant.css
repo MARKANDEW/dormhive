@@ -94,20 +94,20 @@
   place-items: center;
   width: 44px;
   height: 44px;
-  border-radius: 13px;
-  background: #1aa87a;
-  color: #fff;
-  box-shadow: 0 7px 14px rgba(26, 168, 122, 0.2);
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  box-shadow: none;
 }
 .dh-logo b .icon {
-  width: 28px;
-  height: 28px;
-  flex: 0 0 28px;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
   padding: 0;
   border-radius: 0;
   background: transparent;
-  color: #fff;
-  stroke: currentColor;
+  color: inherit;
+  stroke: none;
 }
 .dh-logo strong,
 .dh-logo small {
@@ -126,6 +126,14 @@
 .dh-logo strong {
   font-size: 18px;
   line-height: 1.1;
+}
+
+.dh-sidebar .brand-dorm {
+  color: #0d5f4a;
+}
+
+.dh-sidebar .brand-hive {
+  color: #c68a16;
 }
 .dh-logo small {
   margin-top: 4px;

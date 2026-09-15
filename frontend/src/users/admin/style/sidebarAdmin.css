@@ -86,18 +86,18 @@
   width: 44px;
   height: 44px;
   place-items: center;
-  border-radius: 13px;
-  background: #1aa87a;
-  color: #fff;
-  box-shadow: 0 7px 14px rgba(26, 168, 122, 0.2);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   flex: 0 0 44px;
 }
 
 .admin-shell > .admin-nav .admin-logo-icon {
-  width: 22px;
-  height: 22px;
+  width: 36px;
+  height: 36px;
+  display: block;
   fill: none;
-  stroke: currentColor;
+  stroke: none;
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -126,6 +126,18 @@
 .admin-shell > .admin-nav .admin-logo strong {
   font-size: 18px;
   line-height: 1.1;
+}
+
+.admin-shell .brand-dorm,
+.owner-shell .brand-dorm,
+.dh-sidebar .brand-dorm {
+  color: #0d5f4a;
+}
+
+.admin-shell .brand-hive,
+.owner-shell .brand-hive,
+.dh-sidebar .brand-hive {
+  color: #c68a16;
 }
 
 .admin-shell > .admin-nav .admin-logo small {

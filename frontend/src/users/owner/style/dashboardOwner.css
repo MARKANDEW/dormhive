@@ -13,14 +13,14 @@
     "Segoe UI",
     sans-serif;
   color: #12332b;
-  background: #f5f8f7;
+  background: #f0f0f0;
   --primary: #0d5f4a;
   --primary-dark: #0a4d3d;
   --primary-light: #e9f7ef;
   --text: #12332b;
   --muted: #6d8179;
   --border: #dce6e1;
-  --background: #f5f8f7;
+  --background: #f0f0f0;
   --white: #ffffff;
   --danger: #ef4444;
 }

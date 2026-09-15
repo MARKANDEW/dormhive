@@ -86,11 +86,19 @@
 .owner-shell .owner-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
+  gap: 0;
   margin: 0 10px 1.1rem;
   color: #17344f;
   text-decoration: none;
   white-space: nowrap;
+  transition: gap 220ms ease;
+}
+
+.owner-shell > .owner-sidebar:hover .owner-brand,
+.owner-shell > .owner-sidebar:focus-within .owner-brand {
+  justify-content: flex-start;
+  gap: 12px;
 }
 
 .owner-shell .owner-brand-mark {
@@ -99,39 +107,52 @@
   height: 44px;
   place-items: center;
   border: 0;
-  border-radius: 13px;
-  background: #1aa87a;
-  color: #fff;
-  box-shadow: 0 7px 14px rgba(26, 168, 122, 0.2);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   flex: 0 0 44px;
 }
 
 .owner-shell .owner-brand-icon {
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
+  display: block;
   fill: none;
-  stroke: currentColor;
+  stroke: none;
   stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 .owner-shell .owner-brand > span:last-child {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  width: 0;
+  overflow: hidden;
   opacity: 0;
   transform: translateX(-8px);
-  transition: opacity 140ms ease, transform 220ms ease;
+  transition: width 180ms ease, opacity 140ms ease, transform 220ms ease;
 }
 .owner-shell > .owner-sidebar:hover .owner-brand > span:last-child,
 .owner-shell > .owner-sidebar:focus-within .owner-brand > span:last-child {
+  width: auto;
   opacity: 1;
   transform: none;
 }
 
 .owner-shell .owner-brand strong {
   display: block;
-  font-size: 21px;
+  font-size: 18px;
   line-height: 1.1;
+}
+
+.owner-shell .brand-dorm {
+  color: #0d5f4a;
+}
+
+.owner-shell .brand-hive {
+  color: #c68a16;
 }
 
 .owner-shell .owner-brand small {
@@ -396,14 +417,33 @@
 
   .owner-shell > .owner-sidebar .owner-brand {
     justify-content: flex-start;
-    gap: 12px;
+    gap: 0;
     margin-right: 10px;
     margin-left: 5px;
   }
 
   .owner-shell > .owner-sidebar:hover .owner-brand,
   .owner-shell > .owner-sidebar:focus-within .owner-brand {
-    margin-left: 10px;
+    gap: 12px;
+    margin-left: 5px;
+  }
+
+  .owner-shell > .owner-sidebar .owner-brand > span:last-child,
+  .owner-shell > .owner-sidebar .nav-copy {
+    display: none;
+  }
+
+  .owner-shell > .owner-sidebar .nav-item {
+    height: 46px;
+    min-height: 46px !important;
+    box-sizing: border-box;
+  }
+
+  .owner-shell > .owner-sidebar:hover .owner-brand > span:last-child,
+  .owner-shell > .owner-sidebar:focus-within .owner-brand > span:last-child,
+  .owner-shell > .owner-sidebar:hover .nav-copy,
+  .owner-shell > .owner-sidebar:focus-within .nav-copy {
+    display: flex;
   }
 }
 
