@@ -49,6 +49,7 @@ export async function renderLogin(root = document.querySelector('#app')) {
   root.innerHTML = `
     <div class="container">
       <a class="auth-brand" href="../index.html"><span class="auth-brand-mark" aria-hidden="true"><svg class="auth-brand-icon" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img"><defs><linearGradient id="auth-brand-navy" x1="20" y1="10" x2="160" y2="170" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#203E69"/><stop offset="0.55" stop-color="#102B4F"/><stop offset="1" stop-color="#071B35"/></linearGradient><linearGradient id="auth-brand-gold" x1="70" y1="30" x2="120" y2="145" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#FFE08A"/><stop offset="0.35" stop-color="#F5BE42"/><stop offset="1" stop-color="#C98213"/></linearGradient><filter id="auth-brand-shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="12" stdDeviation="10" flood-opacity="0.20"/></filter><filter id="auth-brand-glow"><feGaussianBlur stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><path d="M90 8 C126 8 157 36 162 71 C167 106 148 139 119 157 C108 164 98 169 90 172 C82 169 72 164 61 157 C32 139 13 106 18 71 C23 36 54 8 90 8Z" fill="url(#auth-brand-navy)" filter="url(#auth-brand-shadow)"/><path d="M90 20 C120 20 146 43 150 72 C154 101 139 128 114 144 C105 150 97 154 90 157 C83 154 75 150 66 144 C41 128 26 101 30 72 C34 43 60 20 90 20Z" fill="none" stroke="url(#auth-brand-gold)" stroke-width="2" opacity=".75"/><path d="M90 31 L105 40 L105 57 L90 66 L75 57 L75 40Z" fill="none" stroke="url(#auth-brand-gold)" stroke-width="3" opacity=".9"/><path d="M55 55 L70 64 L70 81 L55 90 L40 81 L40 64Z" fill="none" stroke="url(#auth-brand-gold)" stroke-width="3" opacity=".55"/><path d="M125 55 L140 64 L140 81 L125 90 L110 81 L110 64Z" fill="none" stroke="url(#auth-brand-gold)" stroke-width="3" opacity=".55"/><path d="M59 54 L59 122 C59 133 67 139 78 139 L91 139 C119 139 137 121 137 96 C137 71 119 54 91 54 Z M78 71 L91 71 C108 71 119 81 119 96 C119 111 108 122 91 122 L78 122 Z" fill="white" fill-rule="evenodd"/><path d="M69 88 L89 69 L109 88" fill="none" stroke="url(#auth-brand-gold)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" filter="url(#auth-brand-glow)"/><path d="M82 119 L82 99 C82 94 85 91 90 91 C95 91 98 94 98 99 L98 119" fill="url(#auth-brand-gold)"/><circle cx="94" cy="105" r="2" fill="#102B4F"/><circle cx="90" cy="42" r="3" fill="#FFE08A"/><circle cx="48" cy="72" r="2.5" fill="#F5BE42" opacity=".8"/><circle cx="132" cy="72" r="2.5" fill="#F5BE42" opacity=".8"/><path d="M68 148 C75 152 83 155 90 158 C97 155 105 152 112 148" fill="none" stroke="url(#auth-brand-gold)" stroke-width="3" stroke-linecap="round"/></svg></span><span class="auth-brand-name"><span>Dorm</span><span class="auth-brand-name-accent">Hive</span></span></a>
+        <div class="auth-corner-brand" aria-hidden="true"><span>DORMHIVE</span><i></i></div>
       <div class="form-box login">
         <form aria-labelledby="login-title" autocomplete="off">
           <div class="form-inner">
@@ -56,7 +57,7 @@ export async function renderLogin(root = document.querySelector('#app')) {
             <h1 id="login-title">Login</h1>
             <p>Sign in to continue</p>
             <p class="auth-message" role="alert" hidden></p>
-            <div class="input-box"><input id="email" name="email" type="email" placeholder="Email" autocomplete="off" required><i class='bx bxs-envelope'></i></div>
+            <div class="input-box"><input id="email" name="email" type="email" placeholder="Email" autocomplete="off" required></div>
             <div class="input-box"><input id="password" name="password" type="password" placeholder="Password" autocomplete="new-password" required minlength="8"><button class="password-toggle" type="button" aria-label="Show password" aria-pressed="false"><i class='bx bx-show' aria-hidden="true"></i></button></div>
             <div class="forgot-link"><a href="#">Forgot Password?</a></div>
             <button class="btn auth-submit" type="submit">Login</button>
@@ -69,16 +70,18 @@ export async function renderLogin(root = document.querySelector('#app')) {
       <div class="form-box register">
         <form aria-labelledby="register-title">
           <div class="form-inner">
+            <div class="auth-form-brand" aria-label="DormHive"><span class="auth-form-brand-mark" aria-hidden="true"><svg class="auth-form-brand-icon" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img"><defs><linearGradient id="login-register-form-navy" x1="20" y1="10" x2="160" y2="170" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#203E69"/><stop offset="0.55" stop-color="#102B4F"/><stop offset="1" stop-color="#071B35"/></linearGradient><linearGradient id="login-register-form-gold" x1="70" y1="30" x2="120" y2="145" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#FFE08A"/><stop offset="0.35" stop-color="#F5BE42"/><stop offset="1" stop-color="#C98213"/></linearGradient><filter id="login-register-form-shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="12" stdDeviation="10" flood-opacity="0.20"/></filter><filter id="login-register-form-glow"><feGaussianBlur stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><path d="M90 8 C126 8 157 36 162 71 C167 106 148 139 119 157 C108 164 98 169 90 172 C82 169 72 164 61 157 C32 139 13 106 18 71 C23 36 54 8 90 8Z" fill="url(#login-register-form-navy)" filter="url(#login-register-form-shadow)"/><path d="M90 20 C120 20 146 43 150 72 C154 101 139 128 114 144 C105 150 97 154 90 157 C83 154 75 150 66 144 C41 128 26 101 30 72 C34 43 60 20 90 20Z" fill="none" stroke="url(#login-register-form-gold)" stroke-width="2" opacity=".75"/><path d="M90 31 L105 40 L105 57 L90 66 L75 57 L75 40Z" fill="none" stroke="url(#login-register-form-gold)" stroke-width="3" opacity=".9"/><path d="M55 55 L70 64 L70 81 L55 90 L40 81 L40 64Z" fill="none" stroke="url(#login-register-form-gold)" stroke-width="3" opacity=".55"/><path d="M125 55 L140 64 L140 81 L125 90 L110 81 L110 64Z" fill="none" stroke="url(#login-register-form-gold)" stroke-width="3" opacity=".55"/><path d="M59 54 L59 122 C59 133 67 139 78 139 L91 139 C119 139 137 121 137 96 C137 71 119 54 91 54 Z M78 71 L91 71 C108 71 119 81 119 96 C119 111 108 122 91 122 L78 122 Z" fill="white" fill-rule="evenodd"/><path d="M69 88 L89 69 L109 88" fill="none" stroke="url(#login-register-form-gold)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" filter="url(#login-register-form-glow)"/><path d="M82 119 L82 99 C82 94 85 91 90 91 C95 91 98 94 98 99 L98 119" fill="url(#login-register-form-gold)"/><circle cx="94" cy="105" r="2" fill="#102B4F"/><circle cx="90" cy="42" r="3" fill="#FFE08A"/><circle cx="48" cy="72" r="2.5" fill="#F5BE42" opacity=".8"/><circle cx="132" cy="72" r="2.5" fill="#F5BE42" opacity=".8"/><path d="M68 148 C75 152 83 155 90 158 C97 155 105 152 112 148" fill="none" stroke="url(#login-register-form-gold)" stroke-width="3" stroke-linecap="round"/></svg></span><span>Dorm<span class="auth-form-brand-accent">Hive</span></span></div>
             <h1 id="register-title">Registration</h1>
             <p>Create your account</p>
             <p class="auth-message" role="alert" hidden></p>
-            <div class="input-box"><input id="first_name" name="first_name" type="text" placeholder="First name" required maxlength="120"><i class='bx bxs-user'></i></div>
-            <div class="input-box"><input id="last_name" name="last_name" type="text" placeholder="Last name" required maxlength="120"><i class='bx bxs-user'></i></div>
-            <div class="input-box"><input id="email_r" name="email" type="email" placeholder="Email address" required><i class='bx bxs-envelope'></i></div>
+            <div class="register-name-row">
+              <div class="input-box"><input id="first_name" name="first_name" type="text" placeholder="First name" required maxlength="120"></div>
+              <div class="input-box"><input id="last_name" name="last_name" type="text" placeholder="Last name" required maxlength="120"></div>
+            </div>
+            <div class="input-box"><input id="email_r" name="email" type="email" placeholder="Email address" required></div>
             <div class="input-box phone-input-box">
               <span class="phone-prefix" aria-hidden="true">+63</span>
               <input id="phone_r" name="phone" type="tel" inputmode="numeric" placeholder="9XXXXXXXXX" required maxlength="10" autocomplete="tel">
-              <i class='bx bxs-phone'></i>
             </div>
             <div class="input-box"><select id="role" name="role" required><option value="tenant">I want to</option><option value="tenant">Find a rental</option><option value="owner">List a property</option></select></div>
             <div class="input-box"><input id="password_r" name="password" type="password" placeholder="Password" required minlength="8"><button class="password-toggle" type="button" aria-label="Show password" aria-pressed="false"><i class='bx bx-show' aria-hidden="true"></i></button></div>
@@ -95,11 +98,21 @@ export async function renderLogin(root = document.querySelector('#app')) {
           <h1><span>Hello,</span><span>Welcome!</span></h1>
           <p>Your next chapter starts here.<br>Sign in to access your account and<br>manage your stay with ease.</p>
           <button class="btn register-btn">Register</button>
+          <div class="welcome-footer" aria-label="DormHive values">
+            <span class="welcome-footer-line" aria-hidden="true"></span>
+            <span class="welcome-footer-values">SAFE <b aria-hidden="true">•</b> SIMPLE <b aria-hidden="true">•</b> SMART</span>
+          </div>
         </div>
         <div class="toggle-panel toggle-right">
-          <h1>Welcome Back!</h1>
-          <p>Already have an account?</p>
+          <p class="welcome-kicker">WELCOME TO DORMHIVE</p>
+          <span class="welcome-divider-line" aria-hidden="true"></span>
+          <h1><span>Join Our</span><span>Community!</span></h1>
+          <p>Create your account and be part<br>of a safe, simple, and convenient<br>way to manage your dorm life.</p>
           <button class="btn login-btn">Login</button>
+          <div class="welcome-footer" aria-label="DormHive values">
+            <span class="welcome-footer-line" aria-hidden="true"></span>
+            <span class="welcome-footer-values">SAFE <b aria-hidden="true">•</b> SIMPLE <b aria-hidden="true">•</b> SMART</span>
+          </div>
         </div>
       </div>
     </div>

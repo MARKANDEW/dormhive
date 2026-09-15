@@ -71,10 +71,10 @@ form {
 
 .form-box.login form,
 .form-box.register form {
-  width: min(100%, 360px);
+  width: min(100%, 440px);
   background: rgba(255, 255, 255, 0.9);
   border-radius: 20px;
-  padding: 18px 18px 14px;
+  padding: 28px 30px 24px;
   box-shadow: 0 14px 24px rgba(15, 23, 42, 0.05);
   margin: 0 auto;
 }
@@ -86,7 +86,7 @@ form {
 
 .form-inner {
   width: 100%;
-  max-width: 310px;
+  max-width: 360px;
   margin: 0 auto;
 }
 
@@ -126,6 +126,16 @@ form {
 
 .form-inner .input-box {
   margin: 10px 0;
+}
+
+.register-name-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.register-name-row .input-box {
+  min-width: 0;
 }
 
 .form-inner h1 {
@@ -463,6 +473,54 @@ form {
   color: #ffd34f;
 }
 
+.toggle-panel.toggle-right {
+  align-items: center;
+  padding: 0 3rem;
+  text-align: left;
+}
+
+.toggle-panel.toggle-right > * {
+  width: min(100%, 360px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.toggle-panel.toggle-right .welcome-kicker {
+  margin: 0 0 1.25rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.42em;
+  line-height: 1.3;
+}
+
+.toggle-panel.toggle-right .welcome-divider-line {
+  display: block;
+  width: 36px;
+  height: 2px;
+  margin: -0.55rem 0 1rem;
+  background: #ffd34f;
+  transform: translateX(-162px);
+}
+
+.toggle-panel.toggle-right h1 {
+  display: grid;
+  gap: 0;
+  margin: 0 0 1rem;
+  font-size: clamp(2.7rem, 4vw, 4rem);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+}
+
+.toggle-panel.toggle-right h1 span:last-child {
+  color: #ffd34f;
+}
+
+.toggle-panel.toggle-right p:not(.welcome-kicker) {
+  margin: 0 0 1.25rem;
+  line-height: 1.45;
+}
+
 .toggle-panel.toggle-left p:not(.welcome-kicker) {
   margin: 0 0 1.25rem;
   line-height: 1.45;
@@ -479,6 +537,53 @@ form {
   border-radius: 999px;
   border: 2px solid #fff;
   box-shadow: none;
+}
+
+.toggle-panel.toggle-left .welcome-footer {
+  position: absolute;
+  left: 3rem;
+  bottom: 3rem;
+  width: min(calc(100% - 6rem), 360px);
+  margin: 0;
+  text-align: left;
+}
+
+.toggle-panel.toggle-right .welcome-footer {
+  position: absolute;
+  left: auto;
+  right: 3rem;
+  bottom: 3rem;
+  width: max-content;
+  margin: 0;
+  text-align: right;
+}
+
+.toggle-panel.toggle-right .welcome-footer-line {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.welcome-footer-line {
+  display: block;
+  width: 36px;
+  height: 2px;
+  margin-bottom: 0.85rem;
+  background: #ffd34f;
+}
+
+.welcome-footer-values {
+  display: block;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.56rem;
+  font-weight: 600;
+  letter-spacing: 0.42em;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.welcome-footer-values b {
+  margin: 0 0.35em;
+  font-weight: 600;
 }
 
 .container .auth-brand {
@@ -524,8 +629,36 @@ form {
 }
 
 .container.active .auth-brand {
+  display: inline-flex;
+  left: auto;
+  right: 32px;
+}
+
+.container.active .auth-corner-brand {
   display: none;
 }
+
+  .auth-corner-brand {
+    position: absolute;
+    top: 2.7rem;
+    right: 3rem;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: rgba(40, 73, 78, 0.72);
+    font-size: 0.56rem;
+    font-weight: 600;
+    letter-spacing: 0.42em;
+    white-space: nowrap;
+  }
+
+  .auth-corner-brand i {
+    display: block;
+    width: 36px;
+    height: 1px;
+    background: var(--dormhive-primary);
+  }
 
 .form-inner {
   width: 100%;
@@ -571,6 +704,11 @@ form {
     padding: 0 1rem;
   }
 
+  .register-name-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
   .toggle-panel.toggle-left h1 {
     font-size: 2.3rem;
   }
@@ -581,5 +719,16 @@ form {
     margin-right: 0;
     width: min(160px, 100%);
     max-width: 100%;
+  }
+
+  .auth-corner-brand {
+    top: 1.25rem;
+    right: 1.25rem;
+    gap: 0.65rem;
+    font-size: 0.48rem;
+  }
+
+  .auth-corner-brand i {
+    width: 28px;
   }
 }

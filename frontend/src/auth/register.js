@@ -52,6 +52,7 @@ export async function renderRegister(root = document.querySelector('#app')) {
         </form>
       </div>
 
+      <div class="auth-corner-brand" aria-hidden="true"><span>DORMHIVE</span><i></i></div>
       <div class="form-box register">
         <form aria-labelledby="register-title">
           <div class="form-inner">
@@ -59,13 +60,14 @@ export async function renderRegister(root = document.querySelector('#app')) {
             <h1 id="register-title">Registration</h1>
             <p>Create your account</p>
             <p class="auth-message" role="alert" hidden></p>
-            <div class="input-box"><input id="first_name" name="first_name" type="text" placeholder="First name" required maxlength="120"><i class='bx bxs-user'></i></div>
-            <div class="input-box"><input id="last_name" name="last_name" type="text" placeholder="Last name" required maxlength="120"><i class='bx bxs-user'></i></div>
-            <div class="input-box"><input id="email_r" name="email" type="email" placeholder="Email address" required><i class='bx bxs-envelope'></i></div>
+            <div class="register-name-row">
+              <div class="input-box"><input id="first_name" name="first_name" type="text" placeholder="First name" required maxlength="120"></div>
+              <div class="input-box"><input id="last_name" name="last_name" type="text" placeholder="Last name" required maxlength="120"></div>
+            </div>
+            <div class="input-box"><input id="email_r" name="email" type="email" placeholder="Email address" required></div>
             <div class="input-box phone-input-box">
               <span class="phone-prefix" aria-hidden="true">+63</span>
               <input id="phone_r" name="phone" type="tel" inputmode="numeric" placeholder="9XXXXXXXXX" required maxlength="10" autocomplete="tel">
-              <i class='bx bxs-phone'></i>
             </div>
             <div class="input-box"><select id="role" name="role" required><option value="tenant">I want to</option><option value="tenant">Find a rental</option><option value="owner">List a property</option></select></div>
             <div class="input-box"><input id="password_r" name="password" type="password" placeholder="Password" required minlength="8"><button class="password-toggle" type="button" aria-label="Show password" aria-pressed="false"><i class='bx bx-show' aria-hidden="true"></i></button></div>
@@ -78,14 +80,25 @@ export async function renderRegister(root = document.querySelector('#app')) {
 
       <div class="toggle-box">
         <div class="toggle-panel toggle-left">
-          <h1>Hello, Welcome!</h1>
-          <p>Don't have an account?</p>
+          <p class="welcome-kicker">WELCOME TO DORMHIVE</p>
+          <h1><span>Hello,</span><span>Welcome!</span></h1>
+          <p>Your next chapter starts here.<br>Sign in to access your account and<br>manage your stay with ease.</p>
           <button class="btn register-btn">Register</button>
+          <div class="welcome-footer" aria-label="DormHive values">
+            <span class="welcome-footer-line" aria-hidden="true"></span>
+            <span class="welcome-footer-values">SAFE <b aria-hidden="true">•</b> SIMPLE <b aria-hidden="true">•</b> SMART</span>
+          </div>
         </div>
         <div class="toggle-panel toggle-right">
-          <h1>Welcome Back!</h1>
-          <p>Already have an account?</p>
+          <p class="welcome-kicker">WELCOME TO DORMHIVE</p>
+          <span class="welcome-divider-line" aria-hidden="true"></span>
+          <h1><span>Join Our</span><span>Community!</span></h1>
+          <p>Create your account and be part<br>of a safe, simple, and convenient<br>way to manage your dorm life.</p>
           <button class="btn login-btn">Login</button>
+          <div class="welcome-footer" aria-label="DormHive values">
+            <span class="welcome-footer-line" aria-hidden="true"></span>
+            <span class="welcome-footer-values">SAFE <b aria-hidden="true">•</b> SIMPLE <b aria-hidden="true">•</b> SMART</span>
+          </div>
         </div>
       </div>
     </div>
