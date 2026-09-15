@@ -44,7 +44,7 @@ export async function renderRegister(root = document.querySelector('#app')) {
             <p>Sign in to continue</p>
             <div class="input-box"><input id="email" name="email" type="email" placeholder="Email" required><i class='bx bxs-envelope'></i></div>
             <div class="input-box"><input id="password" name="password" type="password" placeholder="Password" required minlength="8"><i class='bx bxs-lock-alt'></i></div>
-            <div class="forgot-link"><a href="#">Forgot Password?</a></div>
+            <div class="forgot-link"><a href="#/forgot-password">Forgot Password?</a></div>
             <button class="btn auth-submit" type="submit">Login</button>
             <p>or login with social platforms</p>
             ${oauthButtonsMarkup()}

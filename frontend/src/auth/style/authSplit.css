@@ -687,6 +687,76 @@ form {
   text-align: center;
 }
 
+.password-reset-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  background: #f4f8f6;
+  color: #1f2a2d;
+}
+
+.password-reset-card {
+  width: min(100%, 440px);
+  padding: 2rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+}
+
+.password-reset-back {
+  color: #147b5d;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.password-reset-card h1 {
+  margin: 1.5rem 0 0.5rem;
+  color: #17352f;
+  font-size: 2rem;
+}
+
+.password-reset-intro {
+  margin: 0 0 1.25rem;
+  color: #6d8179;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.password-reset-form {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.password-reset-form input {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 0;
+  border-radius: 10px;
+  background: #eee;
+  font: inherit;
+}
+
+.password-reset-form .auth-submit {
+  width: 100%;
+  background: var(--dormhive-primary-dark);
+}
+
+.password-reset-message {
+  margin: 1rem 0 0;
+  color: #6d8179;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.password-reset-message a {
+  color: #147b5d;
+  font-weight: 700;
+}
+
+.password-reset-error { color: #b42318; }
+.password-reset-success { color: #147b5d; }
+
 @media screen and (max-width: 650px) {
   .container {
     width: 100vw;

@@ -1,4 +1,5 @@
 import { query } from '../config/database.js';
+import crypto from 'node:crypto';
 
 // Return a computed `name` while exposing first_name and last_name when available
 const publicFields = "id, COALESCE(NULLIF(TRIM(CONCAT_WS(' ', first_name, last_name)), ''), name) AS name, first_name, last_name, email, phone, avatar_url, role, status, created_at, updated_at";
@@ -45,6 +46,38 @@ export async function update(id, { name, first_name, last_name, phone, avatar_ur
 export async function updatePassword(id, passwordHash) {
   await query('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, id]);
   return findById(id);
+}
+
+async function ensurePasswordResetTable() {
+  await query(`CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    token_hash CHAR(64) NOT NULL UNIQUE,
+    expires_at DATETIME NOT NULL,
+    used_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_password_reset_user (user_id),
+    INDEX idx_password_reset_expiry (expires_at)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+}
+
+export async function createPasswordResetToken(userId) {
+  await ensurePasswordResetTable();
+  await query('DELETE FROM password_reset_tokens WHERE user_id = ? OR expires_at < NOW() OR used_at IS NOT NULL', [userId]);
+  const token = crypto.randomBytes(32).toString('hex');
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  await query('INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 30 MINUTE))', [userId, tokenHash]);
+  return token;
+}
+
+export async function consumePasswordResetToken(token) {
+  await ensurePasswordResetTable();
+  const tokenHash = crypto.createHash('sha256').update(String(token)).digest('hex');
+  const rows = await query('SELECT id, user_id FROM password_reset_tokens WHERE token_hash = ? AND used_at IS NULL AND expires_at > NOW() LIMIT 1', [tokenHash]);
+  if (!rows[0]) return null;
+  await query('UPDATE password_reset_tokens SET used_at = NOW() WHERE id = ? AND used_at IS NULL', [rows[0].id]);
+  return rows[0].user_id;
 }
 
 export async function remove(id) {

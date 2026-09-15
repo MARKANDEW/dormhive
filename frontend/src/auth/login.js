@@ -59,7 +59,7 @@ export async function renderLogin(root = document.querySelector('#app')) {
             <p class="auth-message" role="alert" hidden></p>
             <div class="input-box"><input id="email" name="email" type="email" placeholder="Email" autocomplete="off" required></div>
             <div class="input-box"><input id="password" name="password" type="password" placeholder="Password" autocomplete="new-password" required minlength="8"><button class="password-toggle" type="button" aria-label="Show password" aria-pressed="false"><i class='bx bx-show' aria-hidden="true"></i></button></div>
-            <div class="forgot-link"><a href="#">Forgot Password?</a></div>
+            <div class="forgot-link"><a href="#/forgot-password">Forgot Password?</a></div>
             <button class="btn auth-submit" type="submit">Login</button>
             <p>or login with social platforms</p>
             ${oauthButtonsMarkup()}

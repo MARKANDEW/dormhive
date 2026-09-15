@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt';
 import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
-import { create, findByEmail } from '../models/User.js';
+import { create, createPasswordResetToken, consumePasswordResetToken, findByEmail, updatePassword } from '../models/User.js';
 
 function tokenFor(user) {
   return jwt.sign({ sub: user.id, role: user.role }, process.env.JWT_ACCESS_SECRET, { expiresIn: process.env.JWT_ACCESS_EXPIRES_IN ?? '15m' });
@@ -147,3 +147,31 @@ export async function login(request, response, next) {
 }
 
 export function logout(_request, response) { response.status(204).end(); }
+
+export async function requestPasswordReset(request, response, next) {
+  try {
+    const email = String(request.body.email ?? '').trim().toLowerCase();
+    const user = email ? await findByEmail(email) : null;
+    const result = { message: 'If an account exists for that email, reset instructions have been prepared.' };
+    if (user) {
+      const token = await createPasswordResetToken(user.id);
+      const clientUrl = process.env.CLIENT_URL?.split(',')[0]?.replace(/\/$/, '') ?? 'http://localhost:3000';
+      const resetUrl = `${clientUrl}/#/reset-password?token=${encodeURIComponent(token)}`;
+      if (process.env.NODE_ENV !== 'production') result.developmentResetUrl = resetUrl;
+      console.log(`Password reset link for ${email}: ${resetUrl}`);
+    }
+    response.json(result);
+  } catch (error) { next(error); }
+}
+
+export async function resetPassword(request, response, next) {
+  try {
+    const token = String(request.body.token ?? '');
+    const password = String(request.body.password ?? '');
+    if (!token || password.length < 8) return response.status(422).json({ message: 'A valid token and password of at least 8 characters are required.' });
+    const userId = await consumePasswordResetToken(token);
+    if (!userId) return response.status(400).json({ message: 'This reset link is invalid or expired.' });
+    await updatePassword(userId, await bcrypt.hash(password, 12));
+    response.json({ message: 'Password updated successfully. You can now sign in.' });
+  } catch (error) { next(error); }
+}

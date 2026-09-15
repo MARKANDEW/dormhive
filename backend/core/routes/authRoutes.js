@@ -1,9 +1,11 @@
 import { Router } from 'express';
-import { login, logout, oauthCallback, oauthStart, register } from '../controllers/authController.js';
+import { login, logout, oauthCallback, oauthStart, register, requestPasswordReset, resetPassword } from '../controllers/authController.js';
 import { validate } from '../middleware/validate.js';
 const router = Router();
 router.post('/register', validate(['first_name', 'last_name', 'email', 'password']), register);
 router.post('/login', validate(['email', 'password']), login);
+router.post('/password-reset/request', validate(['email']), requestPasswordReset);
+router.post('/password-reset/confirm', validate(['token', 'password']), resetPassword);
 router.post('/logout', logout);
 router.get('/:provider/start', oauthStart);
 router.get('/:provider/callback', oauthCallback);

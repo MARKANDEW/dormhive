@@ -4,7 +4,7 @@ const ROOT = () => document.querySelector('#app') || document.body;
 const home = { tenant: '/tenant/dashboardTenant', owner: '/owner/dashboardOwner', admin: '/admin/dashboardAdmin' };
 const routes = [
   ['/', 'public', './src/auth/home.js', 'renderHomePage'],
-  ['/login', 'public', './src/auth/login.js', 'renderLogin'], ['/register', 'public', './src/auth/register.js', 'renderRegister'],
+  ['/login', 'public', './src/auth/login.js', 'renderLogin'], ['/register', 'public', './src/auth/register.js', 'renderRegister'], ['/forgot-password', 'public', './src/auth/passwordReset.js', 'renderForgotPassword'], ['/reset-password', 'public', './src/auth/passwordReset.js', 'renderResetPassword'],
   ['/oauth/callback', 'public', './src/auth/oauthCallback.js', 'renderOAuthCallback'],
   ['/tenant/dashboardTenant', 'tenant', './src/users/tenant/dashboardTenant.js', 'renderDashboardTenant'], ['/tenant/booking', 'tenant', './src/users/tenant/booking.js', 'renderBooking'], ['/tenant/message', 'tenant', './src/users/tenant/message.js', 'renderMessage'], ['/tenant/support', 'tenant', './src/users/tenant/support.js', 'renderSupport'], ['/tenant/setting', 'tenant', './src/users/tenant/setting.js', 'renderSetting'],
   ['/owner/dashboardOwner', 'owner', './src/users/owner/dashboardOwner.js', 'renderDashboardOwner'], ['/owner/myListing', 'owner', './src/users/owner/myListing.js', 'renderMyListing'], ['/owner/inquiries', 'owner', './src/users/owner/inquiries.js', 'renderInquiries'], ['/owner/activeTenant', 'owner', './src/users/owner/activeTenant.js', 'renderActiveTenant'], ['/owner/analytics', 'owner', './src/users/owner/analytics.js', 'renderAnalytics'], ['/owner/message', 'owner', './src/users/owner/message.js', 'renderMessage'], ['/owner/support', 'owner', './src/users/owner/support.js', 'renderSupport'], ['/owner/setting', 'owner', './src/users/owner/setting.js', 'renderSetting'],
@@ -21,7 +21,7 @@ function resetAdminScroll() {
   adminMain?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   return adminMain;
 }
-export async function renderRoute() { const renderId = ++routeRenderId; const { path, search } = routeLocation(); const user = currentUser(); const publicRoutes = ['/', '/login', '/register', '/oauth/callback']; if (path === '/' || path === '/login') { if (user) return navigate(redirectForRole(user.role), true); }
+export async function renderRoute() { const renderId = ++routeRenderId; const { path, search } = routeLocation(); const user = currentUser(); const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/oauth/callback']; if (path === '/' || path === '/login') { if (user) return navigate(redirectForRole(user.role), true); }
   const route = routes.find(([url]) => url === path);
   if (!route) return navigate(redirectForRole(user?.role), true);
   if (!user && !publicRoutes.includes(path)) return navigate('/login', true);
