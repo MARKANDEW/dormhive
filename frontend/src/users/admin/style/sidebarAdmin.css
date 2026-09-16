@@ -75,7 +75,8 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: 0 10px 1.1rem;
+  margin: 0 10px 1.1rem -2px;
+  transform: translateX(-6px);
   color: #17344f;
   text-decoration: none;
   white-space: nowrap;
