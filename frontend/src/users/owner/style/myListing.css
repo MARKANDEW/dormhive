@@ -341,7 +341,7 @@ body {
 .form-grid select:focus,
 .form-grid textarea:focus {
   outline: none;
-  border-color: #c79f2f;
+  border-color: #1aa87a;
   box-shadow: 0 0 0 3px rgba(15, 143, 115, 0.1);
 }
 
@@ -386,7 +386,7 @@ body {
 }
 
 .amenity-check:hover {
-  border-color: #c79f2f;
+  border-color: #1aa87a;
   background: #f5fbf9;
 }
 
@@ -394,7 +394,7 @@ body {
   width: 18px;
   height: 18px;
   cursor: pointer;
-  accent-color: #c79f2f;
+  accent-color: #1aa87a;
 }
 
 .amenity-check span {
@@ -404,7 +404,7 @@ body {
 }
 
 .amenity-check input:checked ~ span {
-  color: #c79f2f;
+  color: #1aa87a;
 }
 
 .amenity-chip,
