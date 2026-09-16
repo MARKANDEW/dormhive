@@ -31,7 +31,7 @@ export function renderUserManagement(root = document.querySelector('#app')) {
         <main class="users-page">
           <header class="users-header">
             <div>
-              <div class="users-kicker"><span aria-hidden="true">♙</span> Users</div>
+              <div class="users-kicker">Users</div>
               <h1>User management</h1>
               <p>Search and administer platform accounts.</p>
             </div>

@@ -32,7 +32,7 @@ export function renderListingModeration(root = document.querySelector('#app')) {
         <main class="moderation-page">
           <header class="moderation-header">
             <div>
-              <div class="moderation-kicker"><span aria-hidden="true">▣</span> Moderation</div>
+              <div class="moderation-kicker">Moderation</div>
               <h1>Listing Moderation: ${initialLabel}</h1>
               <p>Manage and review property listings submitted by users.</p>
             </div>

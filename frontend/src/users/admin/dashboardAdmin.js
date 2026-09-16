@@ -309,7 +309,7 @@ export function renderDashboardAdmin(root = document.querySelector('#app')) {
         <main class="admin-dashboard">
           <header class="overview-header">
             <div class="overview-title-wrap">
-              <span class="overview-pill"><span class="overview-pill-icon">⌂</span> Overview</span>
+              <span class="overview-pill">Overview</span>
               <h1>Platform Overview</h1>
               <p>Quick insights into your platform activity and recent user actions.</p>
             </div>

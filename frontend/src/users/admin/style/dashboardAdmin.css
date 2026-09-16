@@ -70,8 +70,18 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
   line-height: 1;
+  transform: translateY(-1px);
+}
+
+.overview-pill-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  color: currentColor;
 }
 
 .overview-header h1 {
