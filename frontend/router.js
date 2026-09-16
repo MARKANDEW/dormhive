@@ -21,7 +21,9 @@ function resetAdminScroll() {
   adminMain?.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   return adminMain;
 }
-export async function renderRoute() { const renderId = ++routeRenderId; const { path, search } = routeLocation(); const user = currentUser(); const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/oauth/callback']; if (path === '/' || path === '/login') { if (user) return navigate(redirectForRole(user.role), true); }
+export async function renderRoute() {
+  if (location.hash && !location.hash.startsWith('#/')) return;
+  const renderId = ++routeRenderId; const { path, search } = routeLocation(); const user = currentUser(); const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/oauth/callback']; if (path === '/' || path === '/login') { if (user) return navigate(redirectForRole(user.role), true); }
   const route = routes.find(([url]) => url === path);
   if (!route) return navigate(redirectForRole(user?.role), true);
   if (!user && !publicRoutes.includes(path)) return navigate('/login', true);
@@ -47,5 +49,5 @@ export async function renderRoute() { const renderId = ++routeRenderId; const { 
     ROOT().textContent = `Unable to load this page: ${error.message}`;
   }
 }
-export function installRouter() { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; addEventListener('hashchange', renderRoute); document.addEventListener('click', (event) => { const link = event.target.closest('a[href]'); if (!link || link.target || link.origin !== location.origin) return; const url = new URL(link.href); if (!url.hash.startsWith('#/')) return; event.preventDefault(); navigate(url.hash.slice(1)); }); }
+export function installRouter() { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; addEventListener('hashchange', () => { if (location.hash.startsWith('#/')) renderRoute(); }); document.addEventListener('click', (event) => { const link = event.target.closest('a[href]'); if (!link || link.target || link.origin !== location.origin) return; const url = new URL(link.href); if (!url.hash.startsWith('#/')) return; event.preventDefault(); navigate(url.hash.slice(1)); }); }
 export { routes };
