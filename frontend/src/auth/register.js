@@ -46,7 +46,11 @@ export async function renderRegister(root = document.querySelector('#app')) {
             <div class="input-box"><input id="password" name="password" type="password" placeholder="Password" required minlength="8"><i class='bx bxs-lock-alt'></i></div>
             <div class="forgot-link"><a href="#/forgot-password">Forgot Password?</a></div>
             <button class="btn auth-submit" type="submit">Login</button>
-            <p>or login with social platforms</p>
+            <div class="social-divider" aria-label="Or continue with">
+              <span class="social-divider-line" aria-hidden="true"></span>
+              <span class="social-divider-text">or</span>
+              <span class="social-divider-line" aria-hidden="true"></span>
+            </div>
             ${oauthButtonsMarkup()}
           </div>
         </form>
