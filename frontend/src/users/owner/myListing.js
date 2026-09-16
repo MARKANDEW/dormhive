@@ -103,7 +103,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
               </label>
               <label class="property-filter">
                 <select>
-                  <option value="">Property Type</option>
+                  <option value="">All Property Type</option>
                   <option value="bedspace">Bedspace</option>
                   <option value="private_room">Solo Room</option>
                   <option value="entire_unit">Studio Unit</option>

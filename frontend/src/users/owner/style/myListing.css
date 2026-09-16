@@ -130,6 +130,8 @@ body {
   font: inherit;
   background: #fff;
   color: #17332e;
+  text-align: left;
+  text-align-last: left;
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -137,8 +139,10 @@ body {
 
 .property-filter select:focus {
   outline: none;
-  border-color: #1aa87a;
-  box-shadow: 0 0 0 3px rgba(26, 168, 122, 0.14);
+  border-color: #d8e2dd;
+  box-shadow: none;
+  text-align: left;
+  text-align-last: left;
 }
 
 .property-filter select option {
@@ -1106,8 +1110,8 @@ body {
 }
 
 .primary-btn {
-  border-color: #c79f2f;
-  background: #c79f2f;
+  border-color: #1aa87a;
+  background: #1aa87a;
   color: #fff;
 }
 
