@@ -179,10 +179,128 @@ a {
   text-transform: uppercase;
 }
 
+.dh-home-loading {
+  min-height: 100vh;
+  background: #ffffff;
+}
+
+.dh-skeleton-header,
+.dh-skeleton-hero,
+.dh-skeleton-feature,
+.dh-skeleton-card,
+.dh-skeleton-line,
+.dh-skeleton-title,
+.dh-skeleton-copy,
+.dh-skeleton-brand,
+.dh-skeleton-pill,
+.dh-skeleton-media {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(90deg, #ebeff0 0%, #f8faf9 40%, #ebeff0 100%);
+  background-size: 200% 100%;
+  animation: dh-skeleton-shimmer 1.35s linear infinite;
+}
+
+.dh-skeleton-header {
+  height: 70px;
+  border-bottom: 1px solid rgba(27, 35, 38, 0.08);
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.dh-skeleton-brand {
+  width: 150px;
+  height: 34px;
+  border-radius: 12px;
+}
+
+.dh-skeleton-nav {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.dh-skeleton-pill {
+  display: block;
+  width: 72px;
+  height: 16px;
+  border-radius: 999px;
+}
+
+.dh-skeleton-hero {
+  min-height: 425px;
+  margin-top: 16px;
+  border-radius: 18px;
+  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.12);
+}
+
 .dh-section {
   max-width: 1040px;
   margin: 0 auto;
   padding-top: 42px;
+}
+
+.dh-skeleton-title {
+  width: 240px;
+  height: 34px;
+  border-radius: 12px;
+  margin: 0 auto 14px;
+}
+
+.dh-skeleton-title-wide {
+  width: 360px;
+}
+
+.dh-skeleton-copy {
+  width: 72%;
+  height: 18px;
+  border-radius: 999px;
+  margin: 0 auto 22px;
+}
+
+.dh-skeleton-copy-wide {
+  width: 82%;
+}
+
+.dh-skeleton-feature {
+  min-height: 172px;
+  border: 1px solid rgba(17, 24, 39, 0.04);
+  border-radius: 14px;
+}
+
+.dh-skeleton-card {
+  border: 1px solid rgba(17, 24, 39, 0.04);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 5px 16px rgba(34, 41, 45, 0.04);
+}
+
+.dh-skeleton-media {
+  height: 260px;
+}
+
+.dh-skeleton-line {
+  display: block;
+  width: 100%;
+  height: 14px;
+  border-radius: 999px;
+  margin-bottom: 12px;
+}
+
+.dh-skeleton-line.short {
+  width: 45%;
+}
+
+.dh-skeleton-card .dh-card-body {
+  padding: 16px 16px 18px;
+}
+
+@keyframes dh-skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .dh-section h2 {

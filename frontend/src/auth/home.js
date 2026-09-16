@@ -13,11 +13,69 @@ function loadStylesheet() {
   document.head.appendChild(link);
 }
 
-export function renderHomePage(root = document.querySelector('#app')) {
+export async function renderHomePage(root = document.querySelector('#app')) {
   if (!root) throw new Error('Home page requires #app');
 
   removeAuthStyles();
   loadStylesheet();
+
+  root.innerHTML = `
+    <div class="dh-home dh-home-loading" aria-live="polite" aria-busy="true" aria-label="Loading homepage">
+      <header class="dh-header dh-skeleton-header">
+        <div class="dh-header-inner">
+          <div class="dh-skeleton-brand" aria-hidden="true"></div>
+          <nav class="dh-nav dh-skeleton-nav" aria-hidden="true">
+            <span class="dh-skeleton-pill"></span>
+            <span class="dh-skeleton-pill"></span>
+            <span class="dh-skeleton-pill"></span>
+          </nav>
+        </div>
+      </header>
+
+      <div class="dh-shell">
+        <section class="dh-hero dh-skeleton-hero" aria-hidden="true"></section>
+
+        <section class="dh-section">
+          <div class="dh-skeleton-title dh-skeleton-title-wide"></div>
+          <div class="dh-skeleton-copy dh-skeleton-copy-wide"></div>
+          <div class="dh-feature-grid">
+            <div class="dh-feature dh-skeleton-feature"></div>
+            <div class="dh-feature dh-skeleton-feature"></div>
+            <div class="dh-feature dh-skeleton-feature"></div>
+          </div>
+        </section>
+
+        <section class="dh-section">
+          <div class="dh-skeleton-title"></div>
+          <div class="dh-types-grid">
+            <div class="dh-card dh-skeleton-card">
+              <div class="dh-card-media dh-skeleton-media"></div>
+              <div class="dh-card-body">
+                <div class="dh-skeleton-line short"></div>
+                <div class="dh-skeleton-line"></div>
+              </div>
+            </div>
+            <div class="dh-card dh-skeleton-card">
+              <div class="dh-card-media dh-skeleton-media"></div>
+              <div class="dh-card-body">
+                <div class="dh-skeleton-line short"></div>
+                <div class="dh-skeleton-line"></div>
+              </div>
+            </div>
+            <div class="dh-card dh-skeleton-card">
+              <div class="dh-card-media dh-skeleton-media"></div>
+              <div class="dh-card-body">
+                <div class="dh-skeleton-line short"></div>
+                <div class="dh-skeleton-line"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  `;
+
+  await new Promise((resolve) => setTimeout(resolve, 280));
 
   root.innerHTML = `
     <div class="dh-home">

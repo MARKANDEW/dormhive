@@ -28,6 +28,11 @@ export async function renderRoute() { const renderId = ++routeRenderId; const { 
   if (user && publicRoutes.includes(path) && path !== '/') return navigate(redirectForRole(user.role), true);
   if (path.startsWith('/admin/')) resetAdminScroll();
   window.DORMHIVE_ROUTE_SEARCH = search;
+  const authRouteSkeletonDisabled = path === '/login' || path === '/register';
+  if (!authRouteSkeletonDisabled) {
+    const { renderRouteSkeleton } = await import('./src/components/pageSkeleton.js');
+    renderRouteSkeleton(ROOT(), path);
+  }
   try {
     const module = await import(`${route[2]}?routeRender=${renderId}`);
     await module[route[3]](ROOT());
