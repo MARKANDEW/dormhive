@@ -131,12 +131,17 @@ form {
 .register-name-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
+  margin-bottom: 0;
 }
 
 .register-name-row .input-box {
   min-width: 0;
   margin: 0;
+}
+
+.form-inner .register-name-row + .input-box {
+  margin-top: 0;
 }
 
 .form-inner h1 {
@@ -148,7 +153,7 @@ form {
 }
 
 .form-inner .checkbox-label {
-  margin: 10px 0 14px;
+  margin: 14px 0 18px;
 }
 
 .container.active .form-box {
@@ -204,6 +209,29 @@ form {
 
 .phone-input-box input {
   padding-left: 72px;
+}
+
+.phone-input-box input::-webkit-clear-button {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  min-width: 10px;
+  background: transparent;
+  border: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 3L9 9M9 3L3 9' stroke='%23666' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 8px 8px;
+  cursor: pointer;
+  margin-inline-end: 4px;
+  opacity: 0.7;
+}
+
+.phone-input-box input::-ms-clear {
+  width: 10px;
+  height: 10px;
+  display: none;
 }
 
 .input-box input::placeholder,
@@ -369,7 +397,7 @@ form {
 }
 
 .form-box.register .auth-submit {
-  margin-top: 16px;
+  margin-top: 8px;
   background: linear-gradient(110deg, var(--dormhive-primary-dark) 0%, var(--dormhive-primary) 100%);
 }
 

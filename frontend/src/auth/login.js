@@ -85,7 +85,7 @@ export async function renderLogin(root = document.querySelector('#app')) {
             <div class="input-box"><input id="email_r" name="email" type="email" placeholder="Email address" required></div>
             <div class="input-box phone-input-box">
               <span class="phone-prefix" aria-hidden="true">+63</span>
-              <input id="phone_r" name="phone" type="tel" inputmode="numeric" placeholder="9XXXXXXXXX" required maxlength="10" autocomplete="tel">
+              <input id="phone_r" name="phone" type="tel" inputmode="numeric" placeholder="9xxxxxxxxxx" required maxlength="10" autocomplete="tel">
             </div>
             <div class="input-box"><select id="role" name="role" required><option value="tenant">I want to</option><option value="tenant">Find a rental</option><option value="owner">List a property</option></select></div>
             <div class="input-box"><input id="password_r" name="password" type="password" placeholder="Password" required minlength="8"><button class="password-toggle" type="button" aria-label="Show password" aria-pressed="false"><i class='bx bx-show' aria-hidden="true"></i></button></div>

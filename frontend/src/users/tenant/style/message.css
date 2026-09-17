@@ -590,6 +590,7 @@ body {
   background: transparent;
 }
 .messages-page .message {
+  position: relative;
   align-self: flex-start;
   max-width: min(76%, 38rem);
   padding: 0.8rem 0.95rem 0.7rem;
@@ -614,11 +615,36 @@ body {
   white-space: pre-wrap;
 }
 .messages-page .message time {
-  display: block;
-  margin-top: 0.35rem;
-  color: inherit;
-  opacity: 0.8;
-  font-size: 0.68rem;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-block;
+  padding: 0.26rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(40, 52, 49, 0.68);
+  color: #fff;
+  font-size: 0.62rem;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  opacity: 0;
+  visibility: hidden;
+  white-space: nowrap;
+  transition:
+    opacity 0.18s ease,
+    visibility 0.18s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+.messages-page .message:not(.is-mine) time {
+  left: calc(100% + 10px);
+}
+.messages-page .message.is-mine time {
+  right: calc(100% + 10px);
+}
+.messages-page .message:hover time,
+.messages-page .message:focus-within time {
+  opacity: 1;
+  visibility: visible;
 }
 .messages-page .message-attachment {
   margin-top: 0.35rem;

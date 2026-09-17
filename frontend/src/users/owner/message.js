@@ -266,12 +266,6 @@ export function renderMessage(root = document.querySelector('#app')) {
 
       messages.innerHTML = (Array.isArray(body.data) ? body.data : []).map((message) => `
         <article class="message-bubble ${message.sender_id === Number(user().id) ? 'mine' : 'their'}">
-          <div class="bubble-meta">
-            <div class="avatar-chip tiny">${message.sender_id === Number(user().id)
-              ? renderAvatar(user().name || 'You', user().avatar_url)
-              : renderAvatar(state.selected.participant_name ?? 'Tenant', state.selected.participant_avatar_url)}</div>
-            <span>${esc(message.sender_id === Number(user().id) ? 'You' : state.selected.participant_name ?? 'Tenant')}</span>
-          </div>
           <div class="bubble-body">${isBookingMessage(message.body) ? renderBookingCard(message.body, state.selected) : renderMessageBody(message.body)}</div>
           <small>${esc(shortDate(message.created_at))} • ${esc(dayTime(message.created_at))}</small>
         </article>

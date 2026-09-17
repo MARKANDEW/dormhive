@@ -301,6 +301,7 @@ body {
   background: #fbfdfc;
 }
 .message-bubble {
+  position: relative;
   max-width: 70%;
   padding: 0.8rem 0.9rem;
   border-radius: 14px;
@@ -341,10 +342,36 @@ body {
   object-position: center;
 }
 .message-bubble small {
-  display: block;
-  margin-top: 8px;
-  font-size: 0.72rem;
-  opacity: 0.8;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-block;
+  padding: 0.26rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(40, 52, 49, 0.68);
+  color: #fff;
+  font-size: 0.62rem;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  opacity: 0;
+  visibility: hidden;
+  white-space: nowrap;
+  transition:
+    opacity 0.18s ease,
+    visibility 0.18s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+.message-bubble.their small {
+  left: calc(100% + 10px);
+}
+.message-bubble.mine small {
+  right: calc(100% + 10px);
+}
+.message-bubble:hover small,
+.message-bubble:focus-within small {
+  opacity: 1;
+  visibility: visible;
 }
 .composer {
   display: grid;
