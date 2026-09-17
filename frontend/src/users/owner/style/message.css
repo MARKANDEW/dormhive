@@ -381,7 +381,22 @@ body {
 .composer-inline-input {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+}
+
+.composer-inline-input > .upload-button {
+  position: relative;
+  padding-right: 8px;
+}
+
+.composer-inline-input > .upload-button::after {
+  content: "";
+  position: absolute;
+  right: -4px;
+  top: 4px;
+  width: 1px;
+  height: 20px;
+  background: #d6e0db;
 }
 .attachment-item {
   position: relative;
@@ -445,13 +460,36 @@ body {
   line-height: 22px;
 }
 .composer button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 42px;
   padding: 0 1.15rem;
   border: 0;
   border-radius: 10px;
-  background: #1aa87a;
+  background: linear-gradient(135deg, #1aa87a 0%, #157c5e 100%);
   color: #fff;
   font-weight: 800;
   cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 8px 16px rgba(26, 168, 122, 0.18);
+}
+
+.composer button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(26, 168, 122, 0.22);
+}
+
+.composer button svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
+.composer button span {
+  white-space: nowrap;
 }
 .empty {
   color: #65776f;

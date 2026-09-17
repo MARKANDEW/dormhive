@@ -225,6 +225,10 @@ export async function renderMessage(root = document.querySelector('#app')) {
                 <span>⌕</span>
                 <input type="search" placeholder="Search conversations..." />
               </label>
+              <div class="conversation-filters" role="group" aria-label="Conversation filters">
+                <button type="button" class="filter-button active" data-filter="all">All</button>
+                <button type="button" class="filter-button" data-filter="unread">Unread</button>
+              </div>
               <p class="status" role="status">Loading conversations…</p>
               <div class="conversations conversation-list"></div>
             </aside>
@@ -253,11 +257,6 @@ export async function renderMessage(root = document.querySelector('#app')) {
 
               <form class="composer" hidden>
                 <div class="composer-tools">
-                  <label class="upload-button" title="Send a photo" aria-label="Send a photo">
-                    <input class="image-input" type="file" accept="image/*" hidden>
-                    <span>＋</span>
-                  </label>
-
                   <div class="composer-input-wrapper">
                     <div class="attachment-strip hidden">
                       <div class="attachment-item">
@@ -265,11 +264,19 @@ export async function renderMessage(root = document.querySelector('#app')) {
                         <button type="button" class="remove-attachment" aria-label="Remove selected photo">×</button>
                       </div>
                     </div>
-                    <label class="sr-only" for="message-text">Message</label>
-                    <textarea id="message-text" maxlength="2000" placeholder="Type a message..." rows="1"></textarea>
+                    <div class="composer-inline-input">
+                      <label class="upload-button" title="Send a photo" aria-label="Send a photo">
+                        <input class="image-input" type="file" accept="image/*" hidden>
+                        <span>＋</span>
+                      </label>
+                      <label class="sr-only" for="message-text">Message</label>
+                      <textarea id="message-text" maxlength="2000" placeholder="Type a message..." rows="1"></textarea>
+                    </div>
                   </div>
 
-                  <button type="submit">Send</button>
+                  <button type="submit" aria-label="Send message">
+                    <i class="bi bi-send"></i>
+                  </button>
                 </div>
               </form>
             </section>

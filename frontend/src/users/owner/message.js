@@ -111,7 +111,9 @@ export function renderMessage(root = document.querySelector('#app')) {
                       <textarea rows="1" maxlength="2000" placeholder="Type your message here..."></textarea>
                     </div>
                   </div>
-                  <button type="submit">Send</button>
+                  <button type="submit" aria-label="Send message">
+                    <i class="bi bi-send"></i>
+                  </button>
                 </div>
               </form>
             </section>

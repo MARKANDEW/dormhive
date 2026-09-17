@@ -216,6 +216,27 @@ body {
   font: inherit;
   color: #32453f;
 }
+.messages-page .conversation-filters {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0.25rem 0 0.75rem;
+}
+.messages-page .filter-button {
+  padding: 0.38rem 0.7rem;
+  border: 1px solid #dce7e2;
+  border-radius: 999px;
+  background: #fff;
+  color: #65776f;
+  font: inherit;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+.messages-page .filter-button.active,
+.messages-page .filter-button:hover {
+  border-color: #c9f0e2;
+  background: #e9f7ef;
+  color: #0a6a4f;
+}
 .messages-page .status {
   margin: 0 0 0.75rem;
   color: #65776f;
@@ -658,40 +679,58 @@ body {
 }
 .messages-page .composer {
   display: block;
-  padding: 12px 16px 14px;
-  border-top: 1px solid #e4dcc7;
-  background: rgba(255, 255, 255, 0.8);
+  padding: 12px 16px;
+  border-top: 1px solid #dce7e2;
+  background: #fff;
   flex-shrink: 0;
 }
 .messages-page .composer-tools {
   display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 0.7rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: flex-end;
+  gap: 10px;
+}
+.messages-page .composer-input-wrapper {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  border: 1px solid #cfe0d8;
+  border-radius: 10px;
+  padding: 4px 8px;
+  background: #fafaf8;
+}
+.messages-page .composer-inline-input {
+  display: flex;
   align-items: center;
+  gap: 8px;
+}
+.messages-page .composer-inline-input > .upload-button {
+  position: relative;
+  padding-right: 8px;
+}
+.messages-page .composer-inline-input > .upload-button::after {
+  content: "";
+  position: absolute;
+  right: -4px;
+  top: 4px;
+  width: 1px;
+  height: 20px;
+  background: #d6e0db;
 }
 .messages-page .upload-button {
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
-  border: 1px solid #d8d0be;
-  border-radius: 12px;
-  background: #f7f5f1;
-  color: #3b4f49;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #3d4f49;
   cursor: pointer;
-  font-size: 1.4rem;
+  font-size: 1.2rem;
 }
 .messages-page .upload-button:hover {
-  background: #f2eee6;
-}
-.messages-page .composer-input-wrapper {
-  display: grid;
-  gap: 8px;
-  border: 1px solid #d9d2c1;
-  border-radius: 14px;
-  padding: 8px;
-  background: #fff;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+  background: #f0f4f1;
 }
 .messages-page .attachment-strip {
   display: flex;
@@ -705,12 +744,12 @@ body {
   position: relative;
   width: 72px;
   height: 72px;
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
   display: grid;
   place-items: center;
   background: #f5efe7;
-  border: 1px solid #e4dcc7;
+  border: 1px solid #dce7e2;
 }
 .messages-page .attachment-item img {
   width: 100%;
@@ -720,43 +759,53 @@ body {
 }
 .messages-page .remove-attachment {
   position: absolute;
-  right: 4px;
-  top: 4px;
+  right: 2px;
+  top: 2px;
   width: 20px;
   height: 20px;
   border: 0;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.72);
+  background: rgba(0, 0, 0, 0.7);
   color: #fff;
   cursor: pointer;
   font-size: 1rem;
 }
 .messages-page .composer textarea {
-  min-height: 48px;
-  max-height: 180px;
-  padding: 0.45rem 0.55rem;
+  flex: 1;
+  width: 100%;
+  height: 32px;
+  min-height: 32px;
+  padding: 5px 6px;
   border: 0;
   outline: 0;
   background: transparent;
   font: inherit;
-  resize: vertical;
+  resize: none;
   color: #2d3d39;
+  line-height: 22px;
 }
 .messages-page .composer button {
-  padding: 0 1.2rem;
-  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 1.15rem;
   border: 0;
-  border-radius: 12px;
-  background: #1aa87a;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #1aa87a 0%, #157c5e 100%);
   color: #fff;
   font-weight: 800;
   cursor: pointer;
-  transition:
-    filter 0.2s ease,
-    transform 0.2s ease;
+  box-shadow: 0 8px 16px rgba(26, 168, 122, 0.18);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 .messages-page .composer button:hover {
-  filter: brightness(0.98);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(26, 168, 122, 0.22);
+}
+.messages-page .composer button i {
+  font-size: 0.95rem;
+  line-height: 1;
 }
 .messages-page .empty-state {
   margin: 0;
