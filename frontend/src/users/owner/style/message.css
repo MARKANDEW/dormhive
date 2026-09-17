@@ -177,22 +177,36 @@ body {
   min-height: 0;
   overflow: hidden;
 }
+.sidebar-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+}
+
 .inbox-search {
   display: flex;
+  align-items: center;
+  gap: 0.55rem;
   flex: 0 0 auto;
+  width: 100%;
   min-width: 0;
   max-width: none;
   min-height: 0;
-  height: 44px;
-  margin: 0 0 0.75rem;
-  padding: 10px 14px;
+  height: 50px;
+  margin: 0 0 0.7rem;
+  padding: 0.75rem 0.8rem;
+  border: 1px solid #e4dcc7;
   border-radius: 12px;
-  background: #e9f7ef;
-  border-color: #c9f0e2;
+  background: #fff;
+  color: #70807b;
 }
 .sidebar-title-row h1 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  color: #2e3a36;
 }
 .status {
   margin: 0.8rem 0;
@@ -591,16 +605,10 @@ body {
   }
 }
 
-.inbox-count {
-  display: block;
-  margin-top: 0.25rem;
-  color: #65776f;
-  font-size: 0.75rem;
-}
 .conversation-filters {
   display: flex;
   gap: 0.4rem;
-  margin: 0.2rem 0 0.75rem;
+  margin: 0 0 0.75rem;
 }
 .filter-button {
   padding: 0.38rem 0.7rem;

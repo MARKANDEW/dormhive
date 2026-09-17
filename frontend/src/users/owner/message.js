@@ -62,8 +62,7 @@ export function renderMessage(root = document.querySelector('#app')) {
           <section class="inbox-layout">
             <aside class="inbox-sidebar">
               <div class="sidebar-title-row">
-                <h1>Inbox</h1>
-                <span class="inbox-count" aria-live="polite"></span>
+                <h1>Chats</h1>
               </div>
               <label class="search-bar inbox-search" aria-label="Search my listings, inquiries, tenants">
                 <span>⌕</span>
@@ -127,7 +126,6 @@ export function renderMessage(root = document.querySelector('#app')) {
   const messages = root.querySelector('.messages');
   const form = root.querySelector('.composer');
   const status = root.querySelector('.status');
-  const inboxCount = root.querySelector('.inbox-count');
   const propertyContext = root.querySelector('.owner-property-context');
   const filterButtons = Array.from(root.querySelectorAll('.filter-button'));
   const chatTitle = root.querySelector('#chat-contact');
@@ -240,9 +238,6 @@ export function renderMessage(root = document.querySelector('#app')) {
         </button>
       `).join('')
       : '<div class="empty-conversations"><span>💬</span><strong>No conversations yet</strong><small>Tenant inquiries and messages will appear here.</small></div>';
-
-    const unread = state.conversations.reduce((total, item) => total + Number(item.unread_count ?? 0), 0);
-    inboxCount.textContent = `${state.conversations.length} conversation${state.conversations.length === 1 ? '' : 's'}${unread ? ` • ${unread} unread` : ''}`;
 
     list.querySelectorAll('.conversation-item').forEach((button) => {
       button.addEventListener('click', () => select(button.dataset.id));

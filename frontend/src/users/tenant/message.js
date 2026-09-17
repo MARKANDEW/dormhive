@@ -230,8 +230,7 @@ export async function renderMessage(root = document.querySelector('#app')) {
           <section class="messages-layout inbox-layout">
             <aside class="conversation-list inbox-sidebar">
               <div class="sidebar-title-row">
-                <h1>Messages</h1>
-                <span class="unread-banner">0 unread</span>
+                <h1>Chats</h1>
               </div>
               <label class="messages-search" aria-label="Search conversations">
                 <span>⌕</span>
@@ -241,7 +240,6 @@ export async function renderMessage(root = document.querySelector('#app')) {
                 <button type="button" class="filter-button active" data-filter="all">All</button>
                 <button type="button" class="filter-button" data-filter="unread">Unread</button>
               </div>
-              <p class="status" role="status">Loading conversations…</p>
               <div class="conversations conversation-list"></div>
             </aside>
 
@@ -298,9 +296,8 @@ export async function renderMessage(root = document.querySelector('#app')) {
     </div>
   `;
 
-  const state = { selected: null, conversations: [], propertyDetails: {} };
+  const state = { selected: null, conversations: [], propertyDetails: {}, filter: 'all' };
   const status = root.querySelector('.status');
-  const unreadBanner = root.querySelector('.unread-banner');
   const conversations = root.querySelector('.conversations');
   const list = root.querySelector('.message-list');
   const form = root.querySelector('.composer');
@@ -394,13 +391,23 @@ export async function renderMessage(root = document.querySelector('#app')) {
   };
 
   const renderThreads = () => {
+    const filterMode = state.filter ?? 'all';
     const filtered = state.conversations.filter((item) => {
+      const matchesFilter = filterMode === 'all' || Number(item.unread_count ?? 0) > 0;
+      if (!matchesFilter) return false;
+
       const searchTerm = searchInput?.value?.trim().toLowerCase() ?? '';
       if (!searchTerm) return true;
 
       const propertyTitle = propertyFor(item)?.title ?? '';
       const haystack = `${item.participant_name ?? ''} ${propertyTitle} ${item.last_message ?? ''}`.toLowerCase();
       return haystack.includes(searchTerm);
+    });
+
+    root.querySelectorAll('.filter-button').forEach((button) => {
+      const isActive = (button.dataset.filter ?? 'all') === filterMode;
+      button.classList.toggle('active', isActive);
+      button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
     });
 
     conversations.innerHTML = filtered.length
@@ -425,10 +432,6 @@ export async function renderMessage(root = document.querySelector('#app')) {
           `;
         }).join('')
       : '<p class="empty-state">No conversations found.</p>';
-
-    const totalUnread = state.conversations.reduce((sum, item) => sum + Number(item.unread_count ?? 0), 0);
-    unreadBanner.textContent = `${totalUnread} unread`;
-    unreadBanner.classList.toggle('is-empty', totalUnread === 0);
 
     conversations.querySelectorAll('.conversation-item').forEach((button) => {
       button.addEventListener('click', () => {
@@ -631,6 +634,14 @@ export async function renderMessage(root = document.querySelector('#app')) {
     location.assign('#/login');
   });
 
+  root.querySelectorAll('.filter-button').forEach((button) => {
+    button.addEventListener('click', () => {
+      const nextFilter = button.dataset.filter ?? 'all';
+      state.filter = nextFilter;
+      renderThreads();
+    });
+  });
+
   const syncTenantProfileChip = async () => {
     const user = await refreshTenantUserSession();
     const fullName = tenantFullName(user);
@@ -684,8 +695,6 @@ export async function renderMessage(root = document.querySelector('#app')) {
       if (!response.ok) throw new Error(body.message);
 
       state.conversations = Array.isArray(body.data) ? body.data : [];
-      status.textContent = `${state.conversations.length} conversation${state.conversations.length === 1 ? '' : 's'}`;
-
       await Promise.all(state.conversations.map(async (item) => {
         if (item.property_id) await fetchPropertyDetails(item.property_id);
       }));
