@@ -846,6 +846,11 @@ a {
   color: #136045;
 }
 
+.status-approved {
+  background: #dff4e8;
+  color: #136045;
+}
+
 .status-pending {
   background: #f9e9e9;
   color: #a32626;

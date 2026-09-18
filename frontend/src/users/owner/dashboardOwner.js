@@ -21,6 +21,7 @@ const statusClass = {
   new: 'status-new',
   'new-inquiry': 'status-new',
   replied: 'status-replied',
+  approved: 'status-approved',
   pending: 'status-pending'
 };
 const formatNotificationDate = (value) => new Date(value ?? Date.now()).toLocaleDateString([], { month: 'short', day: 'numeric' });
