@@ -20,7 +20,7 @@ export async function create(tenantId, { propertyId, moveInDate, moveOutDate, oc
 }
 
 export async function findById(id) {
-  const rows = await query('SELECT b.*, p.title AS property_title, p.owner_id FROM bookings b JOIN properties p ON p.id = b.property_id WHERE b.id = ? LIMIT 1', [id]);
+  const rows = await query('SELECT b.*, p.title AS property_title, p.monthly_rent, p.owner_id FROM bookings b JOIN properties p ON p.id = b.property_id WHERE b.id = ? LIMIT 1', [id]);
   return rows[0] ?? null;
 }
 

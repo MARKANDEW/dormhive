@@ -456,7 +456,9 @@ export async function renderInquiries(root = document.querySelector('#app')) {
           </div>
           <div class="cell message-cell">${esc(messageText)}</div>
           <div class="cell action-cell">
-            <button type="button" class="reply-action" data-booking-id="${booking.id}">Reply</button>
+            <button type="button" class="reply-action" data-booking-id="${booking.id}" aria-label="Reply" title="Reply">
+              <i class="bi bi-send" aria-hidden="true"></i>
+            </button>
           </div>
         </div>`;
     }).join('');
@@ -477,7 +479,14 @@ export async function renderInquiries(root = document.querySelector('#app')) {
         event.stopPropagation();
         const id = Number(button.dataset.bookingId);
         const booking = state.bookings.find((item) => item.id === id);
-        if (booking) openReplyComposer(booking);
+        if (!booking) return;
+        localStorage.setItem('dormhive.activeTenantSelection', JSON.stringify({
+          tenantId: booking.tenant_id,
+          propertyId: booking.property_id,
+          tenantName: booking.tenant_name || 'Tenant',
+          propertyTitle: booking.property_title || 'Property'
+        }));
+        location.hash = '#/owner/message';
       });
     });
   };

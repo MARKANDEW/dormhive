@@ -83,7 +83,7 @@ export async function ticket(request, response, next) {
           }
           .ticket-header {
             text-align: center;
-            border-bottom: 2px solid #b07b34;
+            border-bottom: 2px solid #1f8c75;
             padding-bottom: 20px;
             margin-bottom: 30px;
           }
@@ -132,7 +132,7 @@ export async function ticket(request, response, next) {
             grid-template-columns: 1fr 1fr 1fr;
             gap: 20px;
             padding: 20px;
-            background: #f9f5f1;
+            background: #e7f8f2;
             border-radius: 6px;
             margin-bottom: 20px;
           }
@@ -142,7 +142,7 @@ export async function ticket(request, response, next) {
           .dates-item-value {
             font-size: 18px;
             font-weight: 700;
-            color: #b07b34;
+            color: #1f8c75;
             margin-bottom: 4px;
           }
           .dates-item-label {
@@ -160,7 +160,7 @@ export async function ticket(request, response, next) {
             margin-bottom: 20px;
           }
           .footer {
-            border-top: 1px solid #e6dccd;
+            border-top: 1px solid #d6ebe2;
             padding-top: 20px;
             font-size: 12px;
             color: #8a7f75;
@@ -170,7 +170,7 @@ export async function ticket(request, response, next) {
             display: block;
             margin: 20px auto;
             padding: 10px 20px;
-            background: #b07b34;
+            background: #1f8c75;
             color: white;
             border: none;
             border-radius: 6px;
@@ -179,7 +179,7 @@ export async function ticket(request, response, next) {
             font-weight: 600;
           }
           .print-btn:hover {
-            background: #9d6a2a;
+            background: #16705e;
           }
           @media print {
             .print-btn { display: none; }

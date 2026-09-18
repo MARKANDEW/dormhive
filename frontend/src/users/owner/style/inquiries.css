@@ -266,11 +266,11 @@ textarea {
 }
 
 .inquiry-row.selected {
-  background: #fbf5eb;
+  background: var(--dormhive-green-soft);
 }
 
 .inquiry-row.selected::before {
-  background: var(--dormhive-gold);
+  background: var(--dormhive-green);
 }
 
 .cell {
@@ -311,16 +311,19 @@ textarea {
 }
 
 .reply-action {
-  min-width: 88px;
+  width: 40px;
   min-height: 34px;
-  padding: 0 14px;
-  border: 1px solid rgba(215, 155, 43, 0.8);
+  padding: 0;
+  border: 1px solid rgba(31, 140, 117, 0.8);
   border-radius: 8px;
   background: #fff;
-  color: var(--dormhive-gold);
+  color: var(--dormhive-green);
   font-weight: 700;
   cursor: pointer;
-  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateX(-35px);
 }
 
 .action-cell {
@@ -600,8 +603,8 @@ textarea {
   display: grid;
   place-items: center;
   border-radius: 12px;
-  background: var(--dormhive-gold-soft);
-  color: var(--dormhive-gold);
+  background: var(--dormhive-green-soft);
+  color: var(--dormhive-green);
   font-size: 1.4rem;
   margin-bottom: 12px;
 }
@@ -1182,8 +1185,8 @@ textarea {
   display: grid;
   place-items: center;
   border-radius: 12px;
-  background: var(--dormhive-gold-soft);
-  color: var(--dormhive-gold);
+  background: var(--dormhive-green-soft);
+  color: var(--dormhive-green);
   font-size: 1.4rem;
   margin-bottom: 12px;
 }

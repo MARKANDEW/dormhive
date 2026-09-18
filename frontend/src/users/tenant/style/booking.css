@@ -122,8 +122,8 @@ body {
 }
 
 .pill--amber {
-  background: #fce0cc;
-  color: #c67d2b;
+  background: #e0f2e8;
+  color: #2a6e4a;
 }
 
 .pill--grey {
@@ -362,12 +362,12 @@ body {
   padding: 0 14px;
   border: none;
   border-radius: 14px;
-  background: linear-gradient(180deg, #c99f56 0%, #b78239 100%);
+  background: linear-gradient(180deg, #1f8c75 0%, #16705e 100%);
   color: #fff;
   font-size: 1rem;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 9px 22px rgba(156, 103, 34, 0.18);
+  box-shadow: 0 9px 22px rgba(31, 140, 117, 0.18);
   margin-left: 0;
   align-self: flex-end;
 }
@@ -392,7 +392,7 @@ body {
   border: none;
   border-radius: 14px;
 
-  background: linear-gradient(180deg, #c99f56 0%, #b78239 100%);
+  background: linear-gradient(180deg, #1f8c75 0%, #16705e 100%);
   color: #fff;
 
   font-size: 1rem;
@@ -400,7 +400,7 @@ body {
 
   cursor: pointer;
 
-  box-shadow: 0 9px 22px rgba(156, 103, 34, 0.18);
+  box-shadow: 0 9px 22px rgba(31, 140, 117, 0.18);
   margin-left: 0;
   align-self: flex-end;
 }
@@ -508,14 +508,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #fce4cc 0%, #f5d9b3 100%);
+  background: linear-gradient(135deg, #e0f2e8 0%, #c7e7d6 100%);
   border-radius: 50%;
 }
 
 .title-icon-badge .icon {
   width: 24px;
   height: 24px;
-  color: #daa520;
+  color: #1f8c75;
 }
 
 .booking-card-title h3 {
@@ -564,8 +564,8 @@ body {
 }
 
 .pill--amber {
-  background: #f0e0ce;
-  color: #c07717;
+  background: #e0f2e8;
+  color: #2a6e4a;
 }
 
 .pill--grey {
@@ -633,7 +633,7 @@ body {
   justify-content: center;
   white-space: nowrap;
   background: #ffffff;
-  color: #645403;
+  color: #000000;
 }
 
 .booking-card-actions .btn:hover {
@@ -643,19 +643,19 @@ body {
 }
 
 .booking-card-actions .btn--primary {
-  background: linear-gradient(135deg, #daa520 0%, #b8860b 100%);
+  background: linear-gradient(135deg, #1f8c75 0%, #16705e 100%);
   color: #ffffff;
-  border-color: #daa520;
+  border-color: #1f8c75;
 }
 
 .booking-card-actions .btn--primary:hover {
-  background: linear-gradient(135deg, #daa520 0%, #b8860b 100%);
-  box-shadow: 0 4px 10px rgba(218, 165, 32, 0.3);
+  background: linear-gradient(135deg, #1f8c75 0%, #16705e 100%);
+  box-shadow: 0 4px 10px rgba(31, 140, 117, 0.3);
   transform: translateY(-1px);
 }
 
 .booking-card-actions .btn--primary:active {
-  background: linear-gradient(135deg, #b8860b 0%, #9a6d08 100%);
+  background: linear-gradient(135deg, #16705e 0%, #0f5b4d 100%);
 }
 
 .empty-state {
