@@ -174,7 +174,7 @@ input {
   height: 30px;
   border: 0;
   border-radius: 50%;
-  background: #d39a2d;
+  background: #1aa87a;
   color: #fff;
   display: grid;
   place-items: center;
@@ -274,11 +274,17 @@ input {
 .account-form input {
   width: 100%;
   padding: 0.88rem 1rem;
-  border: 1px solid #f0e5c6;
+  border: 1px solid #cfe8dc;
   border-radius: 12px;
   background: #fff;
   color: #121212;
   font-size: 0.95rem;
+}
+
+.account-form input:focus {
+  border-color: #1aa87a;
+  outline: 2px solid rgba(26, 168, 122, 0.25);
+  outline-offset: 1px;
 }
 
 .account-form input[readonly] {
