@@ -17,6 +17,7 @@ const backendDirectory = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDirectory = path.join(backendDirectory, 'core', 'uploads');
 const serverStartedAt = Date.now();
 const port = Number.parseInt(process.env.PORT ?? '5000', 10);
+const fallbackPort = port === 5000 ? 5001 : port + 1;
 const allowedOrigins = (process.env.CLIENT_URL ?? 'http://localhost:3000,https://dormhive-frontend.vercel.app')
   .split(',')
   .map((origin) => origin.trim().replace(/\/+$/, ''))
@@ -123,6 +124,22 @@ app.use('/api/v1', apiRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
-app.listen(port, () => {
+const startServer = (listenPort) => {
+  app.listen(listenPort, () => {
+    console.log(`DormHive API listening on port ${listenPort}`);
+  });
+};
+
+const server = app.listen(port, () => {
   console.log(`DormHive API listening on port ${port}`);
+});
+
+server.on('error', (error) => {
+  if (error && error.code === 'EADDRINUSE') {
+    console.warn(`Port ${port} is busy. Retrying on ${fallbackPort}.`);
+    startServer(fallbackPort);
+    return;
+  }
+
+  throw error;
 });
