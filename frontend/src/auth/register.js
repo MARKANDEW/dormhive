@@ -1,6 +1,7 @@
 const API_BASE_URL = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 import { bindOAuthButtons, oauthButtonsMarkup } from './oauth.js';
 import { showToast } from '../components/toast.js';
+import { openLegalModal } from './legal.js';
 import { navigate } from '../../router.js';
 import { getApiErrorMessage, readApiResponse } from '../services/api.js';
 
@@ -76,7 +77,7 @@ export async function renderRegister(root = document.querySelector('#app')) {
             <div class="input-box"><select id="role" name="role" required><option value="tenant">I want to</option><option value="tenant">Find a rental</option><option value="owner">List a property</option></select></div>
             <div class="input-box"><input id="password_r" name="password" type="password" placeholder="Password" required minlength="8"><button class="password-toggle" type="button" aria-label="Show password" aria-pressed="false"><i class='bx bx-show' aria-hidden="true"></i></button></div>
             <div class="input-box"><input id="confirm_password" name="confirmPassword" type="password" placeholder="Confirm password" required minlength="8"><button class="password-toggle" type="button" aria-label="Show password" aria-pressed="false"><i class='bx bx-show' aria-hidden="true"></i></button></div>
-            <label class="checkbox-label"><input name="terms" type="checkbox" required> I agree to the terms of service.</label>
+            <label class="checkbox-label"><input name="terms" type="checkbox" required> I agree to the <a href="#/terms">Terms and conditions</a>.</label>
             <button class="btn auth-submit" type="submit">Register</button>
           </div>
         </form>
@@ -116,6 +117,14 @@ export async function renderRegister(root = document.querySelector('#app')) {
   const submitButton = root.querySelector('.auth-submit');
   const phoneInput = root.querySelector('#phone_r');
   bindOAuthButtons(root);
+
+  root.querySelectorAll('.checkbox-label a[href="#/terms"], .checkbox-label a[href="#/privacy"]').forEach((link) => {
+    link.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openLegalModal(link.getAttribute('href') === '#/terms' ? 'terms' : 'privacy');
+    });
+  });
 
   root.querySelectorAll('.password-toggle').forEach((toggle) => {
     toggle.addEventListener('click', () => {

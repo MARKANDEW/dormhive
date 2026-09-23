@@ -47,7 +47,7 @@ a {
   top: 0;
   z-index: 10;
   backdrop-filter: blur(10px);
-  background: rgba(255, 255, 255, 0.94);
+  background: #1aa87a;
   border-bottom: 1px solid rgba(27, 35, 38, 0.08);
 }
 
@@ -67,7 +67,7 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  color: var(--dh-ink);
+  color: #ffffff;
   font-weight: 800;
   letter-spacing: -0.03em;
   font-size: 1.02rem;
@@ -75,13 +75,13 @@ a {
 
 .dh-brand-name {
   display: inline-flex;
-  color: #0d5f4a;
+  color: #ffffff;
   letter-spacing: -0.05em;
   line-height: 1;
 }
 
 .dh-brand-name span:last-child {
-  color: #c68a16;
+  color: #f4c95d;
 }
 
 .dh-brand-mark {
@@ -117,7 +117,7 @@ a {
 }
 
 .dh-nav a {
-  color: var(--dh-ink);
+  color: #ffffff;
   font-weight: 600;
 }
 

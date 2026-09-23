@@ -5,6 +5,8 @@
   margin: auto;
   width: min(92vw, 34rem);
   max-height: calc(100vh - 2rem);
+  display: flex;
+  flex-direction: column;
   padding: 0;
   border: 0;
   border-radius: 0.8rem;
@@ -12,7 +14,8 @@
   font-family: Inter, system-ui, sans-serif;
 }
 .ui-modal::backdrop {
-  background: #4a372088;
+  background: rgb(15 23 42 / 42%);
+  backdrop-filter: blur(5px);
 }
 .ui-modal__header,
 .ui-modal__footer {
@@ -37,10 +40,55 @@
   line-height: 1.55;
   overflow-y: auto;
 }
+.legal-modal-intro,
+.legal-modal-section p {
+  margin: 0;
+  color: #465b57;
+  font-size: 0.95rem;
+}
+.legal-modal-section {
+  margin-top: 1.25rem;
+}
+.legal-modal-section h3 {
+  margin: 0 0 0.5rem;
+  color: #17352f;
+  font-size: 1.08rem;
+}
 .ui-modal__footer {
   justify-content: flex-end;
   border-top: 1px solid #e6d6b6;
   border-bottom: 0;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.legal-modal-tabs {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.legal-modal-tab {
+  flex: 1 1 10rem;
+  min-height: 2.25rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid transparent;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: #465b57;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.legal-modal-tab:hover,
+.legal-modal-tab:focus-visible {
+  border-color: #1aa87a;
+  outline: none;
+}
+.legal-modal-tab.is-selected {
+  background: #e6f5ef;
+  border-color: #1aa87a;
+  color: #087f5b;
 }
 .ui-modal__footer button {
   padding: 0.6rem 0.9rem;
