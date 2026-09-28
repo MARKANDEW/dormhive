@@ -169,8 +169,9 @@ const openPropertyDetails = (property) => {
   const amenities = Array.isArray(property.amenities)
     ? property.amenities.join(', ')
     : String(property.amenities ?? '').replace(/[\[\]"']/g, '').replace(/,/g, ', ');
-  const modal = createModal({ title: property.title || 'Property Details', content: '', closeLabel: 'Close' });
+  const modal = createModal({ title: 'Property Details', content: '', closeLabel: 'Close' });
   modal.classList.add('tenant-message-modal');
+  modal.classList.add('tenant-property-details-modal');
   modal.querySelector('.ui-modal__body').innerHTML = `
     <div class="message-property-details">
       ${image ? `<img class="message-property-image" src="${escape(image)}" alt="${escape(property.title || 'Property')} photo" />` : ''}
@@ -187,8 +188,8 @@ const openPropertyDetails = (property) => {
           <p><span>Gender preference</span><strong>${escape(property.gender_preference || 'Not specified')}</strong></p>
           <p><span>Owner</span><strong>${escape(property.owner_name || 'Not specified')}</strong></p>
         </div>
-        <p class="message-property-description">${escape(property.description || 'No description provided.')}</p>
         <p class="message-property-amenities"><span>Amenities</span><strong>${escape(amenities || 'None listed')}</strong></p>
+        <p class="message-property-description">${escape(property.description || 'No description provided.')}</p>
       </div>
     </div>
   `;
