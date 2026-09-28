@@ -1,4 +1,5 @@
 import * as bookings from '../models/Booking.js';
+import * as properties from '../models/Property.js';
 import { createConversation } from '../models/Message.js';
 import { findById as findPropertyById } from '../models/Property.js';
 
@@ -31,8 +32,14 @@ export async function updateStatus(request, response, next) {
     if (!booking) return response.status(404).json({ message: 'Booking not found.' });
     const allowed = request.user.role === 'admin' || booking.owner_id === request.user.id || (booking.tenant_id === request.user.id && request.body.status === 'cancelled');
     if (!allowed) return response.status(403).json({ message: 'Permission denied.' });
-    if (!['approved', 'rejected', 'cancelled'].includes(request.body.status)) return response.status(422).json({ message: 'Invalid booking status.' });
-    response.json({ data: await bookings.updateStatus(booking.id, request.body.status) });
+    const nextStatus = String(request.body.status || '').toLowerCase();
+    if (!['approved', 'rejected', 'cancelled'].includes(nextStatus)) return response.status(422).json({ message: 'Invalid booking status.' });
+    const previousStatus = String(booking.status || '').toLowerCase();
+    const updated = await bookings.updateStatus(booking.id, nextStatus);
+    if (previousStatus === 'approved' || nextStatus === 'approved') {
+      await properties.syncAvailability(booking.property_id);
+    }
+    response.json({ data: updated });
   } catch (error) { next(error); }
 }
 

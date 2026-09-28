@@ -9,6 +9,16 @@ export async function findByEmail(email) {
   return rows[0] ?? null;
 }
 
+export async function findByPhone(phone) {
+  const digits = String(phone).replace(/\D/g, '');
+  const localNumber = digits.startsWith('63') ? digits.slice(2) : digits;
+  const candidates = [...new Set([phone, digits, localNumber, `0${localNumber}`])];
+  const placeholders = candidates.map(() => '?').join(', ');
+  const normalizedPhoneSql = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone, '+', ''), ' ', ''), '-', ''), '(', ''), ')', ''), '.', '')";
+  const rows = await query(`SELECT ${publicFields} FROM users WHERE phone IN (${placeholders}) OR ${normalizedPhoneSql} IN (?, ?, ?) LIMIT 1`, [...candidates, digits, localNumber, `0${localNumber}`]);
+  return rows[0] ?? null;
+}
+
 export async function findById(id) {
   const rows = await query(`SELECT ${publicFields} FROM users WHERE id = ? LIMIT 1`, [id]);
   return rows[0] ?? null;
@@ -62,22 +72,76 @@ async function ensurePasswordResetTable() {
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
 }
 
+let passwordResetOtpTableReady = false;
+
+async function ensurePasswordResetOtpTable() {
+  if (passwordResetOtpTableReady) return;
+  await query(`CREATE TABLE IF NOT EXISTS password_reset_otps (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    phone_e164 VARCHAR(16) NOT NULL UNIQUE,
+    verification_sid VARCHAR(64) NOT NULL,
+    attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    expires_at DATETIME NOT NULL,
+    resend_after DATETIME NOT NULL,
+    verified_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_password_reset_otp_expiry (expires_at)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+  passwordResetOtpTableReady = true;
+}
+
+export async function getPasswordResetOtpChallenge(phone) {
+  await ensurePasswordResetOtpTable();
+  const rows = await query(`SELECT user_id, phone_e164, verification_sid, attempts, expires_at, resend_after, verified_at,
+    GREATEST(TIMESTAMPDIFF(SECOND, NOW(), expires_at), 0) AS expires_in_seconds,
+    GREATEST(TIMESTAMPDIFF(SECOND, NOW(), resend_after), 0) AS resend_in_seconds
+    FROM password_reset_otps WHERE phone_e164 = ? LIMIT 1`, [phone]);
+  return rows[0] ?? null;
+}
+
+export async function createPasswordResetOtpChallenge({ userId, phone, verificationSid }) {
+  await ensurePasswordResetOtpTable();
+  await query('DELETE FROM password_reset_otps WHERE expires_at < NOW() OR verified_at IS NOT NULL');
+  await query(`INSERT INTO password_reset_otps (user_id, phone_e164, verification_sid, attempts, expires_at, resend_after)
+    VALUES (?, ?, ?, 0, DATE_ADD(NOW(), INTERVAL 5 MINUTE), DATE_ADD(NOW(), INTERVAL 60 SECOND))
+    ON DUPLICATE KEY UPDATE user_id = VALUES(user_id), verification_sid = VALUES(verification_sid), attempts = 0,
+      expires_at = VALUES(expires_at), resend_after = VALUES(resend_after), verified_at = NULL`, [userId, phone, verificationSid]);
+}
+
+export async function incrementPasswordResetOtpAttempt(phone) {
+  await ensurePasswordResetOtpTable();
+  const result = await query(`UPDATE password_reset_otps SET attempts = attempts + 1
+    WHERE phone_e164 = ? AND expires_at > NOW() AND verified_at IS NULL AND attempts < 5`, [phone]);
+  if (!result.affectedRows) return null;
+  const rows = await query('SELECT attempts FROM password_reset_otps WHERE phone_e164 = ? LIMIT 1', [phone]);
+  return rows[0]?.attempts ?? null;
+}
+
+export async function markPasswordResetOtpVerified(phone) {
+  await ensurePasswordResetOtpTable();
+  const result = await query(`UPDATE password_reset_otps SET verified_at = NOW()
+    WHERE phone_e164 = ? AND expires_at > NOW() AND verified_at IS NULL AND attempts <= 5`, [phone]);
+  return result.affectedRows === 1;
+}
+
 export async function createPasswordResetToken(userId) {
   await ensurePasswordResetTable();
   await query('DELETE FROM password_reset_tokens WHERE user_id = ? OR expires_at < NOW() OR used_at IS NOT NULL', [userId]);
   const token = crypto.randomBytes(32).toString('hex');
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-  await query('INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 30 MINUTE))', [userId, tokenHash]);
+  await query('INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE))', [userId, tokenHash]);
   return token;
 }
 
 export async function consumePasswordResetToken(token) {
   await ensurePasswordResetTable();
   const tokenHash = crypto.createHash('sha256').update(String(token)).digest('hex');
-  const rows = await query('SELECT id, user_id FROM password_reset_tokens WHERE token_hash = ? AND used_at IS NULL AND expires_at > NOW() LIMIT 1', [tokenHash]);
-  if (!rows[0]) return null;
-  await query('UPDATE password_reset_tokens SET used_at = NOW() WHERE id = ? AND used_at IS NULL', [rows[0].id]);
-  return rows[0].user_id;
+  const result = await query('UPDATE password_reset_tokens SET used_at = NOW() WHERE token_hash = ? AND used_at IS NULL AND expires_at > NOW()', [tokenHash]);
+  if (result.affectedRows !== 1) return null;
+  const rows = await query('SELECT user_id FROM password_reset_tokens WHERE token_hash = ? LIMIT 1', [tokenHash]);
+  return rows[0]?.user_id ?? null;
 }
 
 export async function remove(id) {

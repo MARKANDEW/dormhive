@@ -10,6 +10,7 @@ export async function list({ page, limit, municipality, roomType, minPrice, maxP
     values.push(viewer.id);
   } else {
     filters.push("p.status = 'approved'");
+    filters.push('COALESCE((SELECT SUM(COALESCE(b.occupants, 1)) FROM bookings b WHERE b.property_id = p.id AND b.status = "approved"), 0) < COALESCE(p.max_occupants, p.available_slots, 0)');
   }
   if (municipality) { filters.push('p.municipality = ?'); values.push(municipality); }
   if (roomType) { filters.push('p.room_type = ?'); values.push(roomType); }
@@ -18,13 +19,13 @@ export async function list({ page, limit, municipality, roomType, minPrice, maxP
   if (status) { filters.push('p.status = ?'); values.push(status); }
   const where = filters.join(' AND ') || '1 = 1';
   const offset = (page - 1) * limit;
-  const rows = await query(`SELECT p.*, COALESCE(NULLIF(TRIM(CONCAT_WS(' ', u.first_name, u.last_name)), ''), NULLIF(TRIM(u.name), '')) AS owner_name, u.email AS owner_email, u.avatar_url AS owner_avatar_url FROM properties p JOIN users u ON u.id = p.owner_id WHERE ${where} ORDER BY p.created_at DESC LIMIT ? OFFSET ?`, [...values, limit, offset]);
+  const rows = await query(`SELECT p.*, COALESCE((SELECT SUM(COALESCE(b.occupants, 1)) FROM bookings b WHERE b.property_id = p.id AND b.status = 'approved'), 0) AS occupied_units, COALESCE(NULLIF(TRIM(CONCAT_WS(' ', u.first_name, u.last_name)), ''), NULLIF(TRIM(u.name), '')) AS owner_name, u.email AS owner_email, u.avatar_url AS owner_avatar_url FROM properties p JOIN users u ON u.id = p.owner_id WHERE ${where} ORDER BY p.created_at DESC LIMIT ? OFFSET ?`, [...values, limit, offset]);
   const total = await query(`SELECT COUNT(*) AS count FROM properties p WHERE ${where}`, values);
   return { rows, total: total[0].count };
 }
 
 export async function findById(id) {
-  const rows = await query(`SELECT p.*, COALESCE(NULLIF(TRIM(CONCAT_WS(' ', u.first_name, u.last_name)), ''), NULLIF(TRIM(u.name), '')) AS owner_name, u.email AS owner_email, u.avatar_url AS owner_avatar_url FROM properties p JOIN users u ON u.id = p.owner_id WHERE p.id = ? LIMIT 1`, [id]);
+  const rows = await query(`SELECT p.*, COALESCE((SELECT SUM(COALESCE(b.occupants, 1)) FROM bookings b WHERE b.property_id = p.id AND b.status = 'approved'), 0) AS occupied_units, COALESCE(NULLIF(TRIM(CONCAT_WS(' ', u.first_name, u.last_name)), ''), NULLIF(TRIM(u.name), '')) AS owner_name, u.email AS owner_email, u.avatar_url AS owner_avatar_url FROM properties p JOIN users u ON u.id = p.owner_id WHERE p.id = ? LIMIT 1`, [id]);
   return rows[0] ?? null;
 }
 
@@ -64,6 +65,17 @@ export async function appendImage(id, imageUrl) {
   images.push(imageUrl);
   await query('UPDATE properties SET image_url = COALESCE(image_url, ?), images = ? WHERE id = ?', [imageUrl, JSON.stringify(images), id]);
   return findById(id);
+}
+
+export async function syncAvailability(id) {
+  const property = await findById(id);
+  if (!property) return null;
+  const totalCapacity = Math.max(0, Number(property.max_occupants ?? property.available_slots ?? 0));
+  const [[row]] = await query('SELECT COALESCE(SUM(COALESCE(occupants, 1)), 0) AS occupied FROM bookings WHERE property_id = ? AND status = ?', [id, 'approved']);
+  const occupied = Math.max(0, Number(row?.occupied ?? 0));
+  const availableSlots = Math.max(0, totalCapacity - occupied);
+  await query('UPDATE properties SET available_slots = ? WHERE id = ?', [availableSlots, id]);
+  return { ...property, available_slots: availableSlots, occupied };
 }
 
 export async function updateStatus(id, status) {

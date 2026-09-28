@@ -36,6 +36,33 @@ const esc = (value = '') => {
   node.textContent = value;
   return node.innerHTML;
 };
+const resolveEffectiveOccupancy = (property = {}) => {
+  const toFiniteNumber = (value) => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value))
+    ? Number(value)
+    : null;
+  const maxOccupants = toFiniteNumber(property.max_occupants) ?? 0;
+  const rawAvailableSlots = toFiniteNumber(property.available_slots);
+  const reportedOccupied = toFiniteNumber(property.occupied_units ?? property.occupied ?? property.occupied_count);
+  const occupiedUnits = reportedOccupied !== null
+    ? Math.max(0, reportedOccupied)
+    : (maxOccupants > 0 && rawAvailableSlots !== null
+      ? Math.max(0, maxOccupants - rawAvailableSlots)
+      : 0);
+  const availableSlots = maxOccupants > 0
+    ? Math.max(0, maxOccupants - occupiedUnits)
+    : Math.max(0, rawAvailableSlots ?? 0);
+  return {
+    maxOccupants,
+    occupiedUnits,
+    availableSlots
+  };
+};
+const isPropertyVisibleToTenant = (property = {}) => {
+  const { maxOccupants, occupiedUnits, availableSlots } = resolveEffectiveOccupancy(property);
+  const hasCapacityReached = Number.isFinite(maxOccupants) && maxOccupants > 0 && occupiedUnits >= maxOccupants;
+  const hasNoAvailableSlots = Number.isFinite(availableSlots) && availableSlots <= 0;
+  return !(hasCapacityReached || hasNoAvailableSlots);
+};
 function tenantFullName(user = {}) {
   const firstName = String(user.first_name ?? user.firstName ?? '').trim();
   const lastName = String(user.last_name ?? user.lastName ?? '').trim();
@@ -271,7 +298,9 @@ function renderAmenitiesChips(item = {}) {
 function propertyDetailsMarkup(property) {
   const address = [property.address, property.barangay, property.municipality].filter(Boolean).join(', ');
   const amenities = normalizeAmenities(property);
-  const maxOccupants = Number(property.max_occupants);
+  const { maxOccupants, occupiedUnits, availableSlots } = resolveEffectiveOccupancy(property);
+  const resolvedAvailable = Math.max(0, availableSlots);
+  const resolvedOccupied = Math.max(0, occupiedUnits);
   const images = normalizePropertyImages(property);
   const galleryImages = images.length ? images : [DEFAULT_IMAGE_PLACEHOLDER];
   const galleryDots = galleryImages.length > 1 ? `<div class="property-detail-gallery-dots" role="tablist" aria-label="Property photos">${galleryImages.map((_, index) => `<button type="button" class="property-detail-gallery-dot${index === 0 ? ' is-active' : ''}" data-gallery-index="${index}" role="tab" aria-label="View photo ${index + 1}" aria-selected="${index === 0}"></button>`).join('')}</div>` : '';
@@ -289,8 +318,8 @@ function propertyDetailsMarkup(property) {
         <div class="property-detail-modal-grid">
           <p><span>Location</span><strong>${esc(address || 'Not specified')}</strong></p>
           <p><span>Room type</span><strong>${esc(normalizeRoomType(property.room_type) || 'Not specified')}</strong></p>
-          <p><span>Occupancy</span><strong>${esc(maxOccupants ? `Up to ${maxOccupants} tenant${maxOccupants === 1 ? '' : 's'}` : 'Not specified')}</strong></p>
-          <p><span>Available slots</span><strong>${esc(property.available_slots ?? 'Not specified')}</strong></p>
+          <p><span>Occupancy</span><strong>${esc(maxOccupants ? `${resolvedOccupied} / ${maxOccupants} occupied` : 'Not specified')}</strong></p>
+          <p><span>Available slots</span><strong>${esc(maxOccupants ? String(resolvedAvailable) : 'Not specified')}</strong></p>
           <p><span>Gender preference</span><strong>${esc(normalizeGenderPreference(property.gender_preference) || 'Not specified')}</strong></p>
           <p><span>Owner</span><strong>${esc(property.owner_name || 'Not specified')}</strong></p>
         </div>
@@ -360,7 +389,10 @@ function mapQueryFor(item) {
 function listingCard(item, index) {
   const place = esc(locationText(item));
   const roomType = esc(normalizeRoomType(item.room_type));
-  const maxOccupants = Number(item.max_occupants || 1);
+  const { maxOccupants, occupiedUnits, availableSlots } = resolveEffectiveOccupancy(item);
+  const occupancyLabel = maxOccupants > 0
+    ? (availableSlots <= 0 ? 'Fully Occupied' : `${occupiedUnits} / ${maxOccupants} occupied · ${availableSlots} left`)
+    : 'Occupancy info unavailable';
   const badge = item.status === 'approved' ? 'Verified' : (item.status || 'Active');
   const walkDistance = (0.6 + index * 0.25).toFixed(1);
   const image = normalizePropertyImage(item);
@@ -372,7 +404,7 @@ function listingCard(item, index) {
       <div class="listing-body">
         <p class="place">${icon('pin')}${place}</p>
         <h3>${esc(item.title || 'Available dorm space')}</h3>
-        <p class="meta">${roomType} &bull; Up to ${maxOccupants} tenants</p>
+        <p class="meta">${roomType} &bull; ${esc(occupancyLabel)}</p>
         <div class="amenity-summary">${renderAmenitiesChips(item) || '<span class="empty-amenity">No amenities listed</span>'}</div>
         <div class="price"><strong>${money(item.monthly_rent)}</strong><small>/ month</small><span>${icon('walk')}${walkDistance} km</span></div>
         <div class="listing-actions">
@@ -1106,7 +1138,8 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
       const matchesGender = !genders.length || genders.length === 0 || genders.includes(String(item.gender_preference ?? 'co-ed').toLowerCase());
       const itemAmenities = normalizeAmenities(item);
       const matchesAmenities = !amenities.length || amenities.every((amenity) => itemAmenities.includes(amenity));
-      return matchesSearch && matchesBudget && matchesRoom && matchesGender && matchesAmenities;
+      const isAvailable = isPropertyVisibleToTenant(item);
+      return isAvailable && matchesSearch && matchesBudget && matchesRoom && matchesGender && matchesAmenities;
     });
 
     state.visible = filtered;
@@ -1215,7 +1248,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
     try {
       // Only load approved properties for tenants (Featured Listings and map markers)
       const response = await api('/properties?limit=100&status=approved');
-      state.all = Array.isArray(response.data) ? response.data : [];
+      state.all = Array.isArray(response.data) ? response.data.filter((item) => isPropertyVisibleToTenant(item)) : [];
       state.visible = state.all;
       syncMapLocation(state.all);
       // Initialize Leaflet map and render approved property markers

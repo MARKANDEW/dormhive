@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { validate } from '../middleware/validate.js';
-import { isValidPhilippinePhoneNumber } from '../controllers/authController.js';
+import { isValidPhilippinePhoneNumber, normalizePhilippinePhoneNumber } from '../controllers/authController.js';
 
 function makeResponse() {
   return {
@@ -46,4 +46,11 @@ test('Philippine phone validation requires +63 plus exactly 10 digits after the 
   assert.equal(isValidPhilippinePhoneNumber('+6391234567890'), false);
   assert.equal(isValidPhilippinePhoneNumber('+631234567890'), false);
   assert.equal(isValidPhilippinePhoneNumber('+63abc123456'), false);
+});
+
+test('Philippine phone numbers normalize to E.164 for SMS verification', () => {
+  assert.equal(normalizePhilippinePhoneNumber('9123456789'), '+639123456789');
+  assert.equal(normalizePhilippinePhoneNumber('+63 912 345 6789'), '+639123456789');
+  assert.equal(normalizePhilippinePhoneNumber('09123456789'), '+639123456789');
+  assert.equal(normalizePhilippinePhoneNumber('+63abc9123456789'), null);
 });

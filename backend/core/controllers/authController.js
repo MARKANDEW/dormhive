@@ -1,7 +1,18 @@
 import bcrypt from 'bcrypt';
 import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
-import { create, createPasswordResetToken, consumePasswordResetToken, findByEmail, updatePassword } from '../models/User.js';
+import {
+  create,
+  createPasswordResetOtpChallenge,
+  createPasswordResetToken,
+  consumePasswordResetToken,
+  findByEmail,
+  findByPhone,
+  getPasswordResetOtpChallenge,
+  incrementPasswordResetOtpAttempt,
+  markPasswordResetOtpVerified,
+  updatePassword
+} from '../models/User.js';
 
 function tokenFor(user) {
   return jwt.sign({ sub: user.id, role: user.role }, process.env.JWT_ACCESS_SECRET, { expiresIn: process.env.JWT_ACCESS_EXPIRES_IN ?? '15m' });
@@ -100,11 +111,15 @@ export async function oauthCallback(request, response) {
 }
 
 export function isValidPhilippinePhoneNumber(value) {
-  if (typeof value !== 'string') return false;
-  const trimValue = value.trim();
-  const digits = trimValue.replace(/\D/g, '');
-  const localNumber = digits.startsWith('63') ? digits.slice(2) : digits;
-  return /^9\d{9}$/.test(localNumber) && localNumber.length === 10;
+  return normalizePhilippinePhoneNumber(value) !== null;
+}
+
+export function normalizePhilippinePhoneNumber(value) {
+  if (typeof value !== 'string' || !/^\+?[\d\s().-]+$/.test(value.trim())) return null;
+  let digits = value.replace(/\D/g, '');
+  if (digits.startsWith('63')) digits = digits.slice(2);
+  if (digits.length === 11 && digits.startsWith('09')) digits = digits.slice(1);
+  return /^9\d{9}$/.test(digits) ? `+63${digits}` : null;
 }
 
 function isValidPhone(value) {
@@ -148,19 +163,89 @@ export async function login(request, response, next) {
 
 export function logout(_request, response) { response.status(204).end(); }
 
-export async function requestPasswordReset(request, response, next) {
+const passwordResetNotice = 'If an active account matches that number, a verification code has been sent.';
+
+function twilioVerifyConfiguration() {
+  const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_VERIFY_SERVICE_SID } = process.env;
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_VERIFY_SERVICE_SID) return null;
+  return { accountSid: TWILIO_ACCOUNT_SID, authToken: TWILIO_AUTH_TOKEN, serviceSid: TWILIO_VERIFY_SERVICE_SID };
+}
+
+async function callTwilioVerify(path, values) {
+  const config = twilioVerifyConfiguration();
+  if (!config) {
+    const error = new Error('SMS verification is not configured. Please contact support.');
+    error.statusCode = 503;
+    throw error;
+  }
+  const endpoint = `https://verify.twilio.com/v2/Services/${encodeURIComponent(config.serviceSid)}/${path}`;
+  let result;
   try {
-    const email = String(request.body.email ?? '').trim().toLowerCase();
-    const user = email ? await findByEmail(email) : null;
-    const result = { message: 'If an account exists for that email, reset instructions have been prepared.' };
-    if (user) {
-      const token = await createPasswordResetToken(user.id);
-      const clientUrl = process.env.CLIENT_URL?.split(',')[0]?.replace(/\/$/, '') ?? 'http://localhost:3000';
-      const resetUrl = `${clientUrl}/#/reset-password?token=${encodeURIComponent(token)}`;
-      if (process.env.NODE_ENV !== 'production') result.developmentResetUrl = resetUrl;
-      console.log(`Password reset link for ${email}: ${resetUrl}`);
+    result = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${config.accountSid}:${config.authToken}`).toString('base64')}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams(values)
+    });
+  } catch {
+    const error = new Error('SMS verification is temporarily unavailable. Please try again.');
+    error.statusCode = 502;
+    throw error;
+  }
+  const payload = await result.json().catch(() => ({}));
+  if (!result.ok) {
+    const error = new Error('SMS verification is temporarily unavailable. Please try again.');
+    error.statusCode = 502;
+    throw error;
+  }
+  return payload;
+}
+
+export async function requestPasswordResetOtp(request, response, next) {
+  try {
+    const phone = normalizePhilippinePhoneNumber(String(request.body.phone ?? ''));
+    if (!phone) return response.status(422).json({ message: 'Enter a valid Philippine mobile number.' });
+    const user = await findByPhone(phone);
+    if (!user || user.status !== 'active') return response.json({ message: passwordResetNotice, expiresInSeconds: 300, resendAfterSeconds: 60 });
+
+    const currentChallenge = await getPasswordResetOtpChallenge(phone);
+    if (currentChallenge && Number(currentChallenge.resend_in_seconds) > 0) {
+      return response.status(429).json({ message: 'Please wait before requesting another code.', resendAfterSeconds: Number(currentChallenge.resend_in_seconds) });
     }
-    response.json(result);
+
+    const verification = await callTwilioVerify('Verifications', { To: phone, Channel: 'sms' });
+    await createPasswordResetOtpChallenge({ userId: user.id, phone, verificationSid: verification.sid });
+    response.json({ message: passwordResetNotice, expiresInSeconds: 300, resendAfterSeconds: 60 });
+  } catch (error) { next(error); }
+}
+
+export async function verifyPasswordResetOtp(request, response, next) {
+  try {
+    const phone = normalizePhilippinePhoneNumber(String(request.body.phone ?? ''));
+    const code = String(request.body.code ?? '').trim();
+    if (!phone || !/^\d{6}$/.test(code)) return response.status(422).json({ message: 'Enter a valid mobile number and 6-digit code.' });
+    const challenge = await getPasswordResetOtpChallenge(phone);
+    if (!challenge || Number(challenge.expires_in_seconds) <= 0 || challenge.verified_at) {
+      return response.status(400).json({ message: 'This code is invalid or expired. Request a new code to continue.' });
+    }
+    if (Number(challenge.attempts) >= 5) return response.status(429).json({ message: 'Too many incorrect codes. Request a new code to try again.' });
+    const attempt = await incrementPasswordResetOtpAttempt(phone);
+    if (attempt === null) return response.status(429).json({ message: 'Too many incorrect codes. Request a new code to try again.' });
+
+    const verification = await callTwilioVerify('VerificationCheck', { VerificationSid: challenge.verification_sid, Code: code });
+    if (verification.status !== 'approved') {
+      const attemptsRemaining = Math.max(0, 5 - Number(attempt));
+      return response.status(attemptsRemaining ? 400 : 429).json({
+        message: attemptsRemaining ? `That code is incorrect. ${attemptsRemaining} attempts remaining.` : 'Too many incorrect codes. Request a new code to try again.'
+      });
+    }
+    if (!await markPasswordResetOtpVerified(phone)) {
+      return response.status(400).json({ message: 'This code is invalid or expired. Request a new code to continue.' });
+    }
+    const resetToken = await createPasswordResetToken(challenge.user_id);
+    response.json({ message: 'Mobile number verified.', resetToken, expiresInSeconds: 600 });
   } catch (error) { next(error); }
 }
 

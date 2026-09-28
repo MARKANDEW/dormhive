@@ -30,7 +30,7 @@ export async function renderRoute() {
   if (user && publicRoutes.includes(path) && path !== '/' && !['/terms', '/privacy'].includes(path)) return navigate(redirectForRole(user.role), true);
   if (path.startsWith('/admin/')) resetAdminScroll();
   window.DORMHIVE_ROUTE_SEARCH = search;
-  const authRouteSkeletonDisabled = ['/login', '/register', '/terms', '/privacy'].includes(path);
+  const authRouteSkeletonDisabled = ['/login', '/register', '/terms', '/privacy', '/forgot-password', '/reset-password', '/oauth/callback'].includes(path);
   if (!authRouteSkeletonDisabled) {
     const { renderRouteSkeleton } = await import('./src/components/pageSkeleton.js');
     renderRouteSkeleton(ROOT(), path);

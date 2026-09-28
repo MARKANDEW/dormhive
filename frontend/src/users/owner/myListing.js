@@ -30,6 +30,32 @@ const normalizePropertyTypeLabel = (value = '') => {
   };
   return labelMap[raw] ?? (raw ? raw.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase()) : '');
 };
+const parseNumericValue = (value, fallback = 0) => {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+};
+const getOccupancySummary = (property = {}, bookings = []) => {
+  const totalCapacity = Math.max(0, parseNumericValue(property.max_occupants ?? property.available_slots ?? 0, 0));
+  const occupied = bookings.filter((booking) => {
+    const bookingPropertyId = String(booking.property_id ?? booking.propertyId ?? '');
+    const status = String(booking.status ?? '').toLowerCase();
+    return String(property.id) === bookingPropertyId && status === 'approved';
+  }).reduce((sum, booking) => sum + Math.max(0, parseNumericValue(booking.occupants ?? 1, 1)), 0);
+  const rate = totalCapacity > 0 ? Math.min(100, Math.round((occupied / totalCapacity) * 100)) : 0;
+  const label = totalCapacity > 0 && occupied >= totalCapacity ? 'Fully Occupied' : `${rate}% (${occupied}/${totalCapacity})`;
+  return {
+    total: totalCapacity,
+    occupied,
+    available: Math.max(0, totalCapacity - occupied),
+    rate,
+    label
+  };
+};
+const getPropertyInquiryCount = (propertyId, bookings = []) => bookings.filter((booking) => {
+  const bookingPropertyId = String(booking.property_id ?? booking.propertyId ?? '');
+  const status = String(booking.status ?? '').toLowerCase();
+  return String(propertyId) === bookingPropertyId && !['rejected', 'cancelled', 'archived'].includes(status);
+}).length;
 const escape = (value = '') => { const n = document.createElement('span'); n.textContent = value; return n.innerHTML; };
 const AMENITY_LABELS = {
   wifi: 'Wi-Fi',
@@ -860,6 +886,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
 
   let propertyRows = [];
   let allPropertyRows = [];
+  let allBookingRows = [];
   let pendingPropertyAction = null;
 
   const normalizePropertyTypeValue = (value = '') => {
@@ -932,8 +959,8 @@ export async function renderMyListing(root = document.querySelector('#app')) {
     propertyRows = items;
     propertyCache.clear();
     const rows = items.map((item) => {
-      const rate = Math.min(100, Math.max(35, Math.round((Number(item.max_occupants ?? 1) / 4) * 100)));
-      const occupancy = `${rate}% (${Math.min(Number(item.max_occupants ?? 1), 4)}/${Math.max(Number(item.max_occupants ?? 1), 4)})`;
+      const occupancy = getOccupancySummary(item, allBookingRows);
+      const inquiryCount = getPropertyInquiryCount(item.id, allBookingRows);
       const image = normalizePropertyImage(item);
       propertyCache.set(String(item.id), item);
       const titleText = escape(item.title || 'Untitled Property');
@@ -949,11 +976,11 @@ export async function renderMyListing(root = document.querySelector('#app')) {
           <td>₱${Number(item.monthly_rent ?? 0).toLocaleString()}/mo</td>
           <td>
             <div class="occupancy-cell">
-              <div class="progress-track"><span data-rate="${rate}"></span></div>
-              <small>${escape(occupancy)}</small>
+              <div class="progress-track"><span data-rate="${occupancy.rate}"></span></div>
+              <small>${escape(occupancy.label)}</small>
             </div>
           </td>
-          <td>0 inquiries</td>
+          <td>${inquiryCount} ${inquiryCount === 1 ? 'inquiry' : 'inquiries'}</td>
           <td>
             <div class="property-row-actions">
               <div class="property-inline-actions">
@@ -1230,24 +1257,47 @@ export async function renderMyListing(root = document.querySelector('#app')) {
 
   const load = async () => {
     try {
-      let response;
+      let propertiesResponse;
+      let bookingsResponse;
+
       for (let attempt = 0; attempt < 2; attempt += 1) {
-        response = await fetch(`${API}/properties?limit=100`, { headers: authHeaders() });
-        if (response.status !== 429 || attempt === 1) break;
+        propertiesResponse = await fetch(`${API}/properties?limit=100`, { headers: authHeaders() });
+        if (propertiesResponse.status !== 429 || attempt === 1) break;
         await new Promise((resolve) => setTimeout(resolve, 800));
       }
-      const body = await response.json();
-      if (!response.ok) {
-        if (response.status === 401) {
+
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        bookingsResponse = await fetch(`${API}/bookings`, { headers: authHeaders() });
+        if (bookingsResponse.status !== 429 || attempt === 1) break;
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      }
+
+      const propertiesBody = await propertiesResponse.json();
+      const bookingsBody = await bookingsResponse.json();
+
+      if (!propertiesResponse.ok) {
+        if (propertiesResponse.status === 401) {
           clearSession();
           portfolioBody.innerHTML = '<tr><td colspan="7" class="empty-row">Your session has expired. Please sign in again.</td></tr>';
           setTimeout(() => location.assign('#/login'), 800);
           return;
         }
-        throw new Error(body.message ?? 'Unable to load listings.');
+        throw new Error(propertiesBody.message ?? 'Unable to load listings.');
       }
-      const items = (body.data ?? []).filter((item) => Number(item.owner_id) === Number(user().id));
+
+      if (!bookingsResponse.ok) {
+        if (bookingsResponse.status === 401) {
+          clearSession();
+          portfolioBody.innerHTML = '<tr><td colspan="7" class="empty-row">Your session has expired. Please sign in again.</td></tr>';
+          setTimeout(() => location.assign('#/login'), 800);
+          return;
+        }
+        throw new Error(bookingsBody.message ?? 'Unable to load inquiries.');
+      }
+
+      const items = (propertiesBody.data ?? []).filter((item) => Number(item.owner_id) === Number(user().id));
       allPropertyRows = items;
+      allBookingRows = Array.isArray(bookingsBody.data) ? bookingsBody.data : [];
       applyPropertyTableState();
       if (requestedPropertyId && requestedAction === 'edit') {
         const requestedProperty = allPropertyRows.find((item) => String(item.id) === String(requestedPropertyId));

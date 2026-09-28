@@ -764,9 +764,10 @@ form {
 .password-reset-card {
   width: min(100%, 440px);
   padding: 2rem;
-  border-radius: 20px;
+  border: 1px solid rgba(20, 123, 93, 0.08);
+  border-radius: 16px;
   background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 18px 44px rgba(15, 50, 39, 0.09);
 }
 
 .password-reset-back {
@@ -776,9 +777,18 @@ form {
 }
 
 .password-reset-card h1 {
-  margin: 1.5rem 0 0.5rem;
+  margin: 0.45rem 0 0.5rem;
   color: #17352f;
-  font-size: 2rem;
+  font-size: 1.8rem;
+  line-height: 1.2;
+}
+
+.password-reset-eyebrow {
+  margin: 1.6rem 0 0.35rem;
+  color: #168263;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
 }
 
 .password-reset-intro {
@@ -793,18 +803,132 @@ form {
   gap: 0.8rem;
 }
 
-.password-reset-form input {
+.password-reset-label {
+  margin: 0.15rem 0 -0.45rem;
+  color: #314a43;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.password-reset-form input:not(.password-reset-otp-input) {
   width: 100%;
   padding: 0.85rem 1rem;
-  border: 0;
-  border-radius: 10px;
-  background: #eee;
+  border: 1px solid #dce8e2;
+  border-radius: 9px;
+  background: #f8fbf9;
+  color: #1f2a2d;
   font: inherit;
+}
+
+.password-reset-form input:focus-visible {
+  border-color: #168263;
+  outline: 3px solid rgba(22, 130, 99, 0.14);
+  outline-offset: 1px;
+}
+
+.password-reset-phone {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid #dce8e2;
+  border-radius: 9px;
+  background: #f8fbf9;
+}
+
+.password-reset-phone span {
+  flex: 0 0 auto;
+  padding: 0 0.85rem;
+  border-right: 1px solid #dce8e2;
+  color: #31594c;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.password-reset-phone input:not(.password-reset-otp-input) {
+  border: 0;
+  background: transparent;
+}
+
+.password-reset-phone:focus-within {
+  border-color: #168263;
+  outline: 3px solid rgba(22, 130, 99, 0.14);
+  outline-offset: 1px;
 }
 
 .password-reset-form .auth-submit {
   width: 100%;
+  min-height: 46px;
+  margin-top: 0.25rem;
+  border: 0;
+  border-radius: 9px;
   background: var(--dormhive-primary-dark);
+  color: #fff;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 150ms ease, transform 150ms ease;
+}
+
+.password-reset-form .auth-submit:hover:not(:disabled) {
+  background: #116c52;
+  transform: translateY(-1px);
+}
+
+.password-reset-form .auth-submit:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.password-reset-otp-inputs {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 0.25rem 0 0.3rem;
+}
+
+.password-reset-form input.password-reset-otp-input {
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid #d6e5dd;
+  border-radius: 9px;
+  background: #f7faf8;
+  color: #17352f;
+  font: inherit;
+  font-size: 1.2rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.password-reset-timer {
+  margin: 0;
+  color: #6d8179;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.password-reset-timer strong {
+  color: #31594c;
+  font-variant-numeric: tabular-nums;
+}
+
+.password-reset-resend {
+  justify-self: center;
+  padding: 0.25rem 0.5rem;
+  border: 0;
+  background: transparent;
+  color: #147b5d;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.password-reset-resend:disabled {
+  color: #899891;
+  cursor: default;
 }
 
 .password-reset-message {
@@ -822,7 +946,24 @@ form {
 .password-reset-error { color: #b42318; }
 .password-reset-success { color: #147b5d; }
 
+.password-reset-form .password-reset-message {
+  margin: 0.1rem 0;
+}
+
 @media screen and (max-width: 650px) {
+  .password-reset-page {
+    min-height: 100svh;
+    padding: 1rem;
+  }
+  .password-reset-card {
+    padding: 1.5rem;
+  }
+  .password-reset-card h1 {
+    font-size: 1.55rem;
+  }
+  .password-reset-otp-inputs {
+    gap: 0.4rem;
+  }
   .container {
     width: 100vw;
     height: 100vh;
