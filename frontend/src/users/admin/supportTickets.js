@@ -27,14 +27,14 @@ export function renderSupportTickets(root = document.querySelector('#app')) {
     <header class="support-header"><div><span class="support-kicker">Support</span><h1>Support</h1><p>Manage user requests, questions, and support tickets.</p></div></header>
     <section class="support-content">
       <section class="support-summary"><article class="support-summary-card support-blue"><i class="bi bi-ticket-perforated"></i><div><span>Open Tickets</span><strong data-summary="open">0</strong><small>Currently open</small></div></article><article class="support-summary-card support-orange"><i class="bi bi-clock"></i><div><span>Pending</span><strong data-summary="pending">0</strong><small>Waiting for response</small></div></article><article class="support-summary-card support-red"><i class="bi bi-exclamation-triangle"></i><div><span>High Priority</span><strong data-summary="high">0</strong><small>Needs attention</small></div></article><article class="support-summary-card support-green"><i class="bi bi-check-circle"></i><div><span>Resolved</span><strong data-summary="resolved">0</strong><small>Resolved tickets</small></div></article></section>
-      <section class="support-filter-bar"><label class="support-search"><i class="bi bi-search"></i><input id="ticket-search" type="search" placeholder="Search tickets, users, or subjects..." /></label><select id="status-filter"><option value="all">All Statuses</option><option value="open">Open</option><option value="pending">Pending</option><option value="resolved">Resolved</option></select><select id="priority-filter"><option value="all">All Priorities</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select><select id="category-filter"><option value="all">All Categories</option></select><button type="button" class="reset-filters"><i class="bi bi-arrow-clockwise"></i> Reset</button></section>
+      <section class="support-filter-bar"><label class="support-search"><i class="bi bi-search"></i><input id="ticket-search" type="search" placeholder="Search tickets, users, or subjects..." /></label><select id="status-filter"><option value="all">All Statuses</option><option value="open">Open</option><option value="pending">Pending</option><option value="resolved">Resolved</option></select><select id="priority-filter"><option value="all">All Priorities</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select><select id="requester-filter"><option value="all">All Users</option><option value="tenant">Tenants</option><option value="owner">Owners</option></select><button type="button" class="reset-filters"><i class="bi bi-arrow-clockwise"></i> Reset</button></section>
       <div class="support-tabs" role="tablist"><button class="active" data-tab="all">All Tickets <strong data-count="all">0</strong></button><button data-tab="open">Open <strong data-count="open">0</strong></button><button data-tab="pending">Pending <strong data-count="pending">0</strong></button><button data-tab="resolved">Resolved <strong data-count="resolved">0</strong></button></div>
-      <section class="support-workspace"><article class="ticket-table-card"><div class="ticket-table-head"><span><input type="checkbox" aria-label="Select all tickets" /></span><span>TICKET</span><span>USER</span><span>CATEGORY</span><span>PRIORITY</span><span>STATUS</span><span>LAST UPDATED</span><span>ACTIONS</span></div><div id="ticket-list" class="ticket-list"></div><footer class="ticket-footer"><span data-ticket-range>Showing 0–0 of 0 tickets</span><div><button disabled aria-label="Previous page">‹</button><button class="current-page">1</button><button disabled aria-label="Next page">›</button></div></footer></article><aside class="ticket-details" id="ticket-details"></aside></section>
+      <section class="support-workspace"><article class="ticket-table-card"><div class="ticket-table-head"><span>TICKET</span><span>USER</span><span>CATEGORY</span><span>PRIORITY</span><span>STATUS</span><span>LAST UPDATED</span><span>ACTIONS</span></div><div id="ticket-list" class="ticket-list"></div><footer class="ticket-footer"><span data-ticket-range>Showing 0–0 of 0 tickets</span><div><button disabled aria-label="Previous page">‹</button><button class="current-page">1</button><button disabled aria-label="Next page">›</button></div></footer></article><aside class="ticket-details" id="ticket-details"></aside></section>
     </section>
   </main></div></div>`;
   root.querySelector('.ticket-footer')?.remove();
 
-  const state = { tickets: [], tab: 'all', search: '', status: 'all', priority: 'all', category: 'all', selected: null, internalNotes: {} };
+  const state = { tickets: [], tab: 'all', search: '', status: 'all', priority: 'all', requesterRole: 'all', selected: null, internalNotes: {} };
   try { const saved = localStorage.getItem('dormhive.supportTickets.internalNotes'); if (saved) state.internalNotes = JSON.parse(saved); } catch (e) { /* ignore */ }
   const saveInternalNotes = () => localStorage.setItem('dormhive.supportTickets.internalNotes', JSON.stringify(state.internalNotes));
   const list = root.querySelector('#ticket-list');
@@ -42,13 +42,14 @@ export function renderSupportTickets(root = document.querySelector('#app')) {
   const search = root.querySelector('#ticket-search');
   const statusFilter = root.querySelector('#status-filter');
   const priorityFilter = root.querySelector('#priority-filter');
-  const categoryFilter = root.querySelector('#category-filter');
+  const requesterFilter = root.querySelector('#requester-filter');
 
   const filteredTickets = () => state.tickets.filter((ticket) => {
     const status = normalizeStatus(ticket.status);
     const priority = normalizePriority(ticket.priority);
+    const requesterRole = String(ticket.requester_role || '').toLowerCase();
     const query = `${ticket.id} ${ticket.subject || ''} ${ticket.requester_name || ''} ${ticket.requester_email || ''}`.toLowerCase();
-    return (state.tab === 'all' || status === state.tab) && (state.status === 'all' || status === state.status) && (state.priority === 'all' || priority === state.priority) && (state.category === 'all' || String(ticket.category || 'Support') === state.category) && (!state.search || query.includes(state.search));
+    return (state.tab === 'all' || status === state.tab) && (state.status === 'all' || status === state.status) && (state.priority === 'all' || priority === state.priority) && (state.requesterRole === 'all' || requesterRole === state.requesterRole) && (!state.search || query.includes(state.search));
   });
 
   const renderSummary = () => {
@@ -149,7 +150,7 @@ export function renderSupportTickets(root = document.querySelector('#app')) {
 
   const renderList = () => {
     const tickets = filteredTickets();
-    list.innerHTML = tickets.length ? tickets.map((ticket) => { const status = normalizeStatus(ticket.status); const priority = normalizePriority(ticket.priority); return `<div class="ticket-row ${state.selected?.id === ticket.id ? 'selected' : ''}" data-id="${ticket.id}"><input type="checkbox" aria-label="Select ticket ${ticket.id}" /><strong>#${ticket.id}</strong><span>${escape(ticket.requester_name || 'Unknown user')}</span><span>${escape(ticket.category || 'Support')}</span><span class="ticket-priority ${priority}">${priority[0].toUpperCase() + priority.slice(1)}</span><span class="ticket-status ${status}">${status[0].toUpperCase() + status.slice(1)}</span><span>${formatDate(ticket.updated_at || ticket.created_at)}</span><button class="ticket-view" aria-label="View ticket"><i class="bi bi-eye"></i></button></div>`; }).join('') : '<div class="support-empty-state"><span><i class="bi bi-headset"></i></span><strong>No support tickets yet</strong><p>User support requests will appear here when they are submitted.</p></div>';
+    list.innerHTML = tickets.length ? tickets.map((ticket) => { const status = normalizeStatus(ticket.status); const priority = normalizePriority(ticket.priority); return `<div class="ticket-row ${state.selected?.id === ticket.id ? 'selected' : ''}" data-id="${ticket.id}"><strong>#${ticket.id}</strong><span>${escape(ticket.requester_name || 'Unknown user')}</span><span>${escape(ticket.category || 'Support')}</span><span class="ticket-priority ${priority}">${priority[0].toUpperCase() + priority.slice(1)}</span><span class="ticket-status ${status}">${status[0].toUpperCase() + status.slice(1)}</span><span>${formatDate(ticket.updated_at || ticket.created_at)}</span><button class="ticket-view" aria-label="View ticket"><i class="bi bi-eye"></i></button></div>`; }).join('') : '<div class="support-empty-state"><span><i class="bi bi-headset"></i></span><strong>No support tickets yet</strong><p>User support requests will appear here when they are submitted.</p></div>';
     list.querySelectorAll('.ticket-row').forEach((row) => row.addEventListener('click', (event) => { if (event.target.closest('input, button')) return; state.selected = state.tickets.find((ticket) => Number(ticket.id) === Number(row.dataset.id)); renderList(); renderDetails(state.selected); }));
     list.querySelectorAll('.ticket-view').forEach((button) => button.addEventListener('click', (event) => { const row = event.currentTarget.closest('.ticket-row'); state.selected = state.tickets.find((ticket) => Number(ticket.id) === Number(row.dataset.id)); renderList(); renderDetails(state.selected); }));
     applyAdminPrivacy(root);
@@ -171,8 +172,6 @@ export function renderSupportTickets(root = document.querySelector('#app')) {
       const body = await response.json();
       if (!response.ok) throw new Error(body.message || 'Unable to load support tickets.');
       state.tickets = Array.isArray(body.data) ? body.data : [];
-      const categories = [...new Set(state.tickets.map((ticket) => ticket.category || 'Support'))].sort();
-      categoryFilter.innerHTML = '<option value="all">All Categories</option>' + categories.map((category) => `<option value="${escape(category)}">${escape(category)}</option>`).join('');
       renderSummary(); renderList(); renderDetails(state.tickets[0] || null);
     } catch (error) { list.innerHTML = `<div class="support-empty-state"><strong>${escape(error.message)}</strong></div>`; renderDetails(null); }
   };
@@ -192,8 +191,8 @@ export function renderSupportTickets(root = document.querySelector('#app')) {
   search.addEventListener('input', () => { state.search = search.value.toLowerCase().trim(); renderList(); });
   statusFilter.addEventListener('change', () => { state.status = statusFilter.value; renderList(); });
   priorityFilter.addEventListener('change', () => { state.priority = priorityFilter.value; renderList(); });
-  categoryFilter.addEventListener('change', () => { state.category = categoryFilter.value; renderList(); });
-  root.querySelector('.reset-filters').addEventListener('click', () => { search.value = ''; statusFilter.value = 'all'; priorityFilter.value = 'all'; categoryFilter.value = 'all'; state.search = ''; state.status = 'all'; state.priority = 'all'; state.category = 'all'; state.tab = 'all'; root.querySelectorAll('.support-tabs button').forEach((button) => button.classList.toggle('active', button.dataset.tab === 'all')); renderList(); });
+  requesterFilter.addEventListener('change', () => { state.requesterRole = requesterFilter.value; renderList(); });
+  root.querySelector('.reset-filters').addEventListener('click', () => { search.value = ''; statusFilter.value = 'all'; priorityFilter.value = 'all'; requesterFilter.value = 'all'; state.search = ''; state.status = 'all'; state.priority = 'all'; state.requesterRole = 'all'; state.tab = 'all'; root.querySelectorAll('.support-tabs button').forEach((button) => button.classList.toggle('active', button.dataset.tab === 'all')); renderList(); });
   root.querySelectorAll('.support-tabs button').forEach((button) => button.addEventListener('click', () => { state.tab = button.dataset.tab; root.querySelectorAll('.support-tabs button').forEach((item) => item.classList.toggle('active', item === button)); renderList(); }));
   loadTickets();
 }

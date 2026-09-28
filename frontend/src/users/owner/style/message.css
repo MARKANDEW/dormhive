@@ -334,6 +334,12 @@ body {
   color: #fff;
   border-color: #1aa87a;
 }
+.message-bubble:has(.message-attachment) {
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
 .bubble-meta {
   display: flex;
   align-items: center;
@@ -344,7 +350,7 @@ body {
   line-height: 1.45;
 }
 .message-attachment {
-  margin-top: 0.35rem;
+  margin-top: 0;
 }
 .message-attachment img {
   display: block;

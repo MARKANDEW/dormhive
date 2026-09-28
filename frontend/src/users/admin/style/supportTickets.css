@@ -178,6 +178,10 @@ body {
   font-size: 0.68rem;
   font-weight: 700;
 }
+.support-filter-bar select:focus {
+  outline: none;
+  border-color: #dce9ed;
+}
 .reset-filters {
   height: 35px;
   padding: 0 11px;
@@ -247,7 +251,7 @@ body {
 .ticket-table-head,
 .ticket-row {
   display: grid;
-  grid-template-columns: 30px 1fr 1.15fr 1fr 0.85fr 0.85fr 1.15fr 42px;
+  grid-template-columns: 1fr 1.15fr 1fr 0.85fr 0.85fr 1.15fr 42px;
   gap: 8px;
   align-items: center;
 }
@@ -259,10 +263,6 @@ body {
   color: #52707a;
   font-size: 0.6rem;
   font-weight: 800;
-}
-.ticket-table-head input,
-.ticket-row input {
-  accent-color: #d79a19;
 }
 .ticket-list {
   flex: 1;
@@ -566,6 +566,10 @@ body {
   font: inherit;
   font-size: 0.65rem;
   cursor: text;
+}
+.reply-area textarea:focus {
+  outline: none;
+  border-color: #dce9ed;
 }
 .reply-area > div {
   display: flex;

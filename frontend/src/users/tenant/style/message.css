@@ -606,6 +606,12 @@ body {
   color: #fff;
   border-color: #1aa87a;
 }
+.messages-page .message:has(.message-attachment) {
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
 .messages-page .bubble-body {
   color: inherit;
 }
@@ -647,7 +653,7 @@ body {
   visibility: visible;
 }
 .messages-page .message-attachment {
-  margin-top: 0.35rem;
+  margin-top: 0;
 }
 .messages-page .message-attachment img {
   display: block;

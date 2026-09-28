@@ -154,12 +154,20 @@ export async function updateListingCountsInSidebar() {
   
 export function ensureOwnerSidebarStyles() {
   document.querySelectorAll('link[data-dormhive-auth="split"]').forEach((node) => node.remove());
-  if (document.querySelector('[data-owner-sidebar-style="shared"]')) return;
+  const existing = document.querySelector('[data-owner-sidebar-style="shared"]');
+  if (existing) return existing.sheet ? Promise.resolve() : new Promise((resolve) => {
+    existing.addEventListener('load', resolve, { once: true });
+    existing.addEventListener('error', resolve, { once: true });
+  });
   const link = document.createElement('link');
   link.rel = 'stylesheet';
   link.href = new URL('./style/sidebarOwner.css', import.meta.url);
   link.dataset.ownerSidebarStyle = 'shared';
   document.head.append(link);
+  return new Promise((resolve) => {
+    link.addEventListener('load', resolve, { once: true });
+    link.addEventListener('error', resolve, { once: true });
+  });
 }
 
 export function renderOwnerSidebar(active = 'dashboardOwner') {

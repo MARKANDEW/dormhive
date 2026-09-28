@@ -211,6 +211,46 @@ export function renderListingModeration(root = document.querySelector('#app')) {
     return image ? `style="background-image:url('${image}');background-position:center;background-size:cover;background-repeat:no-repeat"` : '';
   };
 
+  const openPhotoViewer = (row) => {
+    const photos = getPropertyImages(row);
+    if (!photos.length) return;
+    let photoIndex = 0;
+    const viewer = document.createElement('dialog');
+    viewer.className = 'moderation-photo-viewer';
+    const image = document.createElement('img');
+    image.className = 'moderation-photo-viewer__image';
+    const closeButton = document.createElement('button');
+    closeButton.type = 'button';
+    closeButton.className = 'moderation-photo-viewer__close';
+    closeButton.setAttribute('aria-label', 'Close photo viewer');
+    closeButton.textContent = '×';
+    const previousButton = document.createElement('button');
+    previousButton.type = 'button';
+    previousButton.className = 'moderation-photo-viewer__nav moderation-photo-viewer__nav--previous';
+    previousButton.setAttribute('aria-label', 'View previous photo');
+    previousButton.textContent = '‹';
+    const nextButton = document.createElement('button');
+    nextButton.type = 'button';
+    nextButton.className = 'moderation-photo-viewer__nav moderation-photo-viewer__nav--next';
+    nextButton.setAttribute('aria-label', 'View next photo');
+    nextButton.textContent = '›';
+    const renderPhoto = () => {
+      image.src = photos[photoIndex];
+      image.alt = `${row.title || 'Property'} photo ${photoIndex + 1}`;
+      previousButton.hidden = photos.length < 2;
+      nextButton.hidden = photos.length < 2;
+    };
+    previousButton.addEventListener('click', () => { photoIndex = (photoIndex - 1 + photos.length) % photos.length; renderPhoto(); });
+    nextButton.addEventListener('click', () => { photoIndex = (photoIndex + 1) % photos.length; renderPhoto(); });
+    closeButton.addEventListener('click', () => viewer.close());
+    viewer.addEventListener('click', (event) => { if (event.target === viewer) viewer.close(); });
+    viewer.addEventListener('close', () => viewer.remove(), { once: true });
+    viewer.append(image, previousButton, nextButton, closeButton);
+    document.body.append(viewer);
+    renderPhoto();
+    viewer.showModal();
+  };
+
   const formatCurrency = (value = 0) => `₱${Number(value ?? 0).toLocaleString()}`;
   const formatDate = (value) => new Date(value ?? Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const formatMeta = (row) => [row.address, row.municipality, row.barangay].filter(Boolean).join(', ');
@@ -314,6 +354,11 @@ export function renderListingModeration(root = document.querySelector('#app')) {
     syncRowSelection();
 
     tbody.querySelectorAll('tr').forEach((rowEl) => {
+      rowEl.querySelector('.thumbnail')?.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const row = rows.find((item) => item.id === Number(rowEl.dataset.id));
+        if (row) openPhotoViewer(row);
+      });
       rowEl.addEventListener('click', (event) => {
         if (event.target.closest('button')) return;
         const id = Number(rowEl.dataset.id);

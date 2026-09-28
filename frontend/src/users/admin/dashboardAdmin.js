@@ -109,17 +109,6 @@ function statIcon(type) {
   return icons[type] ?? icons.users;
 }
 
-function sparkline(type) {
-  const palettes = {
-    green: '<svg viewBox="0 0 120 36" preserveAspectRatio="none" aria-hidden="true"><path d="M0 28C18 30 22 16 35 18C45 20 56 8 68 10C82 12 89 26 101 24C108 22 113 16 120 12V36H0Z" fill="rgba(18,164,112,0.12)"/><path d="M0 28C18 30 22 16 35 18C45 20 56 8 68 10C82 12 89 26 101 24C108 22 113 16 120 12" fill="none" stroke="rgba(18,164,112,0.9)" stroke-width="2" stroke-linecap="round"/></svg>',
-    blue: '<svg viewBox="0 0 120 36" preserveAspectRatio="none" aria-hidden="true"><path d="M0 24C15 22 24 16 35 16C50 17 59 9 70 9C82 9 91 20 101 18C109 17 114 14 120 10V36H0Z" fill="rgba(47,126,199,0.12)"/><path d="M0 24C15 22 24 16 35 16C50 17 59 9 70 9C82 9 91 20 101 18C109 17 114 14 120 10" fill="none" stroke="rgba(47,126,199,0.9)" stroke-width="2" stroke-linecap="round"/></svg>',
-    purple: '<svg viewBox="0 0 120 36" preserveAspectRatio="none" aria-hidden="true"><path d="M0 30C16 27 23 18 35 19C47 19 58 12 69 12C81 12 92 21 102 21C110 20 115 17 120 14V36H0Z" fill="rgba(120,97,232,0.12)"/><path d="M0 30C16 27 23 18 35 19C47 19 58 12 69 12C81 12 92 21 102 21C110 20 115 17 120 14" fill="none" stroke="rgba(120,97,232,0.9)" stroke-width="2" stroke-linecap="round"/></svg>',
-    orange: '<svg viewBox="0 0 120 36" preserveAspectRatio="none" aria-hidden="true"><path d="M0 22C18 25 28 10 36 12C48 16 53 24 68 20C80 16 91 5 103 6C109 7 116 10 120 12V36H0Z" fill="rgba(245,149,55,0.12)"/><path d="M0 22C18 25 28 10 36 12C48 16 53 24 68 20C80 16 91 5 103 6C109 7 116 10 120 12" fill="none" stroke="rgba(245,149,55,0.9)" stroke-width="2" stroke-linecap="round"/></svg>'
-  };
-
-  return palettes[type] ?? palettes.green;
-}
-
 function renderUserCard(user) {
   const status = (user.status || 'active').toString();
   const avatarUrl = resolveUserAvatarUrl(user.avatar_url || '', user.name || 'User');
@@ -323,7 +312,6 @@ export function renderDashboardAdmin(root = document.querySelector('#app')) {
             <article class="stat-card stat-card--green">
               <div class="stat-head">
                 <div class="stat-icon">${statIcon('users')}</div>
-                <div class="sparkline">${sparkline('green')}</div>
               </div>
               <div class="stat-body">
                 <span class="stat-label">Registered Users</span>
@@ -335,7 +323,6 @@ export function renderDashboardAdmin(root = document.querySelector('#app')) {
             <article class="stat-card stat-card--blue">
               <div class="stat-head">
                 <div class="stat-icon">${statIcon('listings')}</div>
-                <div class="sparkline">${sparkline('blue')}</div>
               </div>
               <div class="stat-body">
                 <span class="stat-label">Published Listings</span>
@@ -347,7 +334,6 @@ export function renderDashboardAdmin(root = document.querySelector('#app')) {
             <article class="stat-card stat-card--purple">
               <div class="stat-head">
                 <div class="stat-icon">${statIcon('moderation')}</div>
-                <div class="sparkline">${sparkline('purple')}</div>
               </div>
               <div class="stat-body">
                 <span class="stat-label">Pending Moderation</span>
@@ -359,7 +345,6 @@ export function renderDashboardAdmin(root = document.querySelector('#app')) {
             <article class="stat-card stat-card--orange">
               <div class="stat-head">
                 <div class="stat-icon">${statIcon('booking')}</div>
-                <div class="sparkline">${sparkline('orange')}</div>
               </div>
               <div class="stat-body">
                 <span class="stat-label">Booking Requests</span>

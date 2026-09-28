@@ -149,7 +149,7 @@ body {
   gap: 3px;
   min-width: 0;
 }
-.kpi-card span:not(.kpi-sparkline) {
+.kpi-card span {
   color: #68808a;
   font-size: 0.72rem;
 }
@@ -167,43 +167,6 @@ body {
   font-size: 0.62rem;
   font-style: normal;
   white-space: nowrap;
-}
-.kpi-sparkline {
-  width: 56px;
-  height: 30px;
-  align-self: center;
-  margin-left: auto;
-  border-bottom: 3px solid currentColor;
-  clip-path: polygon(
-    0 78%,
-    12% 58%,
-    24% 66%,
-    36% 34%,
-    49% 48%,
-    61% 22%,
-    74% 38%,
-    86% 12%,
-    100% 26%,
-    100% 100%,
-    0 100%
-  );
-  opacity: 0.88;
-}
-.kpi-green .kpi-sparkline {
-  color: #19bd8d;
-  background: #dff7eb;
-}
-.kpi-blue .kpi-sparkline {
-  color: #3787e8;
-  background: #e7f0ff;
-}
-.kpi-purple .kpi-sparkline {
-  color: #8a55eb;
-  background: #eee5ff;
-}
-.kpi-orange .kpi-sparkline {
-  color: #ee971e;
-  background: #fff0dc;
 }
 .analytics-top-grid {
   display: grid;

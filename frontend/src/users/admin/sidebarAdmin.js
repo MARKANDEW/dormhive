@@ -4,7 +4,6 @@ const glyphs = {
   dashboardAdmin: '<i class="bi bi-grid-1x2-fill" aria-hidden="true"></i>',
   userManagement: '<i class="bi bi-people-fill" aria-hidden="true"></i>',
   listingModeration: '<i class="bi bi-clipboard-check-fill" aria-hidden="true"></i>',
-  systemHealth: '<i class="bi bi-activity" aria-hidden="true"></i>',
   analytics: '<i class="bi bi-bar-chart-line" aria-hidden="true"></i>',
   supportTickets: '<i class="bi bi-headset" aria-hidden="true"></i>',
   setting: '<i class="bi bi-gear-fill" aria-hidden="true"></i>'
@@ -14,7 +13,6 @@ const sidebarLinks = [
   ['dashboardAdmin', 'Overview'],
   ['userManagement', 'Users'],
   ['listingModeration', 'Moderation'],
-  ['systemHealth', 'System health'],
   ['analytics', 'Analytics'],
   ['supportTickets', 'Support'],
   ['setting', 'Settings']

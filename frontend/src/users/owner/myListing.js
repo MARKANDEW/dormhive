@@ -60,6 +60,50 @@ const renderAmenitiesChips = (item = {}) => normalizeAmenities(item)
   .join('');
 const clearSession = () => { localStorage.removeItem('dormhive.accessToken'); localStorage.removeItem('dormhive.user'); };
 
+function showPropertyPhotoViewer(property) {
+  let images = property.images;
+  if (typeof images === 'string') {
+    try { images = JSON.parse(images); } catch { images = []; }
+  }
+  const photos = [...new Set([normalizePropertyImage(property), ...(Array.isArray(images) ? images.map(resolveImageUrl) : [])].filter(Boolean))];
+  if (!photos.length) return;
+  let photoIndex = 0;
+  const viewer = document.createElement('dialog');
+  viewer.className = 'portfolio-photo-viewer';
+  const viewerImage = document.createElement('img');
+  viewerImage.className = 'portfolio-photo-viewer__image';
+  const closeButton = document.createElement('button');
+  closeButton.type = 'button';
+  closeButton.className = 'portfolio-photo-viewer__close';
+  closeButton.setAttribute('aria-label', 'Close photo viewer');
+  closeButton.textContent = '×';
+  const previousButton = document.createElement('button');
+  previousButton.type = 'button';
+  previousButton.className = 'portfolio-photo-viewer__nav portfolio-photo-viewer__nav--previous';
+  previousButton.setAttribute('aria-label', 'View previous photo');
+  previousButton.textContent = '‹';
+  const nextButton = document.createElement('button');
+  nextButton.type = 'button';
+  nextButton.className = 'portfolio-photo-viewer__nav portfolio-photo-viewer__nav--next';
+  nextButton.setAttribute('aria-label', 'View next photo');
+  nextButton.textContent = '›';
+  const renderPhoto = () => {
+    viewerImage.src = photos[photoIndex];
+    viewerImage.alt = `${property.title || 'Property'} photo ${photoIndex + 1}`;
+    previousButton.hidden = photos.length < 2;
+    nextButton.hidden = photos.length < 2;
+  };
+  previousButton.addEventListener('click', () => { photoIndex = (photoIndex - 1 + photos.length) % photos.length; renderPhoto(); });
+  nextButton.addEventListener('click', () => { photoIndex = (photoIndex + 1) % photos.length; renderPhoto(); });
+  closeButton.addEventListener('click', () => viewer.close());
+  viewer.addEventListener('click', (event) => { if (event.target === viewer) viewer.close(); });
+  viewer.addEventListener('close', () => viewer.remove(), { once: true });
+  viewer.append(viewerImage, previousButton, nextButton, closeButton);
+  document.body.append(viewer);
+  renderPhoto();
+  viewer.showModal();
+}
+
 function css() {
   document.querySelectorAll('link[data-owner-style]:not([data-owner-style="shared"]), style[data-owner-style]:not([data-owner-style="shared"])').forEach((node) => node.remove());
   const existing = document.querySelector('[data-owner-style="listings"]');
@@ -896,7 +940,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
       const propertyTypeLabel = normalizePropertyTypeLabel(item.room_type || item.property_type || '');
       return `
         <tr>
-          <td>${image ? `<img class="property-thumb" src="${escape(image)}" alt="${escape(item.title || 'Property photo')}" />` : '<div class="thumb-placeholder"></div>'}</td>
+          <td>${image ? `<img class="property-thumb" data-property-id="${escape(String(item.id ?? ''))}" src="${escape(image)}" alt="${escape(item.title || 'Property photo')}" />` : '<div class="thumb-placeholder"></div>'}</td>
           <td>
             <strong>${titleText}</strong><br />
             <small>${escape([item.address, item.municipality, item.barangay].filter(Boolean).join(', ') || 'No address provided')}</small>
@@ -935,6 +979,12 @@ export async function renderMyListing(root = document.querySelector('#app')) {
   };
 
   portfolioBody.addEventListener('click', (event) => {
+    const propertyThumb = event.target.closest('.property-thumb');
+    if (propertyThumb) {
+      const property = propertyCache.get(propertyThumb.dataset.propertyId);
+      if (property) showPropertyPhotoViewer(property);
+      return;
+    }
     const menuButton = event.target.closest('.property-more-btn');
     if (menuButton) {
       event.stopPropagation();

@@ -6,19 +6,25 @@ const current = () => JSON.parse(localStorage.getItem('dormhive.user') ?? '{}');
 const escapeHtml = (value = '') => { const element = document.createElement('span'); element.textContent = value; return element.innerHTML; };
 
 function css() {
-  if (!document.querySelector('[data-owner-style="analytics"]')) {
-    const l = document.createElement('link');
-    l.rel = 'stylesheet';
-    l.href = new URL('./style/analytics.css', import.meta.url);
-    l.dataset.ownerStyle = 'analytics';
-    document.head.append(l);
-  }
+  const existing = document.querySelector('[data-owner-style="analytics"]');
+  if (existing) return existing.sheet ? Promise.resolve() : new Promise((resolve) => {
+    existing.addEventListener('load', resolve, { once: true });
+    existing.addEventListener('error', resolve, { once: true });
+  });
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = new URL('./style/analytics.css', import.meta.url);
+  link.dataset.ownerStyle = 'analytics';
+  document.head.append(link);
+  return new Promise((resolve) => {
+    link.addEventListener('load', resolve, { once: true });
+    link.addEventListener('error', resolve, { once: true });
+  });
 }
 
-export function renderAnalytics(root = document.querySelector('#app')) {
+export async function renderAnalytics(root = document.querySelector('#app')) {
   if (!root) throw new Error('Analytics page requires #app.');
-  css();
-  ensureOwnerSidebarStyles();
+  await Promise.all([css(), ensureOwnerSidebarStyles()]);
   root.innerHTML = `
     <div class="owner-shell">
       ${renderOwnerSidebar('analytics')}

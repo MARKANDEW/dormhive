@@ -60,6 +60,52 @@ function metricCard(label, value, note, icon, trend = false) {
 }
 function mapUrl(query) { return `https://www.google.com/maps?q=${encodeURIComponent(query)}&z=12&output=embed`; }
 
+function showOwnerPhotoViewer(images, title) {
+  if (!images.length) return;
+  let photoIndex = 0;
+  const viewer = document.createElement('dialog');
+  viewer.className = 'owner-photo-viewer';
+  const viewerImage = document.createElement('img');
+  viewerImage.className = 'owner-photo-viewer__image';
+  const closeButton = document.createElement('button');
+  closeButton.type = 'button';
+  closeButton.className = 'owner-photo-viewer__close';
+  closeButton.setAttribute('aria-label', 'Close photo viewer');
+  closeButton.textContent = '×';
+  const previousButton = document.createElement('button');
+  previousButton.type = 'button';
+  previousButton.className = 'owner-photo-viewer__nav owner-photo-viewer__nav--previous';
+  previousButton.setAttribute('aria-label', 'View previous photo');
+  previousButton.textContent = '‹';
+  const nextButton = document.createElement('button');
+  nextButton.type = 'button';
+  nextButton.className = 'owner-photo-viewer__nav owner-photo-viewer__nav--next';
+  nextButton.setAttribute('aria-label', 'View next photo');
+  nextButton.textContent = '›';
+  const renderPhoto = () => {
+    viewerImage.src = images[photoIndex];
+    viewerImage.alt = `${title} photo ${photoIndex + 1}`;
+    const hasMultiplePhotos = images.length > 1;
+    previousButton.hidden = !hasMultiplePhotos;
+    nextButton.hidden = !hasMultiplePhotos;
+  };
+  previousButton.addEventListener('click', () => {
+    photoIndex = (photoIndex - 1 + images.length) % images.length;
+    renderPhoto();
+  });
+  nextButton.addEventListener('click', () => {
+    photoIndex = (photoIndex + 1) % images.length;
+    renderPhoto();
+  });
+  closeButton.addEventListener('click', () => viewer.close());
+  viewer.addEventListener('click', (event) => { if (event.target === viewer) viewer.close(); });
+  viewer.addEventListener('close', () => viewer.remove(), { once: true });
+  viewer.append(viewerImage, previousButton, nextButton, closeButton);
+  document.body.append(viewer);
+  renderPhoto();
+  viewer.showModal();
+}
+
 async function showFullMapModal(properties = []) {
   // Load Leaflet libraries first
   try {
@@ -470,6 +516,7 @@ export function renderDashboardOwner(root = document.querySelector('#app')) {
   Promise.all([get('/properties?limit=100').catch(() => ({ data: [] })), get('/bookings').catch(() => ({ data: [] }))]).then(async ([properties, bookings]) => {
     const items = (properties.data ?? []).filter((item) => Number(item.owner_id) === Number(user.id));
     const approvedListings = items.filter((item) => String(item.status).toLowerCase() === 'approved');
+    const listingPhotoSets = new Map();
     const cards = items.map((item) => {
       const roomType = String(item.room_type || 'Property').replaceAll('_', ' ');
       const place = [item.barangay, item.municipality].filter(Boolean).join(', ') || 'Manila';
@@ -478,10 +525,12 @@ export function renderDashboardOwner(root = document.querySelector('#app')) {
       if (typeof listingImages === 'string') {
         try { listingImages = JSON.parse(listingImages); } catch { listingImages = []; }
       }
-      const image = resolveAvatarUrl(item.image_url || item.cover_image || (Array.isArray(listingImages) ? listingImages[0] : ''));
+      const photoSet = [...new Set((Array.isArray(listingImages) ? listingImages : []).map(resolveAvatarUrl).filter(Boolean))];
+      const image = resolveAvatarUrl(item.image_url || item.cover_image || photoSet[0] || '');
+      listingPhotoSets.set(String(item.id ?? ''), [...new Set([image, ...photoSet].filter(Boolean))]);
       return `
         <article class="listing-card">
-          ${image ? `<img class="listing-card-image" src="${escape(image)}" alt="${escape(item.title || 'Property')}" />` : '<div class="listing-card-image listing-card-image--empty">No image</div>'}
+          ${image ? `<img class="listing-card-image" data-property-id="${escape(String(item.id ?? ''))}" src="${escape(image)}" alt="${escape(item.title || 'Property')}" />` : '<div class="listing-card-image listing-card-image--empty">No image</div>'}
           <div class="listing-topline"><span class="property-pill">${escape(badge)}</span><span class="property-rent">₱${Number(item.monthly_rent ?? 0).toLocaleString()}/mo</span></div>
           <h3>${escape(item.title || 'Untitled property')}</h3>
           <p class="listing-subtitle">${escape(place)} • ${escape(roomType)}</p>
@@ -489,6 +538,20 @@ export function renderDashboardOwner(root = document.querySelector('#app')) {
         </article>`;
     }).join('');
     listingGrid.innerHTML = cards || '<p class="empty">No property listings yet for this account.</p>';
+    listingGrid.querySelectorAll('.listing-card-image[data-property-id]').forEach((image) => {
+      const photos = listingPhotoSets.get(image.dataset.propertyId) ?? [];
+      const title = image.alt || 'Property';
+      image.tabIndex = 0;
+      image.setAttribute('role', 'button');
+      image.setAttribute('aria-label', `View ${title} photo larger`);
+      image.addEventListener('click', () => showOwnerPhotoViewer(photos, title));
+      image.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          showOwnerPhotoViewer(photos, title);
+        }
+      });
+    });
     listingGrid.querySelectorAll('.manage-listing').forEach((button) => {
       button.addEventListener('click', () => {
         location.hash = `#/owner/inquiries?propertyId=${encodeURIComponent(button.dataset.propertyId)}`;

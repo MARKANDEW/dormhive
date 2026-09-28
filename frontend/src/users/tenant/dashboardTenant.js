@@ -323,7 +323,14 @@ function loadPropertyDetailsStyle() {
     .ui-modal:has(.property-detail-modal-content) { position: fixed; inset: 0; margin: auto; width: min(94vw, 920px); max-height: calc(100vh - 2rem); }
     .property-detail-modal-content { display: grid; grid-template-columns: minmax(220px, 38%) 1fr; gap: 1.25rem; }
     .property-detail-gallery { position: relative; align-self: start; width: 100%; height: 230px; min-width: 0; touch-action: pan-y; }
-    .property-detail-modal-image { display: block; width: 100%; height: 230px; object-fit: cover; border-radius: .65rem; }
+    .property-detail-modal-image { display: block; width: 100%; height: 230px; object-fit: cover; border-radius: .65rem; cursor: zoom-in; }
+    .property-photo-viewer { width: min(94vw, 1100px); max-width: none; padding: 0; border: 0; background: transparent; overflow: visible; }
+    .property-photo-viewer::backdrop { background: rgb(15 23 42 / 82%); backdrop-filter: blur(4px); }
+    .property-photo-viewer__image { display: block; width: 100%; max-height: 88vh; object-fit: contain; border-radius: .65rem; }
+    .property-photo-viewer__close { position: absolute; top: .75rem; right: .75rem; width: 2.25rem; height: 2.25rem; border: 0; border-radius: 50%; background: rgb(15 23 42 / 75%); color: #fff; font-size: 1.5rem; line-height: 1; cursor: pointer; }
+    .property-photo-viewer__nav { position: absolute; top: 50%; width: 2.75rem; height: 2.75rem; border: 0; border-radius: 50%; transform: translateY(-50%); background: rgb(15 23 42 / 75%); color: #fff; font-size: 2rem; line-height: 1; cursor: pointer; }
+    .property-photo-viewer__nav--previous { left: .75rem; }
+    .property-photo-viewer__nav--next { right: .75rem; }
     .property-detail-gallery-dots { position: absolute; right: 0; bottom: .65rem; left: 0; display: flex; justify-content: center; gap: .35rem; }
     .property-detail-gallery-dot { width: .45rem; height: .45rem; padding: 0; border: 1px solid rgba(255,255,255,.9); border-radius: 50%; background: rgba(255,255,255,.65); box-shadow: 0 1px 3px rgba(0,0,0,.35); cursor: pointer; }
     .property-detail-gallery-dot.is-active { background: #b48421; transform: scale(1.2); }
@@ -844,6 +851,52 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
           dot.setAttribute('aria-selected', String(isActive));
         });
       };
+      const openImageViewer = () => {
+        const viewer = document.createElement('dialog');
+        viewer.className = 'property-photo-viewer';
+        const viewerImage = document.createElement('img');
+        viewerImage.className = 'property-photo-viewer__image';
+        viewerImage.src = galleryImage.src;
+        viewerImage.alt = galleryImage.alt;
+        const previousButton = document.createElement('button');
+        previousButton.type = 'button';
+        previousButton.className = 'property-photo-viewer__nav property-photo-viewer__nav--previous';
+        previousButton.setAttribute('aria-label', 'View previous photo');
+        previousButton.textContent = '‹';
+        const nextButton = document.createElement('button');
+        nextButton.type = 'button';
+        nextButton.className = 'property-photo-viewer__nav property-photo-viewer__nav--next';
+        nextButton.setAttribute('aria-label', 'View next photo');
+        nextButton.textContent = '›';
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.className = 'property-photo-viewer__close';
+        closeButton.setAttribute('aria-label', 'Close photo viewer');
+        closeButton.textContent = '×';
+        const updateViewerImage = () => {
+          viewerImage.src = galleryImage.src;
+          viewerImage.alt = galleryImage.alt;
+        };
+        previousButton.addEventListener('click', () => { showGalleryImage(galleryIndex - 1); updateViewerImage(); });
+        nextButton.addEventListener('click', () => { showGalleryImage(galleryIndex + 1); updateViewerImage(); });
+        viewer.append(viewerImage, previousButton, nextButton, closeButton);
+        const removeViewer = () => viewer.remove();
+        closeButton.addEventListener('click', () => viewer.close());
+        viewer.addEventListener('click', (event) => { if (event.target === viewer) viewer.close(); });
+        viewer.addEventListener('close', removeViewer, { once: true });
+        document.body.append(viewer);
+        viewer.showModal();
+      };
+      galleryImage.tabIndex = 0;
+      galleryImage.setAttribute('role', 'button');
+      galleryImage.setAttribute('aria-label', 'View photo larger');
+      galleryImage.addEventListener('click', openImageViewer);
+      galleryImage.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          openImageViewer();
+        }
+      });
       galleryDots.forEach((dot) => dot.addEventListener('click', () => showGalleryImage(Number(dot.dataset.galleryIndex))));
       let swipeStartX = null;
       gallery.addEventListener('pointerdown', (event) => { swipeStartX = event.clientX; });
