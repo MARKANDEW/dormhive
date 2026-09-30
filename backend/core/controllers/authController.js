@@ -152,10 +152,21 @@ export async function register(request, response, next) {
   } catch (error) { next(error); }
 }
 
+export function loginRejection(user, passwordMatches) {
+  if (!user || !passwordMatches) return { status: 401, message: 'Invalid email or password.' };
+  if (user.status === 'suspended') {
+    return { status: 403, message: 'Your account has been suspended. Please contact the administrator for assistance.' };
+  }
+  if (user.status !== 'active') return { status: 401, message: 'Invalid email or password.' };
+  return null;
+}
+
 export async function login(request, response, next) {
   try {
     const user = await findByEmail(String(request.body.email ?? '').toLowerCase());
-    if (!user || !(await bcrypt.compare(request.body.password ?? '', user.password_hash)) || user.status !== 'active') return response.status(401).json({ message: 'Invalid email or password.' });
+    const passwordMatches = user ? await bcrypt.compare(request.body.password ?? '', user.password_hash) : false;
+    const rejection = loginRejection(user, passwordMatches);
+    if (rejection) return response.status(rejection.status).json({ message: rejection.message });
     delete user.password_hash;
     response.json({ user, accessToken: tokenFor(user) });
   } catch (error) { next(error); }

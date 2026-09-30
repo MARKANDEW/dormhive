@@ -16,7 +16,6 @@ const esc = (v = '') => {
   e.textContent = v;
   return e.innerHTML;
 };
-const validRoles = ['tenant', 'owner', 'admin'];
 
 const demoUsers = [
   { id: 1, name: 'Miguel cruz', email: 'tenant@tenant2.com', role: 'tenant', status: 'active', avatar_url: '' },
@@ -131,7 +130,6 @@ function renderUserCard(user) {
       </div>
       <div class="user-actions">
         <button type="button" data-action="profile" data-user-id="${user.id ?? ''}">View Profile</button>
-        <button type="button" data-action="role" data-user-id="${user.id ?? ''}">Edit Role</button>
         <button type="button" data-action="delete" data-user-id="${user.id ?? ''}">Delete</button>
       </div>
     </article>
@@ -176,41 +174,6 @@ function showUserProfileModal(user) {
   openModal(modal);
 }
 
-async function updateUserRole(root, user) {
-  const currentRole = String(user.role || 'tenant');
-  const modal = createModal({
-    title: `Edit Role: ${user.name || user.email || 'User'}`,
-    content: `
-      <label class="role-select-label" for="admin-role-select">Account role</label>
-      <select id="admin-role-select" class="role-select">
-        ${validRoles.map((role) => `<option value="${role}"${role === currentRole ? ' selected' : ''}>${role[0].toUpperCase()}${role.slice(1)}</option>`).join('')}
-      </select>
-    `,
-    closeLabel: 'Cancel'
-  });
-  const saveButton = modal.querySelector('.ui-modal__footer button');
-  if (!saveButton) return;
-  saveButton.textContent = 'Save Role';
-  saveButton.addEventListener('click', async () => {
-    const normalized = modal.querySelector('#admin-role-select')?.value;
-    if (!validRoles.includes(normalized)) return;
-
-    try {
-      await apiRequest(`/users/${encodeURIComponent(user.id)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: normalized })
-      });
-
-      showToast({ message: `${user.name || 'User'} updated to ${normalized}.`, type: 'success' });
-      await refreshDashboardData(root);
-    } catch (error) {
-      showToast({ message: error.message || 'Could not update user role.', type: 'error' });
-    }
-  });
-  openModal(modal);
-}
-
 async function deleteUser(root, user) {
   const userLabel = user.name || user.email || 'this user';
   const confirmed = window.confirm(`Delete ${userLabel}? This action cannot be undone.`);
@@ -236,7 +199,6 @@ function bindUserActions(root, users = []) {
 
     button.addEventListener('click', () => {
       if (action === 'profile') showUserProfileModal(user);
-      if (action === 'role') updateUserRole(root, user);
       if (action === 'delete') deleteUser(root, user);
     });
   });

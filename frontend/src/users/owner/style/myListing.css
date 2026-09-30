@@ -900,6 +900,8 @@ body {
 
 .portfolio-photo-viewer {
   position: fixed;
+  display: grid;
+  place-items: center;
   inset: 0;
   margin: auto;
   width: min(94vw, 1100px);

@@ -588,6 +588,11 @@ textarea {
   color: #2f3f3b;
 }
 
+.secondary-btn.reject-tenant-panel-action {
+  background: #1d7f68;
+  color: #fff;
+}
+
 .empty-state,
 .empty-detail-state {
   display: grid;

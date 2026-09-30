@@ -209,8 +209,27 @@
 
 .users-card table {
   width: 100%;
+  min-width: 840px;
+  table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
+}
+
+.users-card th:nth-child(1),
+.users-card td:nth-child(1) {
+  width: 58%;
+}
+
+.users-card th:nth-child(2),
+.users-card td:nth-child(2) {
+  width: 10%;
+}
+
+.users-card th:nth-child(3),
+.users-card td:nth-child(3),
+.users-card th:nth-child(4),
+.users-card td:nth-child(4) {
+  width: 16%;
 }
 
 .users-card th,
@@ -284,11 +303,15 @@
 .pill {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 28px;
   gap: 7px;
-  padding: 7px 11px;
+  padding: 0 11px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .pill i {
@@ -317,6 +340,8 @@
 }
 
 .user-status-button {
+  width: 96px;
+  height: 38px;
   min-height: 38px;
   padding: 0 14px;
   border: 1px solid transparent;
@@ -327,6 +352,7 @@
   font-size: 12px;
   font-weight: 800;
   cursor: pointer;
+  white-space: nowrap;
   transition: transform 0.15s ease, opacity 0.15s ease;
 }
 

@@ -37,7 +37,8 @@ function css() {
 const statusInfo = (status) => {
   const normalized = String(status ?? '').toLowerCase();
   if (normalized === 'approved') return { label: 'Replied', className: 'status-replied' };
-  if (normalized === 'rejected' || normalized === 'cancelled') return { label: 'Archived', className: 'status-archived' };
+  if (normalized === 'rejected') return { label: 'Rejected', className: 'status-archived' };
+  if (normalized === 'cancelled') return { label: 'Archived', className: 'status-archived' };
   if (normalized === 'pending') return { label: 'Pending', className: 'status-pending' };
   return { label: 'New', className: 'status-new' };
 };
@@ -135,14 +136,14 @@ export async function renderInquiries(root = document.querySelector('#app')) {
       <div class="archive-confirm-overlay"></div>
       <div class="archive-confirm-card">
         <div class="archive-confirm-header">
-          <h2 id="archive-confirm-title">Archive Inquiry</h2>
+          <h2 id="archive-confirm-title">Reject Tenant</h2>
         </div>
         <div class="archive-confirm-body">
-          <p id="archive-confirm-text">Are you sure you want to archive this inquiry?</p>
+          <p id="archive-confirm-text">Are you sure you want to reject this tenant inquiry?</p>
         </div>
         <div class="archive-confirm-footer">
           <button type="button" class="secondary-btn archive-cancel-btn">Cancel</button>
-          <button type="button" class="primary-btn archive-confirm-btn">Archive Property</button>
+          <button type="button" class="primary-btn archive-confirm-btn">Reject Tenant</button>
         </div>
       </div>
     </div>
@@ -363,15 +364,15 @@ export async function renderInquiries(root = document.querySelector('#app')) {
       </div>
 
       <div class="detail-actions">
-        <button type="button" class="primary-btn schedule-panel-action"><span class="button-icon">📅</span> Schedule Viewing</button>
-        <button type="button" class="accept-action"><span class="button-icon">✓</span> Accept Tenant</button>
-        <button type="button" class="secondary-btn archive-panel-action"><span class="button-icon">🗃</span> Archive</button>
+        <button type="button" class="primary-btn schedule-panel-action">Schedule Viewing</button>
+        <button type="button" class="accept-action">Accept Tenant</button>
+        <button type="button" class="secondary-btn reject-tenant-panel-action">Reject Tenant</button>
       </div>
     `;
 
     const schedulePanelAction = detailPanel.querySelector('.schedule-panel-action');
     const acceptPanelAction = detailPanel.querySelector('.accept-action');
-    const archivePanelAction = detailPanel.querySelector('.archive-panel-action');
+    const rejectTenantPanelAction = detailPanel.querySelector('.reject-tenant-panel-action');
     const moreMenuButton = detailPanel.querySelector('.more-menu');
     const detailMenu = detailPanel.querySelector('.detail-menu');
     const menuDelete = detailPanel.querySelector('.menu-delete');
@@ -406,7 +407,7 @@ export async function renderInquiries(root = document.querySelector('#app')) {
 
     schedulePanelAction?.addEventListener('click', () => openScheduleModal(booking));
     acceptPanelAction?.addEventListener('click', () => acceptTenant());
-    archivePanelAction?.addEventListener('click', () => openArchiveConfirmation(booking));
+    rejectTenantPanelAction?.addEventListener('click', () => openInquiryConfirmation(booking));
   };
 
   const renderRows = () => {
@@ -555,21 +556,21 @@ export async function renderInquiries(root = document.querySelector('#app')) {
     document.body.classList.remove('archive-confirm-open');
   };
 
-  const openArchiveConfirmation = (booking, action = 'archive') => {
+  const openInquiryConfirmation = (booking, action = 'reject') => {
     if (!booking) return;
     pendingArchiveBooking = booking;
     const isDelete = action === 'delete';
-    archiveConfirmTitle.textContent = isDelete ? 'Delete Inquiry' : 'Archive Inquiry';
+    archiveConfirmTitle.textContent = isDelete ? 'Delete Inquiry' : 'Reject Tenant';
     archiveConfirmText.textContent = isDelete
       ? `Are you sure you want to delete this inquiry from ${booking.tenant_name || 'this tenant'}?`
-      : 'Are you sure you want to archive this inquiry?';
-    archiveConfirmActionBtn.textContent = isDelete ? 'Delete Property' : 'Archive Property';
+      : `Are you sure you want to reject the inquiry from ${booking.tenant_name || 'this tenant'}?`;
+    archiveConfirmActionBtn.textContent = isDelete ? 'Delete Property' : 'Reject Tenant';
     archiveConfirmActionBtn.dataset.action = action;
     archiveConfirmModal.hidden = false;
     document.body.classList.add('archive-confirm-open');
   };
 
-  const archiveBooking = async (booking) => {
+  const rejectTenantInquiry = async (booking) => {
     if (!booking) return;
     try {
       const response = await fetch(`${API}/bookings/${booking.id}/status`, {
@@ -578,7 +579,7 @@ export async function renderInquiries(root = document.querySelector('#app')) {
         body: JSON.stringify({ status: 'rejected' })
       });
       const body = await response.json();
-      if (!response.ok) throw new Error(body.message || 'Unable to archive inquiry.');
+      if (!response.ok) throw new Error(body.message || 'Unable to reject tenant inquiry.');
       state.bookings = state.bookings.map((b) => b.id === booking.id ? { ...b, status: 'rejected' } : b);
       renderRows();
       renderDetailPanel();
@@ -590,7 +591,7 @@ export async function renderInquiries(root = document.querySelector('#app')) {
 
   const deleteBooking = (booking) => {
     if (!booking) return;
-    openArchiveConfirmation(booking, 'delete');
+    openInquiryConfirmation(booking, 'delete');
   };
 
   const openReplyComposer = (booking) => {
@@ -833,7 +834,7 @@ export async function renderInquiries(root = document.querySelector('#app')) {
       closeArchiveConfirmation();
       return;
     }
-    archiveBooking(pendingArchiveBooking);
+    rejectTenantInquiry(pendingArchiveBooking);
   });
   archiveConfirmModal.querySelector('.archive-confirm-overlay')?.addEventListener('click', closeArchiveConfirmation);
 
@@ -857,9 +858,9 @@ export async function renderInquiries(root = document.querySelector('#app')) {
       acceptTenant();
     }
 
-    const archiveButton = event.target.closest('.archive-panel-action');
-    if (archiveButton && state.selected) {
-      openArchiveConfirmation(state.selected);
+    const rejectTenantButton = event.target.closest('.reject-tenant-panel-action');
+    if (rejectTenantButton && state.selected) {
+      openInquiryConfirmation(state.selected);
     }
 
     const scheduleButton = event.target.closest('.schedule-panel-action');

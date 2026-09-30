@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { validate } from '../middleware/validate.js';
-import { isValidPhilippinePhoneNumber, normalizePhilippinePhoneNumber } from '../controllers/authController.js';
+import { isValidPhilippinePhoneNumber, loginRejection, normalizePhilippinePhoneNumber } from '../controllers/authController.js';
 
 function makeResponse() {
   return {
@@ -53,4 +53,18 @@ test('Philippine phone numbers normalize to E.164 for SMS verification', () => {
   assert.equal(normalizePhilippinePhoneNumber('+63 912 345 6789'), '+639123456789');
   assert.equal(normalizePhilippinePhoneNumber('09123456789'), '+639123456789');
   assert.equal(normalizePhilippinePhoneNumber('+63abc9123456789'), null);
+});
+
+test('suspended login requires a valid password before returning the suspension message', () => {
+  const suspendedUser = { status: 'suspended' };
+  assert.deepEqual(loginRejection(suspendedUser, false), { status: 401, message: 'Invalid email or password.' });
+  assert.deepEqual(loginRejection(suspendedUser, true), {
+    status: 403,
+    message: 'Your account has been suspended. Please contact the administrator for assistance.'
+  });
+});
+
+test('active users continue through login and unknown statuses remain denied', () => {
+  assert.equal(loginRejection({ status: 'active' }, true), null);
+  assert.deepEqual(loginRejection({ status: 'pending' }, true), { status: 401, message: 'Invalid email or password.' });
 });
