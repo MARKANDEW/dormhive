@@ -95,6 +95,10 @@ async function checkAndFixDatabase() {
           owner_id INT NOT NULL,
           move_in_date DATE,
           move_out_date DATE,
+          is_indefinite_move_out TINYINT(1) NOT NULL DEFAULT 0,
+          viewing_date DATE NULL,
+          viewing_time TIME NULL,
+          viewing_schedule_tenant_submitted TINYINT(1) NOT NULL DEFAULT 0,
           message TEXT,
           status ENUM('pending', 'approved', 'rejected', 'cancelled') DEFAULT 'pending',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -230,6 +234,28 @@ async function checkAndFixDatabase() {
         console.log('\n✅ Missing columns added successfully!\n');
       } else {
         console.log('✓ All required columns exist\n');
+      }
+
+      const bookingTableExists = (await query("SHOW TABLES LIKE 'bookings'"))[0] !== undefined;
+      if (bookingTableExists) {
+        const bookingColumns = await query('DESCRIBE bookings');
+        const bookingColumnNames = bookingColumns.map((column) => column.Field);
+        if (!bookingColumnNames.includes('viewing_date')) {
+          await query('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS viewing_date DATE NULL AFTER move_out_date');
+          console.log('✓ viewing_date column added to bookings table');
+        }
+        if (!bookingColumnNames.includes('viewing_time')) {
+          await query('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS viewing_time TIME NULL AFTER viewing_date');
+          console.log('✓ viewing_time column added to bookings table');
+        }
+        if (!bookingColumnNames.includes('viewing_schedule_tenant_submitted')) {
+          await query('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS viewing_schedule_tenant_submitted TINYINT(1) NOT NULL DEFAULT 0 AFTER viewing_time');
+          console.log('✓ viewing_schedule_tenant_submitted column added to bookings table');
+        }
+        if (!bookingColumnNames.includes('is_indefinite_move_out')) {
+          await query('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS is_indefinite_move_out TINYINT(1) NOT NULL DEFAULT 0 AFTER move_out_date');
+          console.log('✓ is_indefinite_move_out column added to bookings table');
+        }
       }
 
       const conversationTableExists = (await query("SHOW TABLES LIKE 'conversations'"))[0] !== undefined;

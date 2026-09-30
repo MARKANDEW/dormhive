@@ -3,19 +3,63 @@ import * as properties from '../models/Property.js';
 import { createConversation } from '../models/Message.js';
 import { findById as findPropertyById } from '../models/Property.js';
 
+function isValidSqlDate(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+export function resolveMoveOutSchedule(moveInDate, moveOutDate, indefiniteValue = false) {
+  if (!isValidSqlDate(moveInDate)) return { valid: false, message: 'Provide a valid move-in date.' };
+  const isIndefinite = indefiniteValue === true || indefiniteValue === 1 || indefiniteValue === '1' || indefiniteValue === 'true';
+  if (isIndefinite) return { valid: true, moveOutDate: null, isIndefiniteMoveOut: true };
+  if (!moveOutDate) return { valid: true, moveOutDate: null, isIndefiniteMoveOut: false };
+  if (!isValidSqlDate(moveOutDate)) return { valid: false, message: 'Provide a valid move-out date.' };
+  if (moveOutDate <= moveInDate) return { valid: false, message: 'Move-out date must be after the move-in date.' };
+  return { valid: true, moveOutDate, isIndefiniteMoveOut: false };
+}
+
 export async function create(request, response, next) {
   try {
+    const moveOutSchedule = resolveMoveOutSchedule(
+      request.body.moveInDate,
+      request.body.moveOutDate,
+      request.body.isIndefiniteMoveOut
+    );
+    if (!moveOutSchedule.valid) return response.status(422).json({ message: moveOutSchedule.message });
+
+    const viewingSchedule = resolveViewingSchedule(request.body.viewingDate, request.body.viewingTime);
+    if (!viewingSchedule.valid) return response.status(422).json({ message: viewingSchedule.message });
+
     const property = await findPropertyById(request.body.propertyId);
     if (!property || property.status !== 'approved') return response.status(404).json({ message: 'Property not found.' });
     if (property.owner_id === request.user.id) return response.status(422).json({ message: 'You cannot book your own property.' });
     if (Number(request.body.occupants) > property.max_occupants) return response.status(422).json({ message: 'Occupants exceed the property capacity.' });
-    const booking = await bookings.create(request.user.id, request.body);
+    const booking = await bookings.create(request.user.id, { ...request.body, ...moveOutSchedule, ...viewingSchedule });
     await createConversation({ tenantId: request.user.id, ownerId: property.owner_id, propertyId: property.id });
     response.status(201).json({ data: booking });
   } catch (error) { next(error); }
 }
 
 export async function list(request, response, next) { try { response.json({ data: await bookings.listForUser(request.user) }); } catch (error) { next(error); } }
+
+export async function updateMoveOut(request, response, next) {
+  try {
+    const booking = await bookings.findById(request.params.id);
+    if (!booking) return response.status(404).json({ message: 'Booking not found.' });
+    const mayUpdateMoveOut = request.user.role === 'admin' || booking.tenant_id === request.user.id;
+    if (!mayUpdateMoveOut) return response.status(403).json({ message: 'Permission denied.' });
+
+    const moveOutSchedule = resolveMoveOutSchedule(
+      booking.move_in_date,
+      request.body.moveOutDate,
+      request.body.isIndefiniteMoveOut
+    );
+    if (!moveOutSchedule.valid) return response.status(422).json({ message: moveOutSchedule.message });
+
+    response.json({ data: await bookings.updateMoveOut(booking.id, moveOutSchedule.moveOutDate, moveOutSchedule.isIndefiniteMoveOut) });
+  } catch (error) { next(error); }
+}
 
 export async function get(request, response, next) {
   try {
@@ -43,6 +87,49 @@ export async function updateStatus(request, response, next) {
   } catch (error) { next(error); }
 }
 
+export function isValidViewingSchedule(viewingDate, viewingTime) {
+  if (typeof viewingDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(viewingDate)) return false;
+  if (typeof viewingTime !== 'string' || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(viewingTime)) return false;
+  const parsedDate = new Date(`${viewingDate}T00:00:00.000Z`);
+  return !Number.isNaN(parsedDate.getTime()) && parsedDate.toISOString().slice(0, 10) === viewingDate;
+}
+
+export function resolveViewingSchedule(viewingDate, viewingTime) {
+  const hasDate = Boolean(viewingDate);
+  const hasTime = Boolean(viewingTime);
+  if (!hasDate && !hasTime) return { valid: true, viewingDate: null, viewingTime: null };
+  if (!hasDate || !hasTime || !isValidViewingSchedule(viewingDate, viewingTime)) {
+    return { valid: false, message: 'Provide both a valid viewing date and time, or leave both blank.' };
+  }
+  return { valid: true, viewingDate, viewingTime };
+}
+
+export function canTenantEditViewingSchedule(booking, user) {
+  return user?.role === 'tenant'
+    && String(booking?.tenant_id) === String(user.id)
+    && booking?.status === 'pending';
+}
+
+export async function updateViewingSchedule(request, response, next) {
+  try {
+    const booking = await bookings.findById(request.params.id);
+    if (!booking) return response.status(404).json({ message: 'Booking not found.' });
+    if (request.user.role !== 'tenant' || String(booking.tenant_id) !== String(request.user.id)) {
+      return response.status(403).json({ message: 'Only the tenant can manage the viewing schedule.' });
+    }
+    if (!canTenantEditViewingSchedule(booking, request.user)) {
+      return response.status(409).json({ message: 'The viewing schedule is locked after the inquiry is reviewed.' });
+    }
+
+    const { viewingDate, viewingTime } = request.body;
+    if (!isValidViewingSchedule(viewingDate, viewingTime)) {
+      return response.status(422).json({ message: 'Provide a valid viewing date and time.' });
+    }
+
+    response.json({ data: await bookings.updateViewingSchedule(booking.id, viewingDate, viewingTime) });
+  } catch (error) { next(error); }
+}
+
 export async function ticket(request, response, next) {
   try {
     const booking = await bookings.findById(request.params.id);
@@ -61,8 +148,8 @@ export async function ticket(request, response, next) {
     
     const ticketId = `DHB${String(booking.id).padStart(6, '0')}`;
     const moveInDate = formatDate(booking.move_in_date);
-    const moveOutDate = formatDate(booking.move_out_date);
-    const datesRange = booking.move_out_date ? `${moveInDate} - ${moveOutDate}` : moveInDate;
+    const moveOutDate = booking.is_indefinite_move_out ? 'Indefinite' : formatDate(booking.move_out_date);
+    const datesRange = booking.is_indefinite_move_out ? `${moveInDate} - Indefinite` : booking.move_out_date ? `${moveInDate} - ${moveOutDate}` : moveInDate;
     const price = booking.monthly_rent ? `₱${Number(booking.monthly_rent).toLocaleString('en-PH')}` : '—';
     
     const html = `
@@ -240,7 +327,7 @@ export async function ticket(request, response, next) {
               <div class="dates-item-label">Duration</div>
             </div>
             <div class="dates-item">
-              <div class="dates-item-value">${formatDate(booking.move_out_date)}</div>
+              <div class="dates-item-value">${moveOutDate}</div>
               <div class="dates-item-label">Check-out</div>
             </div>
           </div>

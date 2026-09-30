@@ -80,6 +80,10 @@ CREATE TABLE IF NOT EXISTS bookings (
   owner_id INT NOT NULL,
   move_in_date DATE,
   move_out_date DATE,
+  is_indefinite_move_out TINYINT(1) NOT NULL DEFAULT 0,
+  viewing_date DATE NULL,
+  viewing_time TIME NULL,
+  viewing_schedule_tenant_submitted TINYINT(1) NOT NULL DEFAULT 0,
   message TEXT,
   status ENUM('pending', 'approved', 'rejected', 'cancelled') DEFAULT 'pending',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -171,5 +175,7 @@ ALTER TABLE properties ADD COLUMN IF NOT EXISTS images JSON AFTER image_url;
 -- Add first_name and last_name to users for separate name storage
 ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name VARCHAR(100) AFTER name;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name VARCHAR(100) AFTER first_name;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS is_indefinite_move_out TINYINT(1) NOT NULL DEFAULT 0 AFTER move_out_date;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS viewing_schedule_tenant_submitted TINYINT(1) NOT NULL DEFAULT 0 AFTER viewing_time;
 
 ALTER TABLE notifications ADD COLUMN IF NOT EXISTS message TEXT AFTER title;

@@ -330,8 +330,13 @@ function propertyDetailsMarkup(property) {
     <form class="dashboard-request-form">
       <div class="dashboard-request-fields">
         <label>Move-in Date<input type="date" name="moveInDate" required /></label>
-        <label>Move-out Date<input type="date" name="moveOutDate" /></label>
+        <label>Move-out Date
+          <input type="date" name="moveOutDate" />
+          <span class="dashboard-indefinite-move-out"><input type="checkbox" name="isIndefiniteMoveOut" /><span>Indefinite / No planned move-out date</span></span>
+        </label>
         <label>Occupants<input type="number" name="occupants" min="1" value="1" required /></label>
+        <label>Viewing Date<input type="date" name="viewingDate" /></label>
+        <label>Viewing Time<input type="time" name="viewingTime" /></label>
         <button type="button" class="dashboard-chat-owner">Chat Owner</button>
         <button type="submit" class="dashboard-send-request">Send Request</button>
       </div>
@@ -353,11 +358,11 @@ function loadPropertyDetailsStyle() {
     .property-detail-modal-content { display: grid; grid-template-columns: minmax(220px, 38%) 1fr; gap: 1.25rem; }
     .property-detail-gallery { position: relative; align-self: start; width: 100%; height: 230px; min-width: 0; touch-action: pan-y; }
     .property-detail-modal-image { display: block; width: 100%; height: 230px; object-fit: cover; border-radius: .65rem; cursor: zoom-in; }
-    .property-photo-viewer { width: min(94vw, 1100px); max-width: none; padding: 0; border: 0; background: transparent; overflow: visible; }
+    .property-photo-viewer { position: fixed; inset: 0; margin: auto; display: grid; place-items: center; width: min(94vw, 1100px); max-width: none; max-height: 88vh; padding: 0; border: 0; background: transparent; overflow: visible; }
     .property-photo-viewer::backdrop { background: rgb(15 23 42 / 82%); backdrop-filter: blur(4px); }
-    .property-photo-viewer__image { display: block; width: 100%; max-height: 88vh; object-fit: contain; border-radius: .65rem; }
-    .property-photo-viewer__close { position: absolute; top: .75rem; right: .75rem; width: 2.25rem; height: 2.25rem; border: 0; border-radius: 50%; background: rgb(15 23 42 / 75%); color: #fff; font-size: 1.5rem; line-height: 1; cursor: pointer; }
-    .property-photo-viewer__nav { position: absolute; top: 50%; width: 2.75rem; height: 2.75rem; border: 0; border-radius: 50%; transform: translateY(-50%); background: rgb(15 23 42 / 75%); color: #fff; font-size: 2rem; line-height: 1; cursor: pointer; }
+    .property-photo-viewer__image { display: block; width: 100%; max-height: 88vh; object-fit: contain; border-radius: .65rem; user-select: none; -webkit-user-drag: none; }
+    .property-photo-viewer__close { position: absolute; top: .75rem; right: .75rem; display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border: 0; border-radius: 50%; background: rgb(15 23 42 / 75%); color: #fff; font-size: 1.5rem; line-height: 1; cursor: pointer; user-select: none; }
+    .property-photo-viewer__nav { position: absolute; top: 50%; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; padding: 0; border: 0; border-radius: 50%; transform: translateY(-50%); background: rgb(15 23 42 / 75%); color: #fff; font-size: 2rem; line-height: 1; cursor: pointer; user-select: none; }
     .property-photo-viewer__nav--previous { left: .75rem; }
     .property-photo-viewer__nav--next { right: .75rem; }
     .property-detail-gallery-dots { position: absolute; right: 0; bottom: .65rem; left: 0; display: flex; justify-content: center; gap: .35rem; }
@@ -374,6 +379,9 @@ function loadPropertyDetailsStyle() {
     .dashboard-request-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto auto; gap: .65rem; align-items: end; }
     .dashboard-request-fields label { display: grid; gap: .3rem; color: #443d39; font-size: .8rem; font-weight: 700; }
     .dashboard-request-fields input { width: 100%; height: 42px; padding: 0 .65rem; border: 1px solid #d8d0c9; border-radius: .55rem; font: inherit; }
+    .dashboard-request-fields input:focus-visible { outline: 2px solid #1aa87a; outline-offset: 2px; }
+    .dashboard-request-fields .dashboard-indefinite-move-out { display: flex; align-items: center; gap: .45rem; color: #52625e; font-size: .74rem; font-weight: 500; }
+    .dashboard-request-fields .dashboard-indefinite-move-out input[type="checkbox"] { flex: 0 0 16px; width: 16px; height: 16px; margin: 0; padding: 0; accent-color: #1aa87a; }
     .dashboard-request-fields button { height: 42px; padding: 0 .8rem; border: 0; border-radius: .55rem; background: #1aa87a; color: #fff; font-weight: 700; cursor: pointer; white-space: nowrap; }
     .tenant-property-detail-modal .ui-modal__footer button { background: #1aa87a; color: #fff; }
     .dashboard-request-status { min-height: 1.2rem; margin: .55rem 0 0; color: #7b4b2d; font-size: .82rem; }
@@ -793,9 +801,11 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
 
   const state = { all: [], visible: [] };
   const routeSearch = typeof window.DORMHIVE_ROUTE_SEARCH === 'string' ? window.DORMHIVE_ROUTE_SEARCH : window.location.search;
-  const requestedPropertyId = new URLSearchParams(routeSearch).get('propertyId');
+  const routeParams = new URLSearchParams(routeSearch);
+  const requestedPropertyId = routeParams.get('propertyId');
   let requestedPropertyOpened = false;
   const search = root.querySelector('#search');
+  if (search) search.value = routeParams.get('search') ?? '';
   const maxPrice = root.querySelector('#max-price');
   const range = root.querySelector('#range');
   const rangeNote = root.querySelector('#range-note');
@@ -803,6 +813,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
   const clearButton = root.querySelector('#clear');
   const applyButton = root.querySelector('#apply-filters');
   const mapStatus = root.querySelector('#map-status');
+  const mapPanel = root.querySelector('#shared-map');
   const mapFrame = root.querySelector('#tenant-map');
   const renderSkeletonState = () => {
     if (!cards) return;
@@ -839,8 +850,8 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
   window.addEventListener('dormhive-user-updated', handleUserRefresh);
 
   const syncMapLocation = (items = []) => {
-    if (!mapFrame) return;
-    if (mapFrame.__leafletMapManager) updateLeafletMarkers(mapFrame, items);
+    if (!mapPanel) return;
+    if (mapPanel.__leafletMapManager) updateLeafletMarkers(mapPanel, items);
 
     const nearButton = root.querySelector('.near');
     const focusItem = items.find((item) => item.municipality || item.barangay || item.address) ?? state.all[0];
@@ -946,8 +957,23 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
     const status = modal.querySelector('.dashboard-request-status');
     const moveIn = form.querySelector('[name="moveInDate"]');
     const moveOut = form.querySelector('[name="moveOutDate"]');
+    const indefiniteMoveOut = form.querySelector('[name="isIndefiniteMoveOut"]');
     moveIn.min = new Date().toISOString().split('T')[0];
-    moveIn.addEventListener('change', () => { moveOut.min = moveIn.value; });
+    const updateMoveOutMinimum = () => {
+      if (!moveIn.value) {
+        moveOut.removeAttribute('min');
+        return;
+      }
+      const firstValidMoveOut = new Date(`${moveIn.value}T00:00:00`);
+      firstValidMoveOut.setDate(firstValidMoveOut.getDate() + 1);
+      moveOut.min = `${firstValidMoveOut.getFullYear()}-${String(firstValidMoveOut.getMonth() + 1).padStart(2, '0')}-${String(firstValidMoveOut.getDate()).padStart(2, '0')}`;
+    };
+    updateMoveOutMinimum();
+    moveIn.addEventListener('change', updateMoveOutMinimum);
+    indefiniteMoveOut.addEventListener('change', () => {
+      moveOut.disabled = indefiniteMoveOut.checked;
+      if (indefiniteMoveOut.checked) moveOut.value = '';
+    });
     modal.querySelector('.dashboard-chat-owner').addEventListener('click', () => {
       if (modal.open) modal.close();
       modal.remove();
@@ -956,21 +982,29 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       if (!form.reportValidity()) return;
-      if (moveOut.value && moveIn.value && moveOut.value < moveIn.value) {
-        status.textContent = 'Move-out date must be on or after the move-in date.';
+      if (!indefiniteMoveOut.checked && moveOut.value && moveIn.value && moveOut.value <= moveIn.value) {
+        status.textContent = 'Move-out date must be after the move-in date.';
         return;
       }
       const formData = new FormData(form);
+      const viewingDate = String(formData.get('viewingDate') ?? '').trim();
+      const viewingTime = String(formData.get('viewingTime') ?? '').trim();
+      if (Boolean(viewingDate) !== Boolean(viewingTime)) {
+        status.textContent = 'Select both a viewing date and time, or leave both blank.';
+        return;
+      }
       try {
         const response = await fetch(`${API_URL}/bookings`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
-          body: JSON.stringify({ propertyId: Number(property.id), moveInDate: formData.get('moveInDate'), moveOutDate: formData.get('moveOutDate') || null, occupants: Number(formData.get('occupants') || 1), message: '' })
+          body: JSON.stringify({ propertyId: Number(property.id), moveInDate: formData.get('moveInDate'), moveOutDate: indefiniteMoveOut.checked ? null : formData.get('moveOutDate') || null, isIndefiniteMoveOut: indefiniteMoveOut.checked, viewingDate: viewingDate || null, viewingTime: viewingTime || null, occupants: Number(formData.get('occupants') || 1), message: '' })
         });
         const body = await readApiResponse(response);
         if (!response.ok) throw new Error(getApiErrorMessage(body, 'Unable to submit booking request.'));
         status.textContent = 'Booking request sent successfully.';
         form.reset();
+        moveOut.disabled = false;
+        updateMoveOutMinimum();
       } catch (error) {
         status.textContent = error.message;
       }
@@ -1165,7 +1199,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
   search.addEventListener('input', renderCards);
   const focusSearchedLocation = async () => {
     const query = search.value.trim();
-    if (!query || !mapFrame?.__leafletMapManager) return;
+    if (!query || !mapPanel?.__leafletMapManager) return;
     if (mapStatus) mapStatus.textContent = `Finding ${query}...`;
     try {
       const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`, {
@@ -1178,12 +1212,17 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
         if (mapStatus) mapStatus.textContent = `No map location found for ${query}.`;
         return;
       }
-      mapFrame.__leafletMapManager.setSearchLocation({
+      mapPanel.__leafletMapManager.setSearchLocation({
         latitude: Number(result.lat),
         longitude: Number(result.lon),
-        label: result.display_name || query
+        label: result.display_name || query,
+        showMarker: false
       });
-      if (mapStatus) mapStatus.textContent = `Red pin shows ${result.display_name || query}.`;
+      if (mapStatus) {
+        const nearbyCount = mapPanel.__leafletMapManager.countNearbyItems();
+        const propertyLabel = nearbyCount === 1 ? 'property' : 'properties';
+        mapStatus.textContent = `${nearbyCount} ${propertyLabel} within 8 km of ${query}.`;
+      }
     } catch (error) {
       if (mapStatus) mapStatus.textContent = error.message;
     }

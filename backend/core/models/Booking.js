@@ -14,8 +14,9 @@ export function buildBookingListSql(role = 'owner') {
   return `SELECT ${fields} FROM bookings b JOIN properties p ON p.id = b.property_id JOIN users u ON u.id = b.tenant_id WHERE p.owner_id = ? ORDER BY b.created_at DESC`;
 }
 
-export async function create(tenantId, { propertyId, moveInDate, moveOutDate, occupants, message }) {
-  const result = await query("INSERT INTO bookings (property_id, tenant_id, move_in_date, move_out_date, occupants, message, status) VALUES (?, ?, ?, ?, ?, ?, 'pending')", [propertyId, tenantId, moveInDate, moveOutDate ?? null, occupants, message ?? null]);
+export async function create(tenantId, { propertyId, moveInDate, moveOutDate, isIndefiniteMoveOut = false, viewingDate, viewingTime, occupants, message }) {
+  const viewingScheduleSubmitted = Boolean(viewingDate && viewingTime);
+  const result = await query("INSERT INTO bookings (property_id, tenant_id, move_in_date, move_out_date, is_indefinite_move_out, viewing_date, viewing_time, viewing_schedule_tenant_submitted, occupants, message, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')", [propertyId, tenantId, moveInDate, moveOutDate ?? null, isIndefiniteMoveOut ? 1 : 0, viewingDate ?? null, viewingTime ?? null, viewingScheduleSubmitted ? 1 : 0, occupants, message ?? null]);
   return findById(result.insertId);
 }
 
@@ -31,5 +32,15 @@ export async function listForUser(user) {
 
 export async function updateStatus(id, status) {
   await query('UPDATE bookings SET status = ? WHERE id = ?', [status, id]);
+  return findById(id);
+}
+
+export async function updateViewingSchedule(id, viewingDate, viewingTime) {
+  await query('UPDATE bookings SET viewing_date = ?, viewing_time = ?, viewing_schedule_tenant_submitted = 1 WHERE id = ?', [viewingDate, viewingTime, id]);
+  return findById(id);
+}
+
+export async function updateMoveOut(id, moveOutDate, isIndefiniteMoveOut) {
+  await query('UPDATE bookings SET move_out_date = ?, is_indefinite_move_out = ? WHERE id = ?', [moveOutDate, isIndefiniteMoveOut ? 1 : 0, id]);
   return findById(id);
 }

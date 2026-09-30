@@ -54,7 +54,8 @@ function unitLabel(entry) {
 }
 
 function formatLeaseEnd(entry) {
-  const raw = entry.move_out_date ?? entry.move_in_date ?? null;
+  if (entry.is_indefinite_move_out === true || Number(entry.is_indefinite_move_out) === 1) return 'Indefinite';
+  const raw = entry.move_out_date ?? null;
   if (!raw) return '—';
   const date = new Date(raw); if (Number.isNaN(date.getTime())) return '—';
   return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
@@ -185,7 +186,7 @@ export function renderActiveTenant(root = document.querySelector('#app')) {
             <p><strong>Tenant:</strong> ${esc(entry.tenant_name || 'Tenant')}</p>
             <p><strong>Property:</strong> ${esc(unitLabel(entry))}</p>
             <p><strong>Move-in:</strong> ${esc(new Date(entry.move_in_date ?? Date.now()).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }))}</p>
-            <p><strong>Move-out:</strong> ${esc(new Date(entry.move_out_date ?? entry.move_in_date ?? Date.now()).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }))}</p>
+            <p><strong>Move-out:</strong> ${esc(formatLeaseEnd(entry))}</p>
             <p><strong>Occupants:</strong> ${esc(String(entry.occupants ?? 1))}</p>
             <p><strong>Rent:</strong> ${esc(entry.monthly_rent ? `₱${Number(entry.monthly_rent).toLocaleString('en-US')}` : '—')}</p>
           </div>

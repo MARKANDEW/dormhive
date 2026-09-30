@@ -49,6 +49,18 @@ const formatDate = (value) => {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
+const formatViewingDate = (value) => {
+  const [year, month, day] = String(value ?? '').slice(0, 10).split('-').map(Number);
+  if (!year || !month || !day) return '';
+  return new Date(year, month - 1, day).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+};
+
+const formatViewingTime = (value) => {
+  const [hours, minutes] = String(value ?? '').slice(0, 5).split(':').map(Number);
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return '';
+  return new Date(2000, 0, 1, hours, minutes).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+};
+
 export async function renderInquiries(root = document.querySelector('#app')) {
   if (!root) throw new Error('Inquiries page requires #app.');
   await css();
@@ -148,38 +160,6 @@ export async function renderInquiries(root = document.querySelector('#app')) {
       </div>
     </div>
 
-    <div id="schedule-modal" class="schedule-modal" hidden>
-      <div class="schedule-modal-overlay"></div>
-      <div class="schedule-modal-content">
-        <div class="schedule-modal-header">
-          <h2>Schedule a Viewing</h2>
-          <button type="button" class="close-button" aria-label="Close">✕</button>
-        </div>
-        <div class="schedule-modal-body">
-          <div class="detail-row">
-            <label>Tenant</label>
-            <p id="schedule-tenant-name">—</p>
-          </div>
-          <div class="detail-row">
-            <label>Property</label>
-            <p id="schedule-property-name">—</p>
-          </div>
-          <div class="detail-row">
-            <label for="schedule-date">Date</label>
-            <input type="date" id="schedule-date" />
-          </div>
-          <div class="detail-row">
-            <label for="schedule-time">Time</label>
-            <input type="time" id="schedule-time" />
-          </div>
-        </div>
-        <div class="schedule-modal-footer">
-          <button type="button" class="secondary-btn cancel-btn">Cancel</button>
-          <button type="button" class="primary-btn save-btn">Schedule Viewing</button>
-        </div>
-      </div>
-    </div>
-
     <div id="success-modal" class="success-modal" hidden>
       <div class="success-modal-overlay"></div>
       <div class="success-modal-card" role="dialog" aria-modal="true" aria-labelledby="success-modal-title">
@@ -228,19 +208,9 @@ export async function renderInquiries(root = document.querySelector('#app')) {
   const archiveConfirmCancelBtn = root.querySelector('.archive-cancel-btn');
   const archiveConfirmActionBtn = root.querySelector('.archive-confirm-btn');
 
-  const scheduleModal = root.querySelector('#schedule-modal');
-  const scheduleCloseBtn = scheduleModal.querySelector('.close-button');
-  const scheduleCancelBtn = scheduleModal.querySelector('.cancel-btn');
-  const scheduleSaveBtn = scheduleModal.querySelector('.save-btn');
-  const scheduleTenantName = scheduleModal.querySelector('#schedule-tenant-name');
-  const schedulePropertyName = scheduleModal.querySelector('#schedule-property-name');
-  const scheduleDate = scheduleModal.querySelector('#schedule-date');
-  const scheduleTime = scheduleModal.querySelector('#schedule-time');
-
   const successModal = root.querySelector('#success-modal');
   const successOkBtn = root.querySelector('.success-ok-btn');
   
-  let schedulingBooking = null;
   let pendingArchiveBooking = null;
   let isLoading = false;
 
@@ -320,6 +290,12 @@ export async function renderInquiries(root = document.querySelector('#app')) {
     const info = statusInfo(booking.status);
     const latestMessage = booking.message || 'No message provided.';
     const tenantName = booking.tenant_name || 'Unknown tenant';
+    const moveOutDate = booking.is_indefinite_move_out === true || Number(booking.is_indefinite_move_out) === 1
+      ? 'Indefinite'
+      : booking.move_out_date ? formatDate(booking.move_out_date) : 'Not specified';
+    const hasTenantViewingSchedule = booking.viewing_schedule_tenant_submitted === true || Number(booking.viewing_schedule_tenant_submitted) === 1;
+    const viewingDate = hasTenantViewingSchedule ? formatViewingDate(booking.viewing_date) : '';
+    const viewingTime = hasTenantViewingSchedule ? formatViewingTime(booking.viewing_time) : '';
 
     detailPanel.innerHTML = `
       <div class="detail-header">
@@ -358,19 +334,27 @@ export async function renderInquiries(root = document.querySelector('#app')) {
           <strong>${esc(formatDate(booking.move_in_date || booking.created_at))}</strong>
         </div>
         <div class="detail-item">
+          <span class="detail-label">Move-out Date</span>
+          <strong>${esc(moveOutDate)}</strong>
+        </div>
+        <div class="detail-item">
           <span class="detail-label">Inquiry Date</span>
           <strong>${esc(formatDate(booking.created_at))}</strong>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Viewing Schedule</span>
+          ${viewingDate && viewingTime
+            ? `<strong>Date: ${esc(viewingDate)}<br>Time: ${esc(viewingTime)}</strong>`
+            : '<strong>Not scheduled</strong>'}
         </div>
       </div>
 
       <div class="detail-actions">
-        <button type="button" class="primary-btn schedule-panel-action">Schedule Viewing</button>
         <button type="button" class="accept-action">Accept Tenant</button>
         <button type="button" class="secondary-btn reject-tenant-panel-action">Reject Tenant</button>
       </div>
     `;
 
-    const schedulePanelAction = detailPanel.querySelector('.schedule-panel-action');
     const acceptPanelAction = detailPanel.querySelector('.accept-action');
     const rejectTenantPanelAction = detailPanel.querySelector('.reject-tenant-panel-action');
     const moreMenuButton = detailPanel.querySelector('.more-menu');
@@ -405,7 +389,6 @@ export async function renderInquiries(root = document.querySelector('#app')) {
       deleteBooking(booking);
     });
 
-    schedulePanelAction?.addEventListener('click', () => openScheduleModal(booking));
     acceptPanelAction?.addEventListener('click', () => acceptTenant());
     rejectTenantPanelAction?.addEventListener('click', () => openInquiryConfirmation(booking));
   };
@@ -653,84 +636,6 @@ export async function renderInquiries(root = document.querySelector('#app')) {
     }
   };
 
-  const openScheduleModal = (booking) => {
-    const activeBooking = focusBooking(booking) || state.bookings.find((item) => Number(item.id) === Number(booking?.id)) || booking;
-    if (!activeBooking) return;
-
-    schedulingBooking = activeBooking;
-    state.selected = activeBooking;
-    scheduleTenantName.textContent = activeBooking.tenant_name || 'Unknown tenant';
-    schedulePropertyName.textContent = activeBooking.property_title || 'Unknown property';
-
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    scheduleDate.value = tomorrow.toISOString().split('T')[0];
-    scheduleTime.value = '10:00';
-
-    scheduleModal.hidden = false;
-    document.body.classList.add('schedule-modal-open');
-  };
-  
-  const closeScheduleModal = () => {
-    scheduleModal.hidden = true;
-    schedulingBooking = null;
-    scheduleDate.value = '';
-    scheduleTime.value = '';
-    document.body.classList.remove('schedule-modal-open');
-  };
-
-
-
-  const scheduleViewing = async () => {
-    const targetBooking = schedulingBooking || state.selected;
-    if (!targetBooking) return;
-
-    const dateValue = scheduleDate.value.trim();
-    const timeValue = scheduleTime.value.trim();
-
-    if (!dateValue || !timeValue) {
-      alert('Please select both date and time.');
-      return;
-    }
-
-    const scheduledDateTime = new Date(`${dateValue}T${timeValue}`);
-    const message = `Viewing scheduled for ${scheduledDateTime.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}.`;
-
-    try {
-      let conversation = getConversationForBooking(targetBooking);
-      if (!conversation) {
-        const createResponse = await fetch(`${API}/messages/conversations`, {
-          method: 'POST',
-          headers: auth(),
-          body: JSON.stringify({
-            bookingId: targetBooking.id,
-            tenantId: targetBooking.tenant_id,
-            ownerId: getCurrentUser().id,
-            propertyId: targetBooking.property_id
-          })
-        });
-        const createBody = await createResponse.json();
-        if (!createResponse.ok) throw new Error(createBody.message || 'Unable to start a conversation.');
-        conversation = createBody.data;
-        state.conversations.push(conversation);
-      }
-
-      const response = await fetch(`${API}/messages`, {
-        method: 'POST',
-        headers: auth(),
-        body: JSON.stringify({ conversationId: conversation.id, body: message })
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message || 'Unable to schedule viewing.');
-
-      alert('Viewing scheduled successfully! Tenant has been notified.');
-      closeScheduleModal();
-      renderRows();
-    } catch (error) {
-      alert(error.message);
-    }
-  };
-
   const load = async () => {
     if (isLoading) return;
     isLoading = true;
@@ -838,12 +743,6 @@ export async function renderInquiries(root = document.querySelector('#app')) {
   });
   archiveConfirmModal.querySelector('.archive-confirm-overlay')?.addEventListener('click', closeArchiveConfirmation);
 
-  scheduleCloseBtn.addEventListener('click', closeScheduleModal);
-  scheduleCancelBtn.addEventListener('click', closeScheduleModal);
-  scheduleSaveBtn.addEventListener('click', scheduleViewing);
-  
-  scheduleModal.querySelector('.schedule-modal-overlay')?.addEventListener('click', closeScheduleModal);
-
   successOkBtn?.addEventListener('click', closeSuccessModal);
   successModal?.querySelector('.success-modal-overlay')?.addEventListener('click', closeSuccessModal);
   document.addEventListener('keydown', (event) => {
@@ -863,10 +762,6 @@ export async function renderInquiries(root = document.querySelector('#app')) {
       openInquiryConfirmation(state.selected);
     }
 
-    const scheduleButton = event.target.closest('.schedule-panel-action');
-    if (scheduleButton && state.selected) {
-      openScheduleModal(state.selected);
-    }
   });
 
   root.querySelector('.logout')?.addEventListener('click', () => {

@@ -1,5 +1,6 @@
 import { ensureTenantSidebarStyles, renderTenantSidebar } from './sidebarTenant.js';
 import { getUserAvatarUrl } from './setting.js';
+import { createModal, openModal } from '../../components/modal.js';
 
 const API_URL = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const apiBase = API_URL.replace(/\/api\/v1\/?$/, '');
@@ -39,6 +40,16 @@ const statusLabel = (status) => {
 const formatDate = (value) => {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+const formatViewingSchedule = (booking) => {
+  if (!(booking.viewing_schedule_tenant_submitted === true || Number(booking.viewing_schedule_tenant_submitted) === 1)) return 'Not scheduled';
+  if (!booking.viewing_date || !booking.viewing_time) return 'Not scheduled';
+  const [year, month, day] = String(booking.viewing_date).slice(0, 10).split('-').map(Number);
+  const [hours, minutes] = String(booking.viewing_time).slice(0, 5).split(':').map(Number);
+  if (!year || !month || !day || !Number.isFinite(hours) || !Number.isFinite(minutes)) return 'Not scheduled';
+  const date = new Date(year, month - 1, day).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const time = new Date(2000, 0, 1, hours, minutes).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  return `${date} at ${time}`;
 };
 const propertyAmenities = (value) => {
   if (Array.isArray(value)) return value.filter(Boolean).map(String);
@@ -166,6 +177,7 @@ export async function renderBooking(root = document.querySelector('#app')) {
 
   const isPast = (booking) => {
     try {
+      if (booking.is_indefinite_move_out === true || Number(booking.is_indefinite_move_out) === 1) return false;
       if (!booking.move_out_date) return booking.status !== 'approved';
       return new Date(booking.move_out_date) < new Date();
     } catch { return false; }
@@ -184,7 +196,12 @@ export async function renderBooking(root = document.querySelector('#app')) {
     grid.innerHTML = filtered.length ? filtered.map((booking) => {
       const property = getProperty(booking);
       const pill = statusPill(isPast(booking) ? 'past' : booking.status);
-      const dateRange = [booking.move_in_date, booking.move_out_date].filter(Boolean).map(formatDate).join(' - ');
+      const hasIndefiniteMoveOut = booking.is_indefinite_move_out === true || Number(booking.is_indefinite_move_out) === 1;
+      const dateRange = [
+        booking.move_in_date ? formatDate(booking.move_in_date) : null,
+        hasIndefiniteMoveOut ? 'Indefinite' : booking.move_out_date ? formatDate(booking.move_out_date) : null
+      ].filter(Boolean).join(' - ');
+      const viewingSchedule = formatViewingSchedule(booking);
       const price = booking.monthly_rent ? `P${Number(booking.monthly_rent).toLocaleString('en-PH')}` : '';
       const image = getPropertyImageUrl(property || {}, booking);
       return `
@@ -225,6 +242,10 @@ export async function renderBooking(root = document.querySelector('#app')) {
                 <strong>${escape(dateRange || 'TBA')}</strong>
               </div>
               <div class="detail-item">
+                <span class="detail-label">Viewing Schedule:</span>
+                <strong>${escape(viewingSchedule)}</strong>
+              </div>
+              <div class="detail-item">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon">
                   <line x1="12" y1="1" x2="12" y2="23"></line>
                   <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
@@ -234,6 +255,8 @@ export async function renderBooking(root = document.querySelector('#app')) {
               </div>
             </div>
             <div class="booking-card-actions">
+              ${booking.status === 'pending' ? `<button class="btn" data-action="viewing-schedule" data-id="${booking.id}">${formatViewingSchedule(booking) !== 'Not scheduled' ? 'Change' : 'Set'} Viewing Schedule</button>` : ''}
+              ${hasIndefiniteMoveOut && ['approved', 'pending'].includes(booking.status) ? `<button class="btn" data-action="set-move-out" data-id="${booking.id}">Set Move-out Date</button>` : ''}
               ${booking.status === 'approved' ? `<button class="btn" data-action="e-ticket" data-id="${booking.id}">View E-Ticket</button><button class="btn btn--primary" data-action="contact" data-property="${property?.id ?? booking.property_id}">Contact Landlord</button>` : ''}
               ${booking.status === 'pending' ? `<button class="btn" data-action="cancel" data-id="${booking.id}">Cancel Request</button>` : ''}
             </div>
@@ -247,7 +270,86 @@ export async function renderBooking(root = document.querySelector('#app')) {
       el.addEventListener('click', async (ev) => {
         const action = el.dataset.action;
         const id = el.dataset.id;
-        if (action === 'e-ticket') {
+        if (action === 'viewing-schedule') {
+          const booking = state.bookings.find((item) => String(item.id) === String(id));
+          if (!booking || booking.status !== 'pending') return;
+          const hasTenantSchedule = booking.viewing_schedule_tenant_submitted === true || Number(booking.viewing_schedule_tenant_submitted) === 1;
+          const dateValue = hasTenantSchedule ? String(booking.viewing_date ?? '').slice(0, 10) : '';
+          const timeValue = hasTenantSchedule ? String(booking.viewing_time ?? '').slice(0, 5) : '';
+          const modal = createModal({
+            title: dateValue && timeValue ? 'Change Viewing Schedule' : 'Set Viewing Schedule',
+            content: `<form class="tenant-viewing-schedule-form"><label for="tenant-viewing-date">Viewing Date</label><input id="tenant-viewing-date" type="date" required value="${escape(dateValue)}"><label for="tenant-viewing-time">Viewing Time</label><input id="tenant-viewing-time" type="time" required value="${escape(timeValue)}"><p role="status"></p></form>`,
+            closeLabel: 'Cancel',
+            footerMarkup: '<button type="button" class="btn btn--primary" data-save-viewing-schedule>Save Schedule</button>'
+          });
+          const dateInput = modal.querySelector('#tenant-viewing-date');
+          const timeInput = modal.querySelector('#tenant-viewing-time');
+          const scheduleStatus = modal.querySelector('[role="status"]');
+          const saveButton = modal.querySelector('[data-save-viewing-schedule]');
+          dateInput.min = new Date().toISOString().split('T')[0];
+          saveButton.addEventListener('click', async () => {
+            if (!dateInput.value || !timeInput.value) {
+              scheduleStatus.textContent = 'Select both a viewing date and time.';
+              return;
+            }
+            saveButton.disabled = true;
+            try {
+              const response = await fetch(`${API_URL}/bookings/${encodeURIComponent(id)}/viewing-schedule`, {
+                method: 'PATCH',
+                headers: auth(),
+                body: JSON.stringify({ viewingDate: dateInput.value, viewingTime: timeInput.value })
+              });
+              const body = await response.json();
+              if (!response.ok) throw new Error(body.message || 'Unable to update viewing schedule.');
+              state.bookings = state.bookings.map((item) => String(item.id) === String(id) ? body.data : item);
+              modal.close();
+              renderCards();
+            } catch (error) {
+              scheduleStatus.textContent = error.message;
+              saveButton.disabled = false;
+            }
+          });
+          openModal(modal);
+        } else if (action === 'set-move-out') {
+          const booking = state.bookings.find((item) => String(item.id) === String(id));
+          if (!booking) return;
+          const moveInDate = String(booking.move_in_date ?? '').slice(0, 10);
+          const firstValidMoveOut = new Date(`${moveInDate}T00:00:00`);
+          firstValidMoveOut.setDate(firstValidMoveOut.getDate() + 1);
+          const minimumMoveOutDate = `${firstValidMoveOut.getFullYear()}-${String(firstValidMoveOut.getMonth() + 1).padStart(2, '0')}-${String(firstValidMoveOut.getDate()).padStart(2, '0')}`;
+          const modal = createModal({
+            title: 'Set Move-out Date',
+            content: `<form class="tenant-move-out-update"><label for="tenant-move-out-date">Move-out Date</label><input id="tenant-move-out-date" type="date" required min="${escape(minimumMoveOutDate)}"><p role="status"></p></form>`,
+            closeLabel: 'Cancel',
+            footerMarkup: '<button type="button" class="btn btn--primary" data-save-move-out>Save Date</button>'
+          });
+          const moveOutInput = modal.querySelector('#tenant-move-out-date');
+          const moveOutStatus = modal.querySelector('[role="status"]');
+          const saveButton = modal.querySelector('[data-save-move-out]');
+          saveButton.addEventListener('click', async () => {
+            if (!moveOutInput.value || moveOutInput.value <= moveInDate) {
+              moveOutStatus.textContent = 'Move-out date must be after the move-in date.';
+              return;
+            }
+            saveButton.disabled = true;
+            try {
+              const response = await fetch(`${API_URL}/bookings/${encodeURIComponent(id)}/move-out`, {
+                method: 'PATCH',
+                headers: auth(),
+                body: JSON.stringify({ moveOutDate: moveOutInput.value, isIndefiniteMoveOut: false })
+              });
+              const body = await response.json();
+              if (!response.ok) throw new Error(body.message || 'Unable to update move-out date.');
+              state.bookings = state.bookings.map((item) => String(item.id) === String(id) ? body.data : item);
+              modal.close();
+              renderCards();
+            } catch (error) {
+              moveOutStatus.textContent = error.message;
+              saveButton.disabled = false;
+            }
+          });
+          openModal(modal);
+        } else if (action === 'e-ticket') {
           // Fetch e-ticket with authentication
           try {
             const response = await fetch(`${API_URL}/bookings/${encodeURIComponent(id)}/ticket`, {
