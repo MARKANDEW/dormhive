@@ -164,7 +164,11 @@ const openPropertyDetails = (property) => {
   if (typeof propertyImages === 'string') {
     try { propertyImages = JSON.parse(propertyImages); } catch { propertyImages = []; }
   }
-  const image = resolveImageUrl(property.image_url || property.cover_image || (Array.isArray(propertyImages) ? propertyImages[0] : ''));
+  const galleryImages = [...new Set([
+    property.image_url,
+    property.cover_image,
+    ...(Array.isArray(propertyImages) ? propertyImages : [])
+  ].map(resolveImageUrl).filter(Boolean))];
   const location = [property.address, property.barangay, property.municipality, property.city].filter(Boolean).join(', ') || 'Not specified';
   const amenities = Array.isArray(property.amenities)
     ? property.amenities.join(', ')
@@ -172,27 +176,55 @@ const openPropertyDetails = (property) => {
   const modal = createModal({ title: 'Property Details', content: '', closeLabel: 'Close' });
   modal.classList.add('tenant-message-modal');
   modal.classList.add('tenant-property-details-modal');
+  modal.querySelector('.ui-modal__header h2').innerHTML = '<span class="message-property-header-icon"><i class="bi bi-house-door-fill" aria-hidden="true"></i></span>Property Details';
   modal.querySelector('.ui-modal__body').innerHTML = `
     <div class="message-property-details">
-      ${image ? `<img class="message-property-image" src="${escape(image)}" alt="${escape(property.title || 'Property')} photo" />` : ''}
+      <div class="message-property-gallery">
+        <div class="message-property-gallery-stage">
+          ${galleryImages.length ? `<img class="message-property-image" src="${escape(galleryImages[0])}" alt="${escape(property.title || 'Property')} photo 1" />` : '<div class="message-property-image-empty">No property photo</div>'}
+          ${galleryImages.length ? `<span class="message-property-image-counter" aria-live="polite">1 / ${galleryImages.length}</span>` : ''}
+          ${galleryImages.length > 1 ? '<button type="button" class="message-property-gallery-nav previous" aria-label="Previous photo">&#8249;</button><button type="button" class="message-property-gallery-nav next" aria-label="Next photo">&#8250;</button>' : ''}
+        </div>
+        ${galleryImages.length ? `<div class="message-property-thumbnails" role="group" aria-label="Property photo thumbnails">${galleryImages.map((src, index) => `<button type="button" class="message-property-thumbnail${index === 0 ? ' active' : ''}" data-gallery-index="${index}" aria-label="View photo ${index + 1}" aria-current="${index === 0 ? 'true' : 'false'}"><img src="${escape(src)}" alt="" /></button>`).join('')}</div>` : ''}
+      </div>
       <div class="message-property-copy">
         <div class="message-property-heading">
           <h3>${escape(property.title || 'Property')}</h3>
           <strong>${Number(property.monthly_rent ?? 0) ? `PHP ${Number(property.monthly_rent).toLocaleString('en-PH')}` : 'Rent not specified'} / month</strong>
         </div>
         <div class="message-property-grid">
-          <p><span>Location</span><strong>${escape(location)}</strong></p>
-          <p><span>Room type</span><strong>${escape(property.room_type || 'Not specified')}</strong></p>
-          <p><span>Occupancy</span><strong>${escape(property.max_occupants ? `Up to ${property.max_occupants} tenants` : 'Not specified')}</strong></p>
-          <p><span>Available slots</span><strong>${escape(property.available_slots ?? 'Not specified')}</strong></p>
-          <p><span>Gender preference</span><strong>${escape(property.gender_preference || 'Not specified')}</strong></p>
-          <p><span>Owner</span><strong>${escape(property.owner_name || 'Not specified')}</strong></p>
+          <p><span class="message-property-fact-icon"><i class="bi bi-geo-alt-fill" aria-hidden="true"></i></span><span class="message-property-fact-copy"><small>Location</small><strong>${escape(location)}</strong></span></p>
+          <p><span class="message-property-fact-icon"><i class="bi bi-house-fill" aria-hidden="true"></i></span><span class="message-property-fact-copy"><small>Room Type</small><strong>${escape(property.room_type || 'Not specified')}</strong></span></p>
+          <p><span class="message-property-fact-icon"><i class="bi bi-people-fill" aria-hidden="true"></i></span><span class="message-property-fact-copy"><small>Occupancy</small><strong>${escape(property.max_occupants ? `Up to ${property.max_occupants} tenants` : 'Not specified')}</strong></span></p>
+          <p><span class="message-property-fact-icon"><i class="bi bi-door-open-fill" aria-hidden="true"></i></span><span class="message-property-fact-copy"><small>Available Slots</small><strong>${escape(property.available_slots ?? 'Not specified')}</strong></span></p>
+          <p><span class="message-property-fact-icon"><i class="bi bi-gender-ambiguous" aria-hidden="true"></i></span><span class="message-property-fact-copy"><small>Gender Preference</small><strong>${escape(property.gender_preference || 'Not specified')}</strong></span></p>
+          <p><span class="message-property-fact-icon"><i class="bi bi-person-fill" aria-hidden="true"></i></span><span class="message-property-fact-copy"><small>Owner</small><strong>${escape(property.owner_name || 'Not specified')}</strong></span></p>
         </div>
-        <p class="message-property-amenities"><span>Amenities</span><strong>${escape(amenities || 'None listed')}</strong></p>
-        <p class="message-property-description">${escape(property.description || 'No description provided.')}</p>
+        <p class="message-property-amenities"><span class="message-property-fact-icon"><i class="bi bi-stars" aria-hidden="true"></i></span><span class="message-property-fact-copy"><small>Amenities</small><strong>${escape(amenities || 'None listed')}</strong></span></p>
+        <div class="message-property-description"><span class="message-property-fact-icon"><i class="bi bi-card-text" aria-hidden="true"></i></span><div><small>Description</small><p>${escape(property.description || 'No description provided.')}</p></div></div>
       </div>
     </div>
   `;
+  const mainImage = modal.querySelector('.message-property-image');
+  if (mainImage && galleryImages.length > 1) {
+    const counter = modal.querySelector('.message-property-image-counter');
+    const thumbnails = Array.from(modal.querySelectorAll('.message-property-thumbnail'));
+    let imageIndex = 0;
+    const showImage = (nextIndex) => {
+      imageIndex = (nextIndex + galleryImages.length) % galleryImages.length;
+      mainImage.src = galleryImages[imageIndex];
+      mainImage.alt = `${property.title || 'Property'} photo ${imageIndex + 1}`;
+      counter.textContent = `${imageIndex + 1} / ${galleryImages.length}`;
+      thumbnails.forEach((thumbnail, index) => {
+        const active = index === imageIndex;
+        thumbnail.classList.toggle('active', active);
+        thumbnail.setAttribute('aria-current', String(active));
+      });
+    };
+    modal.querySelector('.message-property-gallery-nav.previous').addEventListener('click', () => showImage(imageIndex - 1));
+    modal.querySelector('.message-property-gallery-nav.next').addEventListener('click', () => showImage(imageIndex + 1));
+    thumbnails.forEach((thumbnail) => thumbnail.addEventListener('click', () => showImage(Number(thumbnail.dataset.galleryIndex))));
+  }
   openModal(modal);
 };
 

@@ -613,7 +613,7 @@ export function renderDashboardOwner(root = document.querySelector('#app')) {
       await new Promise(resolve => setTimeout(resolve, 300)); // Wait for CSS to load
       
       const mapPanel = root.querySelector('.map-panel');
-      if (mapPanel && items.length > 0 && window.L) {
+      if (mapPanel && window.L) {
         const mapContainer = mapPanel.querySelector('#tenant-map');
         if (mapContainer) {
           // Force dimensions

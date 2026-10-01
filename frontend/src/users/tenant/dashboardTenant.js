@@ -303,31 +303,47 @@ function propertyDetailsMarkup(property) {
   const resolvedOccupied = Math.max(0, occupiedUnits);
   const images = normalizePropertyImages(property);
   const galleryImages = images.length ? images : [DEFAULT_IMAGE_PLACEHOLDER];
-  const galleryDots = galleryImages.length > 1 ? `<div class="property-detail-gallery-dots" role="tablist" aria-label="Property photos">${galleryImages.map((_, index) => `<button type="button" class="property-detail-gallery-dot${index === 0 ? ' is-active' : ''}" data-gallery-index="${index}" role="tab" aria-label="View photo ${index + 1}" aria-selected="${index === 0}"></button>`).join('')}</div>` : '';
+  const galleryThumbnails = galleryImages.map((image, index) => `
+    <button type="button" class="property-detail-thumbnail${index === 0 ? ' is-active' : ''}" data-gallery-index="${index}" aria-label="View photo ${index + 1}" aria-current="${index === 0 ? 'true' : 'false'}">
+      <img src="${esc(image)}" alt="" />
+    </button>
+  `).join('');
   return `
     <div class="property-detail-modal-content">
       <div class="property-detail-gallery" data-gallery-images='${esc(JSON.stringify(galleryImages))}'>
-        <img class="property-detail-modal-image" src="${esc(galleryImages[0])}" alt="${esc(property.title || 'Property')} photo 1" />
-        ${galleryDots}
+        <div class="property-detail-gallery-stage">
+          <img class="property-detail-modal-image" src="${esc(galleryImages[0])}" alt="${esc(property.title || 'Property')} photo 1" />
+          <span class="property-detail-image-counter" aria-live="polite">1 / ${galleryImages.length}</span>
+          <button type="button" class="property-detail-gallery-nav property-detail-gallery-previous" aria-label="Previous photo">&#8249;</button>
+          <button type="button" class="property-detail-gallery-nav property-detail-gallery-next" aria-label="Next photo">&#8250;</button>
+        </div>
+        <div class="property-detail-thumbnails" role="group" aria-label="Property photo thumbnails">${galleryThumbnails}</div>
       </div>
       <div class="property-detail-modal-info">
         <div class="property-detail-modal-heading">
           <h3>${esc(property.title || 'Property')}</h3>
           <strong>${money(property.monthly_rent)} / month</strong>
         </div>
-        <div class="property-detail-modal-grid">
-          <p><span>Location</span><strong>${esc(address || 'Not specified')}</strong></p>
+        <div class="property-detail-group property-detail-location">
+          <span class="property-detail-label">Location</span>
+          <strong>${esc(address || 'Not specified')}</strong>
+        </div>
+        <div class="property-detail-group property-detail-facts">
           <p><span>Room type</span><strong>${esc(normalizeRoomType(property.room_type) || 'Not specified')}</strong></p>
           <p><span>Occupancy</span><strong>${esc(maxOccupants ? `${resolvedOccupied} / ${maxOccupants} occupied` : 'Not specified')}</strong></p>
           <p><span>Available slots</span><strong>${esc(maxOccupants ? String(resolvedAvailable) : 'Not specified')}</strong></p>
           <p><span>Gender preference</span><strong>${esc(normalizeGenderPreference(property.gender_preference) || 'Not specified')}</strong></p>
           <p><span>Owner</span><strong>${esc(property.owner_name || 'Not specified')}</strong></p>
+          <p><span>Amenities</span><strong>${esc(amenities.length ? amenities.map((item) => AMENITY_LABELS[item] ?? item.replace(/_/g, ' ')).join(', ') : 'None listed')}</strong></p>
         </div>
-        <p class="property-detail-modal-description">${esc(property.description || 'No description provided.')}</p>
-        <p class="property-detail-modal-amenities"><span>Amenities</span><strong>${esc(amenities.length ? amenities.map((item) => AMENITY_LABELS[item] ?? item.replace(/_/g, ' ')).join(', ') : 'None listed')}</strong></p>
+        <div class="property-detail-group property-detail-description">
+          <span class="property-detail-label">Description</span>
+          <p>${esc(property.description || 'No description provided.')}</p>
+        </div>
       </div>
     </div>
     <form class="dashboard-request-form">
+      <div class="dashboard-request-heading"><h3>Book a Viewing / Send a Request</h3></div>
       <div class="dashboard-request-fields">
         <label>Move-in Date<input type="date" name="moveInDate" required /></label>
         <label>Move-out Date
@@ -337,6 +353,8 @@ function propertyDetailsMarkup(property) {
         <label>Occupants<input type="number" name="occupants" min="1" value="1" required /></label>
         <label>Viewing Date<input type="date" name="viewingDate" /></label>
         <label>Viewing Time<input type="time" name="viewingTime" /></label>
+      </div>
+      <div class="dashboard-request-actions">
         <button type="button" class="dashboard-chat-owner">Chat Owner</button>
         <button type="submit" class="dashboard-send-request">Send Request</button>
       </div>
@@ -354,10 +372,40 @@ function loadPropertyDetailsStyle() {
   const style = document.createElement('style');
   style.dataset.tenantStyle = 'property-details';
   style.textContent = `
-    .ui-modal:has(.property-detail-modal-content) { position: fixed; inset: 0; margin: auto; width: min(94vw, 920px); max-height: calc(100vh - 2rem); }
-    .property-detail-modal-content { display: grid; grid-template-columns: minmax(220px, 38%) 1fr; gap: 1.25rem; }
-    .property-detail-gallery { position: relative; align-self: start; width: 100%; height: 230px; min-width: 0; touch-action: pan-y; }
-    .property-detail-modal-image { display: block; width: 100%; height: 230px; object-fit: cover; border-radius: .65rem; cursor: zoom-in; }
+    .ui-modal:has(.property-detail-modal-content) { position: fixed; inset: 0; margin: auto; width: min(94vw, 1120px); max-height: calc(100vh - 2rem); }
+    .ui-modal:has(.property-detail-modal-content) .ui-modal__header { padding: 1rem 1.5rem; border-color: #e2ece8; }
+    .ui-modal:has(.property-detail-modal-content) .ui-modal__header h2 { color: #173b35; font-size: 1.05rem; font-weight: 750; }
+    .ui-modal:has(.property-detail-modal-content) .ui-modal__header button { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: 50%; color: #365d54; font-size: 1.5rem; }
+    .ui-modal:has(.property-detail-modal-content) .ui-modal__header button:hover { background: #edf6f2; }
+    .ui-modal:has(.property-detail-modal-content) .ui-modal__body { padding: 1.4rem 1.5rem; }
+    .ui-modal:has(.property-detail-modal-content) .ui-modal__footer { padding: .85rem 1.5rem; border-color: #e2ece8; }
+    .tenant-property-detail-modal .ui-modal__footer button { min-width: 5.25rem; background: #edf3f1; color: #31554c; }
+    .tenant-property-detail-modal .ui-modal__footer button:hover { background: #e0ebe7; }
+    .property-detail-modal-content { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 1.75rem; align-items: start; }
+    .property-detail-gallery { min-width: 0; touch-action: pan-y; }
+    .property-detail-gallery-stage { position: relative; height: 300px; overflow: hidden; border-radius: .75rem; background: #eaf1ee; }
+    .property-detail-modal-image { display: block; width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
+    .property-detail-image-counter { position: absolute; bottom: .75rem; left: .75rem; padding: .25rem .55rem; border-radius: 999px; background: rgb(18 36 32 / 76%); color: #fff; font-size: .72rem; font-weight: 700; }
+    .property-detail-gallery-nav { position: absolute; top: 50%; display: grid; place-items: center; width: 2.4rem; height: 2.4rem; padding: 0 0 .15rem; transform: translateY(-50%); border: 0; border-radius: 50%; background: rgb(18 36 32 / 65%); color: #fff; font: inherit; font-size: 1.8rem; line-height: 1; cursor: pointer; }
+    .property-detail-gallery-nav:hover { background: rgb(18 36 32 / 88%); }
+    .property-detail-gallery-previous { left: .7rem; }
+    .property-detail-gallery-next { right: .7rem; }
+    .property-detail-thumbnails { display: grid; grid-auto-columns: minmax(3.5rem, 1fr); grid-auto-flow: column; gap: .55rem; margin-top: .65rem; overflow-x: auto; }
+    .property-detail-thumbnail { min-width: 0; height: 64px; padding: 0; overflow: hidden; border: 2px solid transparent; border-radius: .45rem; background: #eaf1ee; cursor: pointer; }
+    .property-detail-thumbnail img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .property-detail-thumbnail.is-active { border-color: #159879; }
+    .property-detail-thumbnail:focus-visible, .property-detail-gallery-nav:focus-visible { outline: 2px solid #159879; outline-offset: 2px; }
+    .property-detail-modal-info { display: grid; gap: .8rem; min-width: 0; color: #193a34; }
+    .property-detail-modal-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: .85rem; }
+    .property-detail-modal-heading h3 { margin: 0; color: #173b35; font-size: 1.3rem; line-height: 1.25; overflow-wrap: anywhere; }
+    .property-detail-modal-heading strong { flex: 0 0 auto; padding: .4rem .65rem; border-radius: 999px; background: #e7f5ef; color: #087f63; font-size: .9rem; white-space: nowrap; }
+    .property-detail-group { min-width: 0; padding: .8rem .9rem; border: 1px solid #e4ede9; border-radius: .55rem; background: #fbfdfc; }
+    .property-detail-label, .property-detail-facts span { display: block; margin-bottom: .25rem; color: #71847d; font-size: .67rem; font-weight: 750; text-transform: uppercase; }
+    .property-detail-location strong { display: block; color: #24483f; font-size: .88rem; line-height: 1.45; overflow-wrap: anywhere; }
+    .property-detail-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem 1rem; }
+    .property-detail-facts p { min-width: 0; margin: 0; }
+    .property-detail-facts strong { display: block; color: #24483f; font-size: .82rem; line-height: 1.4; overflow-wrap: anywhere; }
+    .property-detail-description p { margin: 0; color: #4d655d; font-size: .84rem; line-height: 1.5; white-space: pre-line; }
     .property-photo-viewer { position: fixed; inset: 0; margin: auto; display: grid; place-items: center; width: min(94vw, 1100px); max-width: none; max-height: 88vh; padding: 0; border: 0; background: transparent; overflow: visible; }
     .property-photo-viewer::backdrop { background: rgb(15 23 42 / 82%); backdrop-filter: blur(4px); }
     .property-photo-viewer__image { display: block; width: 100%; max-height: 88vh; object-fit: contain; border-radius: .65rem; user-select: none; -webkit-user-drag: none; }
@@ -365,27 +413,43 @@ function loadPropertyDetailsStyle() {
     .property-photo-viewer__nav { position: absolute; top: 50%; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; padding: 0; border: 0; border-radius: 50%; transform: translateY(-50%); background: rgb(15 23 42 / 75%); color: #fff; font-size: 2rem; line-height: 1; cursor: pointer; user-select: none; }
     .property-photo-viewer__nav--previous { left: .75rem; }
     .property-photo-viewer__nav--next { right: .75rem; }
-    .property-detail-gallery-dots { position: absolute; right: 0; bottom: .65rem; left: 0; display: flex; justify-content: center; gap: .35rem; }
-    .property-detail-gallery-dot { width: .45rem; height: .45rem; padding: 0; border: 1px solid rgba(255,255,255,.9); border-radius: 50%; background: rgba(255,255,255,.65); box-shadow: 0 1px 3px rgba(0,0,0,.35); cursor: pointer; }
-    .property-detail-gallery-dot.is-active { background: #b48421; transform: scale(1.2); }
-    .property-detail-modal-heading { display: flex; justify-content: space-between; align-items: baseline; gap: .75rem; }
-    .property-detail-modal-heading h3 { margin: 0; font-size: 1.35rem; }
-    .property-detail-modal-heading strong { color: #4b5d5b; white-space: nowrap; }
-    .property-detail-modal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem 1rem; margin-top: .9rem; }
-    .property-detail-modal-grid p, .property-detail-modal-amenities { display: grid; gap: .1rem; margin: 0; }
-    .property-detail-modal-grid span, .property-detail-modal-amenities span { color: #847871; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
-    .property-detail-modal-description { margin: .9rem 0 .55rem; }
-    .dashboard-request-form { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e6d6b6; }
-    .dashboard-request-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto auto; gap: .65rem; align-items: end; }
-    .dashboard-request-fields label { display: grid; gap: .3rem; color: #443d39; font-size: .8rem; font-weight: 700; }
-    .dashboard-request-fields input { width: 100%; height: 42px; padding: 0 .65rem; border: 1px solid #d8d0c9; border-radius: .55rem; font: inherit; }
+    .dashboard-request-form { margin-top: 1.35rem; padding-top: 1.15rem; border-top: 1px solid #dce8e3; }
+    .dashboard-request-heading { margin-bottom: .9rem; }
+    .dashboard-request-heading h3 { margin: 0; color: #173b35; font-size: 1rem; font-weight: 750; }
+    .dashboard-request-fields { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .75rem; align-items: start; }
+    .dashboard-request-fields label { display: grid; gap: .35rem; min-width: 0; color: #526b63; font-size: .73rem; font-weight: 700; }
+    .dashboard-request-fields input:not([type="checkbox"]) { width: 100%; min-width: 0; height: 42px; padding: 0 .65rem; border: 1px solid #d4e0db; border-radius: .45rem; background: #fff; color: #183a33; font: inherit; font-size: .82rem; }
     .dashboard-request-fields input:focus-visible { outline: 2px solid #1aa87a; outline-offset: 2px; }
-    .dashboard-request-fields .dashboard-indefinite-move-out { display: flex; align-items: center; gap: .45rem; color: #52625e; font-size: .74rem; font-weight: 500; }
-    .dashboard-request-fields .dashboard-indefinite-move-out input[type="checkbox"] { flex: 0 0 16px; width: 16px; height: 16px; margin: 0; padding: 0; accent-color: #1aa87a; }
-    .dashboard-request-fields button { height: 42px; padding: 0 .8rem; border: 0; border-radius: .55rem; background: #1aa87a; color: #fff; font-weight: 700; cursor: pointer; white-space: nowrap; }
-    .tenant-property-detail-modal .ui-modal__footer button { background: #1aa87a; color: #fff; }
+    .dashboard-request-fields .dashboard-indefinite-move-out { display: flex; align-items: flex-start; gap: .4rem; margin-top: .15rem; color: #61756e; font-size: .68rem; font-weight: 500; line-height: 1.3; }
+    .dashboard-request-fields .dashboard-indefinite-move-out input[type="checkbox"] { flex: 0 0 15px; width: 15px; height: 15px; margin: .05rem 0 0; padding: 0; accent-color: #13856a; }
+    .dashboard-request-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .9rem; }
+    .dashboard-request-actions button { min-height: 42px; padding: .6rem 1rem; border: 1px solid #13856a; border-radius: .45rem; font: inherit; font-size: .82rem; font-weight: 700; cursor: pointer; }
+    .dashboard-chat-owner { background: #fff; color: #11765f; }
+    .dashboard-chat-owner:hover { background: #edf7f3; }
+    .dashboard-send-request { background: #159879; color: #fff; }
+    .dashboard-send-request:hover { background: #107e65; }
     .dashboard-request-status { min-height: 1.2rem; margin: .55rem 0 0; color: #7b4b2d; font-size: .82rem; }
-    @media (max-width: 700px) { .property-detail-modal-content, .dashboard-request-fields { grid-template-columns: 1fr; } .property-detail-gallery { height: 180px; } .property-detail-modal-image { height: 180px; } }
+    @media (max-width: 860px) {
+      .property-detail-modal-content { grid-template-columns: minmax(0, 1fr); gap: 1.1rem; }
+      .property-detail-gallery-stage { height: 280px; }
+      .dashboard-request-fields { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 560px) {
+      .ui-modal:has(.property-detail-modal-content) { width: calc(100vw - 1rem); max-height: calc(100vh - 1rem); }
+      .ui-modal:has(.property-detail-modal-content) .ui-modal__header { padding: .8rem 1rem; }
+      .ui-modal:has(.property-detail-modal-content) .ui-modal__body { padding: 1rem; }
+      .ui-modal:has(.property-detail-modal-content) .ui-modal__footer { padding: .7rem 1rem; }
+      .property-detail-modal-heading { flex-direction: column; gap: .45rem; }
+      .property-detail-modal-heading strong { white-space: normal; }
+      .property-detail-gallery-stage { height: 220px; }
+      .property-detail-thumbnail { height: 54px; }
+      .property-detail-facts { gap: .65rem; }
+      .dashboard-request-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .dashboard-request-actions button { flex: 1 1 9rem; }
+    }
+    @media (max-width: 360px) {
+      .dashboard-request-fields { grid-template-columns: minmax(0, 1fr); }
+    }
   `;
   document.head.append(style);
 }
@@ -879,7 +943,10 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
     const gallery = modal.querySelector('.property-detail-gallery');
     if (gallery) {
       const galleryImage = gallery.querySelector('.property-detail-modal-image');
-      const galleryDots = Array.from(gallery.querySelectorAll('.property-detail-gallery-dot'));
+      const galleryThumbnails = Array.from(gallery.querySelectorAll('.property-detail-thumbnail'));
+      const galleryCounter = gallery.querySelector('.property-detail-image-counter');
+      const previousButton = gallery.querySelector('.property-detail-gallery-previous');
+      const nextButton = gallery.querySelector('.property-detail-gallery-next');
       let galleryImages = [];
       try { galleryImages = JSON.parse(gallery.dataset.galleryImages || '[]'); } catch {}
       let galleryIndex = 0;
@@ -888,10 +955,11 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
         galleryIndex = (nextIndex + galleryImages.length) % galleryImages.length;
         galleryImage.src = galleryImages[galleryIndex];
         galleryImage.alt = `${property.title || 'Property'} photo ${galleryIndex + 1}`;
-        galleryDots.forEach((dot, index) => {
+        if (galleryCounter) galleryCounter.textContent = `${galleryIndex + 1} / ${galleryImages.length}`;
+        galleryThumbnails.forEach((thumbnail, index) => {
           const isActive = index === galleryIndex;
-          dot.classList.toggle('is-active', isActive);
-          dot.setAttribute('aria-selected', String(isActive));
+          thumbnail.classList.toggle('is-active', isActive);
+          thumbnail.setAttribute('aria-current', String(isActive));
         });
       };
       const openImageViewer = () => {
@@ -940,7 +1008,9 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
           openImageViewer();
         }
       });
-      galleryDots.forEach((dot) => dot.addEventListener('click', () => showGalleryImage(Number(dot.dataset.galleryIndex))));
+      previousButton.addEventListener('click', () => showGalleryImage(galleryIndex - 1));
+      nextButton.addEventListener('click', () => showGalleryImage(galleryIndex + 1));
+      galleryThumbnails.forEach((thumbnail) => thumbnail.addEventListener('click', () => showGalleryImage(Number(thumbnail.dataset.galleryIndex))));
       let swipeStartX = null;
       gallery.addEventListener('pointerdown', (event) => { swipeStartX = event.clientX; });
       gallery.addEventListener('pointerup', (event) => {

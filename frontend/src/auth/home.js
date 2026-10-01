@@ -136,7 +136,7 @@ export async function renderHomePage(root = document.querySelector('#app')) {
             <div class="dh-hero-content">
               <h1 class="dh-hero-title">Find Your Perfect Dorm<br />or Student Housing</h1>
               <p class="dh-hero-subtitle">Comfortable and Affordable Student Living</p>
-              <a href="#types-title" class="dh-cta">Find My Dorm!</a>
+              <a href="#/tenant/dashboardTenant" class="dh-cta">Find My Dorm!</a>
             </div>
           </div>
         </section>

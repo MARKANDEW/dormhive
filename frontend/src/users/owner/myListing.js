@@ -19,6 +19,13 @@ const normalizePropertyImage = (property) => {
   const source = property.image_url || property.cover_image || (Array.isArray(property.images) && property.images[0]) || '';
   return resolveImageUrl(source);
 };
+const normalizePropertyImages = (property = {}) => {
+  let images = property.images;
+  if (typeof images === 'string') {
+    try { images = JSON.parse(images); } catch { images = []; }
+  }
+  return [...new Set([normalizePropertyImage(property), ...(Array.isArray(images) ? images.map(resolveImageUrl) : [])].filter(Boolean))];
+};
 const normalizePropertyTypeLabel = (value = '') => {
   const raw = String(value ?? '').trim().toLowerCase();
   const labelMap = {
@@ -87,11 +94,7 @@ const renderAmenitiesChips = (item = {}) => normalizeAmenities(item)
 const clearSession = () => { localStorage.removeItem('dormhive.accessToken'); localStorage.removeItem('dormhive.user'); };
 
 function showPropertyPhotoViewer(property) {
-  let images = property.images;
-  if (typeof images === 'string') {
-    try { images = JSON.parse(images); } catch { images = []; }
-  }
-  const photos = [...new Set([normalizePropertyImage(property), ...(Array.isArray(images) ? images.map(resolveImageUrl) : [])].filter(Boolean))];
+  const photos = normalizePropertyImages(property);
   if (!photos.length) return;
   let photoIndex = 0;
   const viewer = document.createElement('dialog');
@@ -1193,48 +1196,53 @@ export async function renderMyListing(root = document.querySelector('#app')) {
   };
 
   const showPropertyDetails = (propertyData) => {
+    const galleryImages = normalizePropertyImages(propertyData);
+    const photos = galleryImages.length ? galleryImages : [DEFAULT_IMAGE_PLACEHOLDER];
+    const owner = user();
+    const ownerName = propertyData.owner_name
+      || propertyData.owner?.name
+      || [propertyData.owner?.first_name, propertyData.owner?.last_name].filter(Boolean).join(' ')
+      || [owner.first_name, owner.last_name].filter(Boolean).join(' ')
+      || owner.name
+      || 'N/A';
     const detailsModal = document.createElement('div');
     detailsModal.className = 'property-details-modal';
     detailsModal.innerHTML = `
       <div class="property-details-card">
         <div class="property-details-header">
-          <h2>${escape(propertyData.title || 'Property Details')}</h2>
-          <button type="button" class="modal-close">×</button>
+          <h2><span class="property-details-header-icon"><i class="bi bi-house-door-fill" aria-hidden="true"></i></span>Property Details</h2>
+          <button type="button" class="modal-close" aria-label="Close property details">×</button>
         </div>
         <div class="property-details-content">
-          <div class="details-section">
-            <label>Address</label>
-            <p>${escape([propertyData.address, propertyData.barangay, propertyData.municipality].filter(Boolean).join(', ') || 'No address')}</p>
-          </div>
-          <div class="details-section">
-            <label>Property Type</label>
-            <p>${escape(normalizePropertyTypeLabel(propertyData.room_type || propertyData.property_type || 'N/A')) || 'N/A'}</p>
-          </div>
-          <div class="details-section">
-            <label>Monthly Rent</label>
-            <p>₱${Number(propertyData.monthly_rent ?? 0).toLocaleString()}</p>
-          </div>
-          <div class="details-section">
-            <label>Max Occupants</label>
-            <p>${propertyData.max_occupants || 'N/A'}</p>
-          </div>
-          <div class="details-section">
-            <label>Available Slots</label>
-            <p>${propertyData.available_slots || 'N/A'}</p>
-          </div>
-          <div class="details-section">
-            <label>Gender Preference</label>
-            <p>${escape(String(propertyData.gender_preference || 'Any').replaceAll('_', ' '))}</p>
-          </div>
-          <div class="details-section">
-            <label>Amenities</label>
-            <div class="amenities-list">
-              ${renderAmenitiesChips(propertyData) || '<span>None</span>'}
+          <div class="property-details-gallery" aria-label="Property photos">
+            <div class="property-details-gallery-stage">
+              <img class="property-details-main-image" src="${escape(photos[0])}" alt="${escape(propertyData.title || 'Property')} photo 1">
+              <span class="property-details-image-counter" aria-live="polite">1 / ${photos.length}</span>
+              <button type="button" class="property-details-gallery-nav previous" aria-label="Previous photo">&#8249;</button>
+              <button type="button" class="property-details-gallery-nav next" aria-label="Next photo">&#8250;</button>
             </div>
+            <div class="property-details-thumbnails" role="group" aria-label="Property photo thumbnails">
+              ${photos.map((image, index) => `<button type="button" class="property-details-thumbnail${index === 0 ? ' active' : ''}" data-gallery-index="${index}" aria-label="View photo ${index + 1}" aria-current="${index === 0 ? 'true' : 'false'}"><img src="${escape(image)}" alt=""></button>`).join('')}
           </div>
-          <div class="details-section">
-            <label>Description</label>
-            <p>${escape(propertyData.description || 'No description provided')}</p>
+          </div>
+          <div class="property-details-information">
+            <div class="property-details-heading">
+              <h3>${escape(propertyData.title || 'Property')}</h3>
+              <strong>PHP ${Number(propertyData.monthly_rent ?? 0).toLocaleString('en-PH')} / month</strong>
+            </div>
+            <div class="property-details-facts">
+              <div class="details-section"><span class="details-label"><i class="bi bi-geo-alt-fill" aria-hidden="true"></i>Location</span><p>${escape([propertyData.address, propertyData.barangay, propertyData.municipality].filter(Boolean).join(', ') || 'No address')}</p></div>
+              <div class="details-section"><span class="details-label"><i class="bi bi-house-fill" aria-hidden="true"></i>Room Type</span><p>${escape(normalizePropertyTypeLabel(propertyData.room_type || propertyData.property_type || 'N/A')) || 'N/A'}</p></div>
+              <div class="details-section"><span class="details-label"><i class="bi bi-people-fill" aria-hidden="true"></i>Occupancy</span><p>${propertyData.max_occupants != null ? `Up to ${escape(propertyData.max_occupants)} tenants` : 'N/A'}</p></div>
+              <div class="details-section"><span class="details-label"><i class="bi bi-door-open-fill" aria-hidden="true"></i>Available Slots</span><p>${propertyData.available_slots ?? 'N/A'}</p></div>
+              <div class="details-section"><span class="details-label"><i class="bi bi-gender-ambiguous" aria-hidden="true"></i>Gender Preference</span><p>${escape(String(propertyData.gender_preference || 'Any').replaceAll('_', ' '))}</p></div>
+              <div class="details-section"><span class="details-label"><i class="bi bi-person-fill" aria-hidden="true"></i>Owner</span><p>${escape(ownerName)}</p></div>
+              <div class="details-section details-amenities"><span class="details-label"><i class="bi bi-stars" aria-hidden="true"></i>Amenities</span><div class="amenities-list">${renderAmenitiesChips(propertyData) || '<span>None</span>'}</div></div>
+            </div>
+            <div class="details-section property-details-description">
+              <span class="details-label"><i class="bi bi-card-text" aria-hidden="true"></i>Description</span>
+              <p>${escape(propertyData.description || 'No description provided')}</p>
+            </div>
           </div>
         </div>
         <div class="property-details-actions">
@@ -1248,6 +1256,26 @@ export async function renderMyListing(root = document.querySelector('#app')) {
     // Handle close button
     detailsModal.querySelector('.modal-close').addEventListener('click', () => detailsModal.remove());
     detailsModal.querySelector('.close-details').addEventListener('click', () => detailsModal.remove());
+
+    const mainImage = detailsModal.querySelector('.property-details-main-image');
+    const counter = detailsModal.querySelector('.property-details-image-counter');
+    const thumbnails = Array.from(detailsModal.querySelectorAll('.property-details-thumbnail'));
+    let photoIndex = 0;
+    const showPhoto = (nextIndex) => {
+      photoIndex = (nextIndex + photos.length) % photos.length;
+      mainImage.src = photos[photoIndex];
+      mainImage.alt = `${propertyData.title || 'Property'} photo ${photoIndex + 1}`;
+      counter.textContent = `${photoIndex + 1} / ${photos.length}`;
+      thumbnails.forEach((thumbnail, index) => {
+        const active = index === photoIndex;
+        thumbnail.classList.toggle('active', active);
+        thumbnail.setAttribute('aria-current', String(active));
+      });
+    };
+    detailsModal.querySelector('.property-details-gallery-nav.previous').addEventListener('click', () => showPhoto(photoIndex - 1));
+    detailsModal.querySelector('.property-details-gallery-nav.next').addEventListener('click', () => showPhoto(photoIndex + 1));
+    thumbnails.forEach((thumbnail) => thumbnail.addEventListener('click', () => showPhoto(Number(thumbnail.dataset.galleryIndex))));
+    mainImage.addEventListener('click', () => showPropertyPhotoViewer(propertyData));
     
     // Close on backdrop click
     detailsModal.addEventListener('click', (event) => {
