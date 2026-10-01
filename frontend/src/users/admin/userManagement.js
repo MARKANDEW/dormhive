@@ -62,14 +62,19 @@ export function renderUserManagement(root = document.querySelector('#app')) {
       const users = Array.isArray(payload.data) ? payload.data : [];
       total.textContent = `${users.length} total`;
       status.hidden = true;
+      const currentUser = JSON.parse(localStorage.getItem('dormhive.user') ?? '{}');
       body.innerHTML = users.map((user) => {
         const name = user.name || 'User';
         const avatar = resolveUserAvatarUrl(user.avatar_url || '', name) || fallbackAvatar(name);
         const active = user.status === 'active';
-        return `<tr><td><div class="user-table-cell"><img class="user-row-avatar" src="${esc(avatar)}" alt="${esc(name)} avatar" onerror="this.onerror=null;this.src='${fallbackAvatar(name)}'" /><div><strong data-privacy-mask="name">${esc(name)}</strong><small data-privacy-mask="email">${esc(user.email)}</small></div></div></td><td>${esc(user.role)}</td><td><span class="pill ${active ? 'active' : 'suspended'}"><i aria-hidden="true"></i>${esc(active ? 'Active' : 'Suspended')}</span></td><td><button class="user-status-button" data-id="${esc(user.id)}" data-status="${active ? 'suspended' : 'active'}">${active ? 'Suspend' : 'Activate'}</button></td></tr>`;
+        const isCurrentUser = Number(currentUser.id) === Number(user.id);
+        const isAdminUser = String(user.role).toLowerCase() === 'admin';
+        const disableAction = isCurrentUser || isAdminUser;
+        return `<tr><td><div class="user-table-cell"><img class="user-row-avatar" src="${esc(avatar)}" alt="${esc(name)} avatar" onerror="this.onerror=null;this.src='${fallbackAvatar(name)}'" /><div><strong data-privacy-mask="name">${esc(name)}</strong><small data-privacy-mask="email">${esc(user.email)}</small></div></div></td><td>${esc(user.role)}</td><td><span class="pill ${active ? 'active' : 'suspended'}"><i aria-hidden="true"></i>${esc(active ? 'Active' : 'Suspended')}</span></td><td><button class="user-status-button" data-id="${esc(user.id)}" data-status="${active ? 'suspended' : 'active'}" ${disableAction ? 'disabled title="Admin accounts cannot be suspended from this panel."' : ''}>${disableAction ? 'Locked' : (active ? 'Suspend' : 'Activate')}</button></td></tr>`;
       }).join('') || '<tr><td colspan="4" class="empty-row">No users found.</td></tr>';
       applyAdminPrivacy(root);
       body.querySelectorAll('.user-status-button').forEach((button) => button.addEventListener('click', async () => {
+        if (button.disabled) return;
         button.disabled = true;
         const response = await fetch(`${API}/users/${button.dataset.id}`, { method: 'PATCH', headers: headers(), body: JSON.stringify({ status: button.dataset.status }) });
         if (!response.ok) { const error = await response.json(); status.textContent = error.message || 'Unable to update user.'; status.hidden = false; }

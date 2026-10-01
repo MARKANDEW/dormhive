@@ -240,6 +240,15 @@
   vertical-align: middle;
 }
 
+.users-card th:nth-child(2),
+.users-card th:nth-child(3),
+.users-card th:nth-child(4),
+.users-card td:nth-child(2),
+.users-card td:nth-child(3),
+.users-card td:nth-child(4) {
+  text-align: center;
+}
+
 .users-card th {
   background: #f5f9fc;
   color: #6f879b;
@@ -340,9 +349,11 @@
 }
 
 .user-status-button {
+  display: block;
   width: 96px;
   height: 38px;
   min-height: 38px;
+  margin: 0 auto;
   padding: 0 14px;
   border: 1px solid transparent;
   border-radius: 10px;

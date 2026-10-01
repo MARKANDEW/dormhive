@@ -29,14 +29,44 @@ export function buildDashboardMetrics({ users = [], properties = [], bookings = 
   };
 }
 
-export function buildActivityFeed(users = []) {
-  return users
-    .map((user) => ({
+export function buildActivityFeed(users = [], properties = [], bookings = []) {
+  const activities = [];
+
+  properties.forEach((property) => {
+    const status = property.status || 'pending';
+    if (['pending', 'approved', 'rejected'].includes(status)) {
+      activities.push({
+        title: status === 'pending' ? 'Property submitted' : `Property ${status}`,
+        time: relativeTime(property.updated_at ?? property.created_at),
+        detail: `[${property.title || 'Property'}]`,
+        timestamp: Date.parse(property.updated_at ?? property.created_at ?? new Date().toISOString())
+      });
+    }
+  });
+
+  bookings.forEach((booking) => {
+    if (['approved', 'rejected'].includes(booking.status)) {
+      activities.push({
+        title: `Booking ${booking.status}`,
+        time: relativeTime(booking.updated_at ?? booking.created_at),
+        detail: `[${booking.tenant_name || 'Tenant'}]`,
+        timestamp: Date.parse(booking.updated_at ?? booking.created_at ?? new Date().toISOString())
+      });
+    }
+  });
+
+  users.forEach((user) => {
+    activities.push({
       title: user.updated_at && user.updated_at !== user.created_at ? 'User profile updated' : 'New user registered',
       time: relativeTime(user.updated_at ?? user.created_at),
+      detail: `[${user.name || user.email}]`,
+      timestamp: Date.parse(user.updated_at ?? user.created_at ?? new Date().toISOString()),
       user
-    }))
-    .sort((first, second) => Date.parse(second.user.updated_at ?? second.user.created_at) - Date.parse(first.user.updated_at ?? first.user.created_at));
+    });
+  });
+
+  return activities
+    .sort((first, second) => Number(second.timestamp ?? 0) - Number(first.timestamp ?? 0));
 }
 
 function relativeTime(value) {

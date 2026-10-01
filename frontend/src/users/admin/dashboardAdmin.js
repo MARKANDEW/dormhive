@@ -229,7 +229,15 @@ async function refreshDashboardData(root) {
     root.querySelector('.user-grid').innerHTML = userData.map(renderUserCard).join('');
     bindUserActions(root, userData);
 
-    root.querySelector('.activity-list').innerHTML = demoActivity.map(renderActivityItem).join('');
+    const liveActivity = buildActivityFeed(
+      Array.isArray(u.activity) ? u.activity : [],
+      Array.isArray(p.activity) ? p.activity : [],
+      Array.isArray(b.activity) ? b.activity : []
+    );
+
+    root.querySelector('.activity-list').innerHTML = liveActivity.length
+      ? liveActivity.slice(0, 7).map(renderActivityItem).join('')
+      : '<div class="activity-row"><div class="activity-main"><span class="activity-text">No recent activity yet.</span></div></div>';
     applyAdminPrivacy(root);
   } catch (error) {
     if (isExpiredSessionError(error)) {

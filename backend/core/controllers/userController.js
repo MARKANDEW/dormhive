@@ -17,6 +17,19 @@ export function validatePasswordChange({ currentPassword, newPassword, confirmPa
   return { valid: true, message: '' };
 }
 
+export function guardUserStatusChange({ actor, target, nextStatus }) {
+  const requested = String(nextStatus ?? '').toLowerCase();
+  if (actor?.id && target?.id && Number(actor.id) === Number(target.id) && requested === 'suspended') {
+    return { allowed: false, message: 'You cannot suspend your own account.' };
+  }
+
+  if (target?.role === 'admin' && requested === 'suspended') {
+    return { allowed: false, message: 'Administrator accounts cannot be suspended from this panel.' };
+  }
+
+  return { allowed: true, message: '' };
+}
+
 export async function list(request, response, next) {
   try {
     const page = Math.max(1, Number(request.query.page) || 1);
@@ -42,6 +55,16 @@ export async function update(request, response, next) {
   try {
     const isAdmin = request.user.role === 'admin';
     if (request.user.id !== Number(request.params.id) && !isAdmin) return response.status(403).json({ message: 'Permission denied.' });
+
+    const targetUser = await users.findById(request.params.id);
+    if (!targetUser) return response.status(404).json({ message: 'User not found.' });
+
+    const guard = guardUserStatusChange({
+      actor: request.user,
+      target: targetUser,
+      nextStatus: request.body.status
+    });
+    if (!guard.allowed) return response.status(422).json({ message: guard.message });
 
     const hasPasswordChange = ['currentPassword', 'newPassword', 'confirmPassword'].some((key) => Object.prototype.hasOwnProperty.call(request.body, key));
     if (hasPasswordChange) {

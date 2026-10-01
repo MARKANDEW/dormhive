@@ -8,6 +8,7 @@ import {
   totalCount,
 } from '../../../frontend/src/users/admin/analyticsUtils.js';
 import { buildActivityFeed } from '../../../frontend/src/users/admin/analyticsUtils.js';
+import { guardUserStatusChange } from '../controllers/userController.js';
 
 test('buildDashboardMetrics totals are computed from aggregated analytics rows', () => {
   const metrics = buildDashboardMetrics({
@@ -68,4 +69,36 @@ test('recent user profile updates use updated_at in the activity feed', () => {
   assert.equal(activities[0].title, 'User profile updated');
   assert.match(activities[0].time, /^2 mins? ago$/);
   assert.equal(activities[1].title, 'New user registered');
+});
+
+test('new pending properties appear in the recent activity feed', () => {
+  const now = Date.now();
+  const activities = buildActivityFeed([], [
+    {
+      title: 'Maple Studio',
+      status: 'pending',
+      created_at: new Date(now - 2 * 60 * 1000).toISOString(),
+      updated_at: new Date(now - 2 * 60 * 1000).toISOString()
+    },
+    {
+      title: 'Sunset Apartment',
+      status: 'approved',
+      created_at: new Date(now - 5 * 60 * 1000).toISOString(),
+      updated_at: new Date(now - 5 * 60 * 1000).toISOString()
+    }
+  ], []);
+
+  assert.ok(activities.some((activity) => activity.title === 'Property submitted' && activity.detail.includes('Maple Studio')));
+  assert.ok(activities.some((activity) => activity.title === 'Property approved' && activity.detail.includes('Sunset Apartment')));
+});
+
+test('admin self-suspension is blocked', () => {
+  const result = guardUserStatusChange({
+    actor: { id: 7, role: 'admin' },
+    target: { id: 7, role: 'admin' },
+    nextStatus: 'suspended'
+  });
+
+  assert.equal(result.allowed, false);
+  assert.match(result.message, /cannot.*suspend/i);
 });
