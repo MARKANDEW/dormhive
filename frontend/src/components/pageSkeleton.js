@@ -185,6 +185,196 @@ function ensureSkeletonStyles() {
       animation: dh-route-skeleton-shimmer 1.4s linear infinite;
     }
 
+    .dh-route-skeleton__support {
+      min-height: 100vh;
+      padding: 28px 32px 42px;
+      background: #f7faf8;
+    }
+
+    .dh-route-skeleton__support-content {
+      width: min(100%, 1310px);
+      margin: 0 auto;
+    }
+
+    .dh-route-skeleton__support-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .dh-route-skeleton__support-title {
+      display: grid;
+      justify-items: start;
+      gap: 10px;
+      width: min(100%, 340px);
+    }
+
+    .dh-route-skeleton__support-title .dh-route-skeleton__line:first-child {
+      width: 70px;
+      height: 20px;
+    }
+
+    .dh-route-skeleton__support-title .dh-route-skeleton__line:nth-child(2) {
+      width: 150px;
+      height: 32px;
+    }
+
+    .dh-route-skeleton__support-back {
+      width: 120px;
+      height: 36px;
+      flex: 0 0 auto;
+    }
+
+    .dh-route-skeleton__support-hero {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      min-height: 184px;
+      margin-bottom: 20px;
+      padding: 28px 30px;
+      border: 1px solid #e3eeea;
+      border-radius: 10px;
+      background: #f0f8f4;
+    }
+
+    .dh-route-skeleton__support-hero-copy {
+      display: grid;
+      justify-items: start;
+      gap: 12px;
+      width: min(100%, 580px);
+    }
+
+    .dh-route-skeleton__support-hero-copy .dh-route-skeleton__line:first-child {
+      width: min(280px, 80%);
+      height: 24px;
+    }
+
+    .dh-route-skeleton__support-hero-copy .dh-route-skeleton__line:nth-child(2) {
+      width: min(100%, 560px);
+      height: 32px;
+    }
+
+    .dh-route-skeleton__support-hero-copy .dh-route-skeleton__button {
+      width: 150px;
+      height: 38px;
+    }
+
+    .dh-route-skeleton__support-hero .dh-route-skeleton__support-illustration {
+      width: 330px;
+      height: 150px;
+      flex: 0 0 330px;
+      margin-bottom: 0;
+      border-radius: 0;
+    }
+
+    .dh-route-skeleton__support-columns {
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.78fr);
+      gap: 18px;
+    }
+
+    .dh-route-skeleton__support-panel {
+      min-width: 0;
+      padding: 19px;
+      border: 1px solid #e6ece9;
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    .dh-route-skeleton__support-panel-heading {
+      display: grid;
+      justify-items: start;
+      gap: 5px;
+    }
+
+    .dh-route-skeleton__support-panel-heading .dh-route-skeleton__line:first-child {
+      width: min(240px, 80%);
+      height: 18px;
+    }
+
+    .dh-route-skeleton__support-panel-heading .dh-route-skeleton__line:nth-child(2) {
+      width: min(100%, 320px);
+      height: 12px;
+    }
+
+    .dh-route-skeleton__support-faq-list,
+    .dh-route-skeleton__support-contact-list {
+      display: grid;
+      gap: 9px;
+      margin-top: 16px;
+    }
+
+    .dh-route-skeleton__support-faq-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      height: 39px;
+      padding: 0 12px;
+      border: 1px solid #e7ecea;
+      border-radius: 8px;
+    }
+
+    .dh-route-skeleton__support-contact-row {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      height: 54px;
+      padding: 0 11px;
+      border: 1px solid #e7ecea;
+      border-radius: 8px;
+    }
+
+    .dh-route-skeleton__support-tickets {
+      margin-top: 20px;
+    }
+
+    .dh-route-skeleton__support-faq-label {
+      width: min(72%, 330px);
+      height: 11px;
+      border-radius: 999px;
+    }
+
+    .dh-route-skeleton__support-chevron {
+      width: 7px;
+      height: 7px;
+      flex: 0 0 7px;
+      border-radius: 2px;
+    }
+
+    .dh-route-skeleton__support-contact-icon {
+      width: 30px;
+      height: 30px;
+      flex: 0 0 30px;
+      border-radius: 50%;
+    }
+
+    .dh-route-skeleton__support-contact-copy {
+      display: grid;
+      flex: 1;
+      gap: 4px;
+    }
+
+    .dh-route-skeleton__support-contact-copy span:first-child {
+      width: min(70%, 150px);
+      height: 9px;
+    }
+
+    .dh-route-skeleton__support-contact-copy span:last-child {
+      width: min(90%, 190px);
+      height: 7px;
+    }
+
+    .dh-route-skeleton__support-ticket-empty {
+      width: min(100%, 220px);
+      height: 11px;
+      margin-top: 14px;
+      border-radius: 999px;
+    }
+
     .dh-route-skeleton__sidebar {
       background: #ffffff;
       border-right: 1px solid rgba(23, 37, 34, 0.08);
@@ -473,6 +663,40 @@ function ensureSkeletonStyles() {
       .dh-route-skeleton__card-row {
         grid-template-columns: 1fr;
       }
+
+    }
+
+    @media (max-width: 850px) {
+      .dh-route-skeleton__support {
+        padding: 22px 17px 32px;
+      }
+
+      .dh-route-skeleton__support-columns {
+        grid-template-columns: 1fr;
+      }
+
+      .dh-route-skeleton__support-hero {
+        align-items: flex-start;
+      }
+
+      .dh-route-skeleton__support-illustration {
+        display: none;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .dh-route-skeleton__support-hero {
+        padding: 22px;
+      }
+
+      .dh-route-skeleton__support-contact-row {
+        gap: 9px;
+        padding-inline: 9px;
+      }
+
+      .dh-route-skeleton__support-header {
+        gap: 12px;
+      }
     }
   `;
   document.head.append(style);
@@ -666,6 +890,67 @@ function ownerSkeleton() {
   `;
 }
 
+function supportSkeleton() {
+  return `
+    <div class="dh-route-skeleton dh-route-skeleton__support" aria-live="polite" aria-busy="true" aria-label="Loading support page">
+      <div class="dh-route-skeleton__support-content">
+        <header class="dh-route-skeleton__support-header">
+          <div class="dh-route-skeleton__support-title">
+            <div class="dh-route-skeleton__line"></div>
+            <div class="dh-route-skeleton__line"></div>
+            <div class="dh-route-skeleton__line medium"></div>
+          </div>
+          <div class="dh-route-skeleton__button dh-route-skeleton__support-back"></div>
+        </header>
+
+        <section class="dh-route-skeleton__support-hero">
+          <div class="dh-route-skeleton__support-hero-copy">
+            <div class="dh-route-skeleton__line"></div>
+            <div class="dh-route-skeleton__line"></div>
+            <div class="dh-route-skeleton__button"></div>
+          </div>
+          <div class="dh-route-skeleton__media dh-route-skeleton__support-illustration"></div>
+        </section>
+
+        <section class="dh-route-skeleton__support-columns">
+          <article class="dh-route-skeleton__support-panel">
+            <div class="dh-route-skeleton__support-panel-heading">
+              <div class="dh-route-skeleton__line"></div>
+              <div class="dh-route-skeleton__line"></div>
+            </div>
+            <div class="dh-route-skeleton__support-faq-list">
+              <div class="dh-route-skeleton__support-faq-row"><span class="dh-route-skeleton__support-faq-label"></span><span class="dh-route-skeleton__support-chevron"></span></div>
+              <div class="dh-route-skeleton__support-faq-row"><span class="dh-route-skeleton__support-faq-label"></span><span class="dh-route-skeleton__support-chevron"></span></div>
+              <div class="dh-route-skeleton__support-faq-row"><span class="dh-route-skeleton__support-faq-label"></span><span class="dh-route-skeleton__support-chevron"></span></div>
+              <div class="dh-route-skeleton__support-faq-row"><span class="dh-route-skeleton__support-faq-label"></span><span class="dh-route-skeleton__support-chevron"></span></div>
+              <div class="dh-route-skeleton__support-faq-row"><span class="dh-route-skeleton__support-faq-label"></span><span class="dh-route-skeleton__support-chevron"></span></div>
+            </div>
+          </article>
+          <aside class="dh-route-skeleton__support-panel">
+            <div class="dh-route-skeleton__support-panel-heading">
+              <div class="dh-route-skeleton__line"></div>
+              <div class="dh-route-skeleton__line"></div>
+            </div>
+            <div class="dh-route-skeleton__support-contact-list">
+              <div class="dh-route-skeleton__support-contact-row"><span class="dh-route-skeleton__support-contact-icon"></span><span class="dh-route-skeleton__support-contact-copy"><span></span><span></span></span><span class="dh-route-skeleton__support-chevron"></span></div>
+              <div class="dh-route-skeleton__support-contact-row"><span class="dh-route-skeleton__support-contact-icon"></span><span class="dh-route-skeleton__support-contact-copy"><span></span><span></span></span><span class="dh-route-skeleton__support-chevron"></span></div>
+              <div class="dh-route-skeleton__support-contact-row"><span class="dh-route-skeleton__support-contact-icon"></span><span class="dh-route-skeleton__support-contact-copy"><span></span><span></span></span><span class="dh-route-skeleton__support-chevron"></span></div>
+            </div>
+          </aside>
+        </section>
+
+        <section class="dh-route-skeleton__support-panel dh-route-skeleton__support-tickets">
+          <div class="dh-route-skeleton__support-panel-heading">
+            <div class="dh-route-skeleton__line"></div>
+            <div class="dh-route-skeleton__line"></div>
+          </div>
+          <div class="dh-route-skeleton__support-ticket-empty"></div>
+        </section>
+      </div>
+    </div>
+  `;
+}
+
 function loginSkeleton() {
   return `
     <div class="dh-route-skeleton dh-route-skeleton__auth dh-route-skeleton__auth-login" aria-live="polite" aria-busy="true" aria-label="Loading login page">
@@ -791,7 +1076,7 @@ export function renderRouteSkeleton(root, path = '/') {
   }
 
   if (path.startsWith('/tenant/')) {
-    root.innerHTML = dashboardSkeleton();
+    root.innerHTML = path === '/tenant/support' ? supportSkeleton() : dashboardSkeleton();
     return;
   }
 
