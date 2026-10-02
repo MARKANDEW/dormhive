@@ -156,21 +156,66 @@ function renderActivityItem(item) {
 }
 
 function showUserProfileModal(user) {
+  const status = String(user.status || 'active').toLowerCase();
+  const statusLabel = status === 'active' ? 'Active' : status.charAt(0).toUpperCase() + status.slice(1);
+  const profileRows = [
+    ['Name', user.name || 'Unknown user', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0-4-4a4 4 0 0 0 4 4Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"/></svg>'],
+    ['Email', user.email || '—', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.75A2.75 2.75 0 0 1 5.75 4h12.5A2.75 2.75 0 0 1 21 6.75v10.5A2.75 2.75 0 0 1 18.25 20H5.75A2.75 2.75 0 0 1 3 17.25Zm1.5.54 7.5 5.9 7.5-5.9v-.54a1.25 1.25 0 0 0-1.25-1.25H6.25A1.25 1.25 0 0 0 5 6.75Z"/></svg>'],
+    ['Role', (user.role || 'user').replace(/_/g, ' '), '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 5 5v6.5c0 4.2 2.8 8.12 7 9.5 4.2-1.38 7-5.3 7-9.5V5Zm0 3.2 4.5 1.8V11c0 3.18-2.05 6.2-4.5 7.2-2.45-1-4.5-4.02-4.5-7.2V7Z"/></svg>'],
+    ['Status', statusLabel, '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm0 2a8 8 0 0 1 5.86 13.64l-8.5-8.5A7.97 7.97 0 0 1 12 4Zm0 16a8 8 0 0 1-5.86-13.64l8.5 8.5A7.97 7.97 0 0 1 12 20Z"/></svg>'],
+    ['Phone', user.phone || '—', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15.46 15.46 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.24 11.4 11.4 0 0 0 3.6.58a1 1 0 0 1 1 1V19a1 1 0 0 1-1 1A17 17 0 0 1 3 5a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.4 11.4 0 0 0 .58 3.6 1 1 0 0 1-.24 1Z"/></svg>'],
+    ['Joined', formatDate(user.created_at), '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h2v2h6V2h2v2h2.5A2.5 2.5 0 0 1 22 6.5v12A2.5 2.5 0 0 1 19.5 21h-15A2.5 2.5 0 0 1 2 18.5v-12A2.5 2.5 0 0 1 4.5 4H7Zm12.5 7H4.5v9.5h15ZM4.5 9h15V6.5h-15Z"/></svg>']
+  ];
+
   const profileMarkup = `
     <div class="user-profile-detail">
-      <div class="profile-avatar-wrap">
-        <img src="${resolveUserAvatarUrl(user.avatar_url || '', user.name || 'User')}" alt="${esc(user.name || 'User')} avatar" onerror="this.onerror=null;this.src='data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect width="120" height="120" rx="60" fill="#efe6d6"/><circle cx="60" cy="42" r="22" fill="#4a3d2f"/><path d="M28 96c6-16 18-25 32-25s26 9 32 25" fill="#8d6435"/><text x="50%" y="68%" text-anchor="middle" font-size="30" font-family="Inter, Arial, sans-serif" font-weight="700" fill="#ffffff">${(user.name || 'U').split(/\s+/).filter(Boolean).slice(0,2).map((part) => part[0]?.toUpperCase() ?? '').join('') || 'U'}</text></svg>`)}'" />
+      <div class="profile-summary">
+        <div class="profile-avatar-wrap">
+          <img src="${resolveUserAvatarUrl(user.avatar_url || '', user.name || 'User')}" alt="${esc(user.name || 'User')} avatar" onerror="this.onerror=null;this.src='data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect width="120" height="120" rx="60" fill="#efe6d6"/><circle cx="60" cy="42" r="22" fill="#4a3d2f"/><path d="M28 96c6-16 18-25 32-25s26 9 32 25" fill="#8d6435"/><text x="50%" y="68%" text-anchor="middle" font-size="30" font-family="Inter, Arial, sans-serif" font-weight="700" fill="#ffffff">${(user.name || 'U').split(/\s+/).filter(Boolean).slice(0,2).map((part) => part[0]?.toUpperCase() ?? '').join('') || 'U'}</text></svg>`)}'" />
+        </div>
+        <div class="profile-identity">
+          <h3>${esc(user.name || 'Unknown user')}</h3>
+          <span class="profile-status-pill ${status === 'active' ? 'is-active' : 'is-inactive'}">
+            <span class="status-dot" aria-hidden="true"></span>
+            ${statusLabel}
+          </span>
+        </div>
       </div>
-      <div class="profile-row"><span>Name</span><strong>${esc(user.name || 'Unknown user')}</strong></div>
-      <div class="profile-row"><span>Email</span><strong>${esc(user.email || '—')}</strong></div>
-      <div class="profile-row"><span>Role</span><strong>${esc((user.role || 'user').replace(/_/g, ' '))}</strong></div>
-      <div class="profile-row"><span>Status</span><strong>${esc(user.status || 'active')}</strong></div>
-      <div class="profile-row"><span>Phone</span><strong>${esc(user.phone || '—')}</strong></div>
-      <div class="profile-row"><span>Joined</span><strong>${esc(formatDate(user.created_at))}</strong></div>
+
+      <div class="profile-info-panel">
+        ${profileRows
+          .map(
+            ([label, value, icon]) => `
+          <div class="profile-row">
+            <div class="profile-field">
+              <span class="profile-field-icon" aria-hidden="true">${icon}</span>
+              <span>${label}</span>
+            </div>
+            <strong>${esc(value)}</strong>
+          </div>
+        `
+          )
+          .join('')}
+      </div>
     </div>
   `;
 
   const modal = createModal({ title: 'User Profile', content: profileMarkup, closeLabel: 'Close' });
+  modal.classList.add('user-profile-modal');
+  const headerTitle = modal.querySelector('.ui-modal__header h2');
+  if (headerTitle) {
+    headerTitle.innerHTML = `
+      <span class="profile-modal-title-wrap">
+        <span class="profile-modal-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0-4-4a4 4 0 0 0 4 4Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"/></svg>
+        </span>
+        <span class="profile-modal-title-copy">
+          <span class="profile-modal-title">User Profile</span>
+          <span class="profile-modal-subtitle">View and manage user details</span>
+        </span>
+      </span>
+    `;
+  }
   openModal(modal);
 }
 
