@@ -547,37 +547,6 @@ body {
   color: #1f2c35;
 }
 
-.user-profile-modal .profile-status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.42rem 0.8rem;
-  border-radius: 999px;
-  font-size: 0.9rem;
-  font-weight: 700;
-  border: 1px solid transparent;
-}
-
-.user-profile-modal .profile-status-pill.is-active {
-  background: #e6f7ee;
-  border-color: #bfe7d4;
-  color: #207a5d;
-}
-
-.user-profile-modal .profile-status-pill.is-inactive {
-  background: #f4f5f7;
-  border-color: #dfe3e8;
-  color: #52606d;
-}
-
-.user-profile-modal .status-dot {
-  width: 0.55rem;
-  height: 0.55rem;
-  border-radius: 50%;
-  background: currentColor;
-  display: inline-block;
-  opacity: 0.9;
-}
 
 .user-profile-modal .profile-avatar-wrap {
   width: 6.3rem;

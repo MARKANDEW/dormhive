@@ -2,6 +2,7 @@ import { renderMapPanelShell, initLeafletMap, updateLeafletMarkers } from '../..
 import { ensureTenantSidebarStyles, renderTenantSidebar } from './sidebarTenant.js';
 import { getUserAvatarUrl, refreshTenantUserSession } from './setting.js';
 import { createModal, openModal } from '../../components/modal.js';
+import { showToast } from '../../components/toast.js';
 import { api as apiClient, getApiErrorMessage, readApiResponse } from '../../services/api.js';
 import { markNotificationRead } from '../../services/notificationSystem.js';
 
@@ -1063,6 +1064,8 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
         status.textContent = 'Select both a viewing date and time, or leave both blank.';
         return;
       }
+      const submitButton = form.querySelector('.dashboard-send-request');
+      submitButton.disabled = true;
       try {
         const response = await fetch(`${API_URL}/bookings`, {
           method: 'POST',
@@ -1071,12 +1074,11 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
         });
         const body = await readApiResponse(response);
         if (!response.ok) throw new Error(getApiErrorMessage(body, 'Unable to submit booking request.'));
-        status.textContent = 'Booking request sent successfully.';
-        form.reset();
-        moveOut.disabled = false;
-        updateMoveOutMinimum();
+        modal.close();
+        showToast({ message: 'Booking request sent successfully.', type: 'success' });
       } catch (error) {
         status.textContent = error.message;
+        submitButton.disabled = false;
       }
     });
     openModal(modal);

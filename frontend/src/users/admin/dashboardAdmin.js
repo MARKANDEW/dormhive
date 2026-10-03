@@ -175,10 +175,6 @@ function showUserProfileModal(user) {
         </div>
         <div class="profile-identity">
           <h3>${esc(user.name || 'Unknown user')}</h3>
-          <span class="profile-status-pill ${status === 'active' ? 'is-active' : 'is-inactive'}">
-            <span class="status-dot" aria-hidden="true"></span>
-            ${statusLabel}
-          </span>
         </div>
       </div>
 

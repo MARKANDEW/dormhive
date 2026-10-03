@@ -355,8 +355,6 @@ export async function renderInquiries(root = document.querySelector('#app')) {
       </div>
     `;
 
-    const acceptPanelAction = detailPanel.querySelector('.accept-action');
-    const rejectTenantPanelAction = detailPanel.querySelector('.reject-tenant-panel-action');
     const moreMenuButton = detailPanel.querySelector('.more-menu');
     const detailMenu = detailPanel.querySelector('.detail-menu');
     const menuDelete = detailPanel.querySelector('.menu-delete');
@@ -389,8 +387,6 @@ export async function renderInquiries(root = document.querySelector('#app')) {
       deleteBooking(booking);
     });
 
-    acceptPanelAction?.addEventListener('click', () => acceptTenant());
-    rejectTenantPanelAction?.addEventListener('click', () => openInquiryConfirmation(booking));
   };
 
   const renderRows = () => {
@@ -783,5 +779,4 @@ export async function renderInquiries(root = document.querySelector('#app')) {
     if (!document.hidden && root.isConnected) load();
   });
 }
-
 

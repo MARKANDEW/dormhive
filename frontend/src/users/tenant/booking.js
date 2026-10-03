@@ -13,13 +13,83 @@ const resolveImageUrl = (value = '') => {
   if (/^https?:\/\//i.test(url)) return url;
   return `${apiBase}${url.startsWith('/') ? '' : '/'}${url}`;
 };
-const getPropertyImageUrl = (property = {}, booking = {}) => {
+const getPropertyImageUrls = (property = {}, booking = {}) => {
   let images = property.images ?? booking.images;
   if (typeof images === 'string') {
     try { images = JSON.parse(images); } catch { images = [images]; }
   }
-  const source = property.image_url || property.cover_image || property.imageUrl || booking.image_url || booking.cover_image || booking.imageUrl || (Array.isArray(images) && images[0]) || '';
-  return resolveImageUrl(source);
+  const sources = [
+    property.image_url,
+    property.cover_image,
+    property.imageUrl,
+    booking.image_url,
+    booking.cover_image,
+    booking.imageUrl,
+    ...(Array.isArray(images) ? images.map((image) => typeof image === 'string' ? image : image?.url || image?.image_url || '') : [])
+  ];
+  return [...new Set(sources.map(resolveImageUrl).filter(Boolean))];
+};
+const openBookingPhotoViewer = (photos, alt) => {
+  if (!photos.length) return;
+  let photoIndex = 0;
+  const viewer = document.createElement('dialog');
+  viewer.className = 'booking-photo-viewer';
+
+  const image = document.createElement('img');
+  image.className = 'booking-photo-viewer__image';
+
+  const closeButton = document.createElement('button');
+  closeButton.type = 'button';
+  closeButton.className = 'booking-photo-viewer__close';
+  closeButton.setAttribute('aria-label', 'Close photo viewer');
+  closeButton.textContent = '×';
+
+  const previousButton = document.createElement('button');
+  previousButton.type = 'button';
+  previousButton.className = 'booking-photo-viewer__nav booking-photo-viewer__nav--previous';
+  previousButton.setAttribute('aria-label', 'View previous photo');
+  previousButton.textContent = '‹';
+
+  const nextButton = document.createElement('button');
+  nextButton.type = 'button';
+  nextButton.className = 'booking-photo-viewer__nav booking-photo-viewer__nav--next';
+  nextButton.setAttribute('aria-label', 'View next photo');
+  nextButton.textContent = '›';
+
+  const counter = document.createElement('span');
+  counter.className = 'booking-photo-viewer__counter';
+  counter.setAttribute('aria-live', 'polite');
+
+  const renderPhoto = () => {
+    image.src = photos[photoIndex];
+    image.alt = `${alt}, photo ${photoIndex + 1} of ${photos.length}`;
+    counter.textContent = `${photoIndex + 1} / ${photos.length}`;
+    previousButton.hidden = photos.length < 2;
+    nextButton.hidden = photos.length < 2;
+    counter.hidden = photos.length < 2;
+  };
+
+  previousButton.addEventListener('click', () => {
+    photoIndex = (photoIndex - 1 + photos.length) % photos.length;
+    renderPhoto();
+  });
+  nextButton.addEventListener('click', () => {
+    photoIndex = (photoIndex + 1) % photos.length;
+    renderPhoto();
+  });
+  closeButton.addEventListener('click', () => viewer.close());
+  viewer.addEventListener('click', (event) => {
+    if (event.target === viewer) viewer.close();
+  });
+  viewer.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowRight' && photos.length > 1) nextButton.click();
+    if (event.key === 'ArrowLeft' && photos.length > 1) previousButton.click();
+  });
+  viewer.addEventListener('close', () => viewer.remove(), { once: true });
+  viewer.append(image, previousButton, nextButton, counter, closeButton);
+  document.body.append(viewer);
+  renderPhoto();
+  viewer.showModal();
 };
 const tenantFullName = (user = {}) => {
   const firstName = String(user.first_name ?? user.firstName ?? '').trim();
@@ -203,13 +273,21 @@ export async function renderBooking(root = document.querySelector('#app')) {
       ].filter(Boolean).join(' - ');
       const viewingSchedule = formatViewingSchedule(booking);
       const price = booking.monthly_rent ? `P${Number(booking.monthly_rent).toLocaleString('en-PH')}` : '';
-      const image = getPropertyImageUrl(property || {}, booking);
+      const image = getPropertyImageUrls(property || {}, booking)[0] || '';
+      const imageCount = getPropertyImageUrls(property || {}, booking).length || 1;
       return `
         <article class="booking-card">
-          <div class="booking-card-image-wrapper">
+          <button class="booking-card-image-wrapper" type="button" aria-label="View ${escape(property?.title || booking.property_title || 'Property')} photo">
             <img src="${escape(image || '')}" alt="${escape(property?.title || booking.property_title || 'Property')}" class="booking-card-image">
-            <span class="pill pill-overlay ${pill.cls}">${escape(pill.label)}</span>
-          </div>
+            <span class="pill pill-overlay ${pill.cls}">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+              ${escape(pill.label)}
+            </span>
+            <span class="booking-image-count">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="12" cy="12" r="3"></circle><path d="m7 5 1-2h8l1 2"></path></svg>
+              1 / ${imageCount}
+            </span>
+          </button>
           <div class="booking-card-content">
             <div class="booking-card-header">
               <div class="booking-card-title">
@@ -218,52 +296,57 @@ export async function renderBooking(root = document.querySelector('#app')) {
                     <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
                   </svg>
                 </div>
-                <h3>${escape(property?.title || booking.property_title || 'Property')}</h3>
+                <div class="booking-card-title-copy">
+                  <h3>${escape(property?.title || booking.property_title || 'Property')}</h3>
+                  <span class="booking-reference">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>
+                    ${escape(bookingIdFormat(booking.id))}
+                  </span>
+                </div>
               </div>
-              <span class="pill ${pill.cls}">${escape(pill.label)}</span>
             </div>
             <div class="booking-card-details">
               <div class="detail-item">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon">
-                  <circle cx="12" cy="12" r="1"></circle>
-                  <path d="M19 12a7 7 0 1 0-14 0 7 7 0 0 0 14 0z"></path>
-                </svg>
-                <span class="detail-label">Booking ID:</span>
-                <strong>${escape(bookingIdFormat(booking.id))}</strong>
-              </div>
-              <div class="detail-item">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                  <line x1="16" y1="2" x2="16" y2="6"></line>
-                  <line x1="8" y1="2" x2="8" y2="6"></line>
-                  <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
-                <span class="detail-label">Dates:</span>
+                <div class="detail-heading">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
+                  <span class="detail-label">Dates</span>
+                </div>
                 <strong>${escape(dateRange || 'TBA')}</strong>
               </div>
               <div class="detail-item">
-                <span class="detail-label">Viewing Schedule:</span>
+                <div class="detail-heading">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M2.5 12h19M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"></path></svg>
+                  <span class="detail-label">Viewing Schedule</span>
+                </div>
                 <strong>${escape(viewingSchedule)}</strong>
               </div>
               <div class="detail-item">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon">
-                  <line x1="12" y1="1" x2="12" y2="23"></line>
-                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                </svg>
-                <span class="detail-label">Price:</span>
+                <div class="detail-heading">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h5a6 6 0 0 1 0 12H5m0-8h10M5 12h10M8 4v16"></path></svg>
+                  <span class="detail-label">Price</span>
+                </div>
                 <strong>${escape(price || '—')}</strong>
               </div>
             </div>
-            <div class="booking-card-actions">
-              ${booking.status === 'pending' ? `<button class="btn" data-action="viewing-schedule" data-id="${booking.id}">${formatViewingSchedule(booking) !== 'Not scheduled' ? 'Change' : 'Set'} Viewing Schedule</button>` : ''}
-              ${hasIndefiniteMoveOut && ['approved', 'pending'].includes(booking.status) ? `<button class="btn" data-action="set-move-out" data-id="${booking.id}">Set Move-out Date</button>` : ''}
-              ${booking.status === 'approved' ? `<button class="btn" data-action="e-ticket" data-id="${booking.id}">View E-Ticket</button><button class="btn btn--primary" data-action="contact" data-property="${property?.id ?? booking.property_id}">Contact Landlord</button>` : ''}
-              ${booking.status === 'pending' ? `<button class="btn" data-action="cancel" data-id="${booking.id}">Cancel Request</button>` : ''}
+            <div class="booking-card-actions${booking.status === 'approved' ? ' booking-card-actions--two' : ''}">
+              ${booking.status === 'pending' ? `<button class="btn btn--schedule" data-action="viewing-schedule" data-id="${booking.id}"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 10h18"></path></svg><span>${formatViewingSchedule(booking) !== 'Not scheduled' ? 'Change' : 'Set'} Viewing Schedule</span></button>` : ''}
+              ${['approved', 'pending'].includes(booking.status) ? `<button class="btn btn--message" data-action="contact" data-property="${property?.id ?? booking.property_id}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-12.8 7.3L3 20l1.2-4.2A8.5 8.5 0 1 1 21 11.5Z"></path><path d="M8 11.5h.01M12 11.5h.01M16 11.5h.01"></path></svg><span>Message Owner</span></button>` : ''}
+              ${booking.status === 'approved' ? `<button class="btn btn--ticket" data-action="e-ticket" data-id="${booking.id}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v5a3 3 0 0 0 0 6v5H4v-5a3 3 0 0 0 0-6V4Z"></path><path d="M12 8v2m0 4v2"></path></svg><span>View E-Ticket</span></button>` : ''}
+              ${booking.status === 'pending' ? `<button class="btn btn--cancel" data-action="cancel" data-id="${booking.id}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="m9 9 6 6m0-6-6 6"></path></svg><span>Cancel Request</span></button>` : ''}
             </div>
           </div>
         </article>
       `;
     }).join('') : '<p class="empty-state">No bookings found for this view.</p>';
+
+    grid.querySelectorAll('.booking-card-image-wrapper').forEach((button, index) => {
+      button.addEventListener('click', () => {
+        const image = button.querySelector('.booking-card-image');
+        const booking = filtered[index];
+        const property = getProperty(booking);
+        if (image) openBookingPhotoViewer(getPropertyImageUrls(property || {}, booking), image.alt);
+      });
+    });
 
     // wire up actions
     grid.querySelectorAll('[data-action]').forEach((el) => {
@@ -306,45 +389,6 @@ export async function renderBooking(root = document.querySelector('#app')) {
               renderCards();
             } catch (error) {
               scheduleStatus.textContent = error.message;
-              saveButton.disabled = false;
-            }
-          });
-          openModal(modal);
-        } else if (action === 'set-move-out') {
-          const booking = state.bookings.find((item) => String(item.id) === String(id));
-          if (!booking) return;
-          const moveInDate = String(booking.move_in_date ?? '').slice(0, 10);
-          const firstValidMoveOut = new Date(`${moveInDate}T00:00:00`);
-          firstValidMoveOut.setDate(firstValidMoveOut.getDate() + 1);
-          const minimumMoveOutDate = `${firstValidMoveOut.getFullYear()}-${String(firstValidMoveOut.getMonth() + 1).padStart(2, '0')}-${String(firstValidMoveOut.getDate()).padStart(2, '0')}`;
-          const modal = createModal({
-            title: 'Set Move-out Date',
-            content: `<form class="tenant-move-out-update"><label for="tenant-move-out-date">Move-out Date</label><input id="tenant-move-out-date" type="date" required min="${escape(minimumMoveOutDate)}"><p role="status"></p></form>`,
-            closeLabel: 'Cancel',
-            footerMarkup: '<button type="button" class="btn btn--primary" data-save-move-out>Save Date</button>'
-          });
-          const moveOutInput = modal.querySelector('#tenant-move-out-date');
-          const moveOutStatus = modal.querySelector('[role="status"]');
-          const saveButton = modal.querySelector('[data-save-move-out]');
-          saveButton.addEventListener('click', async () => {
-            if (!moveOutInput.value || moveOutInput.value <= moveInDate) {
-              moveOutStatus.textContent = 'Move-out date must be after the move-in date.';
-              return;
-            }
-            saveButton.disabled = true;
-            try {
-              const response = await fetch(`${API_URL}/bookings/${encodeURIComponent(id)}/move-out`, {
-                method: 'PATCH',
-                headers: auth(),
-                body: JSON.stringify({ moveOutDate: moveOutInput.value, isIndefiniteMoveOut: false })
-              });
-              const body = await response.json();
-              if (!response.ok) throw new Error(body.message || 'Unable to update move-out date.');
-              state.bookings = state.bookings.map((item) => String(item.id) === String(id) ? body.data : item);
-              modal.close();
-              renderCards();
-            } catch (error) {
-              moveOutStatus.textContent = error.message;
               saveButton.disabled = false;
             }
           });
@@ -435,6 +479,3 @@ export async function renderBooking(root = document.querySelector('#app')) {
 
   load();
 }
-
-
-

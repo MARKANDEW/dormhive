@@ -707,6 +707,7 @@ legend {
   text-overflow: ellipsis;
 }
 .listing h3 {
+  min-height: 2.7em;
   overflow: hidden;
   margin: 0;
   display: -webkit-box;

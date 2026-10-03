@@ -71,7 +71,7 @@ export async function syncAvailability(id) {
   const property = await findById(id);
   if (!property) return null;
   const totalCapacity = Math.max(0, Number(property.max_occupants ?? property.available_slots ?? 0));
-  const [[row]] = await query('SELECT COALESCE(SUM(COALESCE(occupants, 1)), 0) AS occupied FROM bookings WHERE property_id = ? AND status = ?', [id, 'approved']);
+  const [row] = await query('SELECT COALESCE(SUM(COALESCE(occupants, 1)), 0) AS occupied FROM bookings WHERE property_id = ? AND status = ?', [id, 'approved']);
   const occupied = Math.max(0, Number(row?.occupied ?? 0));
   const availableSlots = Math.max(0, totalCapacity - occupied);
   await query('UPDATE properties SET available_slots = ? WHERE id = ?', [availableSlots, id]);
