@@ -1,4 +1,4 @@
-import { ensureTenantSidebarStyles, renderTenantSidebar } from './sidebarTenant.js';
+import { ensureTenantSidebarStyles, loadTenantStylesheet, renderTenantSidebar } from './sidebarTenant.js';
 
 // Avatar helper functions
 const API_BASE = (window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1').replace(/\/api\/v1\/?$/, '');
@@ -109,18 +109,7 @@ function displayNotice(element, text, state = 'error') {
 }
 
 function css() {
-  const existing = document.querySelector('[data-tenant-style="setting"]');
-  if (existing) return existing.sheet ? Promise.resolve() : new Promise((resolve) => existing.addEventListener('load', resolve, { once: true }));
-
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = new URL('./style/setting.css', import.meta.url);
-  link.dataset.tenantStyle = 'setting';
-  document.head.append(link);
-  return new Promise((resolve) => {
-    link.addEventListener('load', resolve, { once: true });
-    link.addEventListener('error', resolve, { once: true });
-  });
+  return loadTenantStylesheet('setting', new URL('./style/setting.css', import.meta.url));
 }
 
 function ensureSettingLayoutStyles() {
@@ -142,9 +131,8 @@ function ensureSettingLayoutStyles() {
 
 export async function renderSetting(root = document.querySelector('#app')) {
   if (!root) throw new Error('Tenant settings page requires #app.');
-  await css();
+  await Promise.all([css(), ensureTenantSidebarStyles()]);
   ensureSettingLayoutStyles();
-  await ensureTenantSidebarStyles();
   let user = getUser();
   if (!user || !user.id || user.role !== 'tenant') {
     return location.assign('#/login');

@@ -1,4 +1,5 @@
 import { installRouter, renderRoute, navigate, redirectForRole } from './router.js';
+import { installAvatarPreview } from './src/components/avatarPreview.js';
 
 export { navigate, redirectForRole };
 function clearSession() {
@@ -17,6 +18,7 @@ function installGlobalAuthHandlers() {
 }
 
 export function startApp() {
+  installAvatarPreview();
   installGlobalAuthHandlers();
   installRouter();
   return renderRoute();

@@ -1,4 +1,4 @@
-import { ensureOwnerSidebarStyles, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
+import { ensureOwnerSidebarStyles, loadOwnerStylesheet, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
 import { createModal, openModal } from '../../components/modal.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
@@ -32,27 +32,15 @@ const renderAvatar = (name = 'User', image = '') => {
 const participantAvatar = (item = {}) => renderAvatar(item.participant_name ?? 'Conversation', item.participant_avatar_url);
 
 function css() {
-  if (!document.querySelector('[data-owner-style="dashboard"]')) {
-    const shared = document.createElement('link');
-    shared.rel = 'stylesheet';
-    shared.href = new URL('./style/dashboardOwner.css', import.meta.url);
-    shared.dataset.ownerStyle = 'dashboard';
-    document.head.append(shared);
-  }
-
-  if (!document.querySelector('[data-owner-style="message"]')) {
-    const l = document.createElement('link');
-    l.rel = 'stylesheet';
-    l.href = new URL('./style/message.css', import.meta.url);
-    l.dataset.ownerStyle = 'message';
-    document.head.append(l);
-  }
+  return Promise.all([
+    loadOwnerStylesheet('dashboard', new URL('./style/dashboardOwner.css', import.meta.url)),
+    loadOwnerStylesheet('message', new URL('./style/message.css', import.meta.url))
+  ]);
 }
 
-export function renderMessage(root = document.querySelector('#app')) {
+export async function renderMessage(root = document.querySelector('#app')) {
   if (!root) throw new Error('Owner messages page requires #app.');
-  css();
-  ensureOwnerSidebarStyles();
+  await Promise.all([css(), ensureOwnerSidebarStyles()]);
 
   root.innerHTML = `
     <div class="owner-shell">
@@ -471,5 +459,4 @@ export function renderMessage(root = document.querySelector('#app')) {
 
   load();
 }
-
 

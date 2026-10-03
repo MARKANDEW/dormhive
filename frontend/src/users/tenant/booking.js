@@ -1,4 +1,4 @@
-import { ensureTenantSidebarStyles, renderTenantSidebar } from './sidebarTenant.js';
+import { ensureTenantSidebarStyles, loadTenantStylesheet, renderTenantSidebar } from './sidebarTenant.js';
 import { getUserAvatarUrl } from './setting.js';
 import { createModal, openModal } from '../../components/modal.js';
 
@@ -131,18 +131,7 @@ const propertyAmenities = (value) => {
 };
 
 function style() {
-  const existing = document.querySelector('[data-tenant-style="booking"]');
-  if (existing) return existing.sheet ? Promise.resolve() : new Promise((resolve) => existing.addEventListener('load', resolve, { once: true }));
-
-  const tag = document.createElement('link');
-  tag.rel = 'stylesheet';
-  tag.href = new URL('./style/booking.css', import.meta.url);
-  tag.dataset.tenantStyle = 'booking';
-  document.head.append(tag);
-  return new Promise((resolve) => {
-    tag.addEventListener('load', resolve, { once: true });
-    tag.addEventListener('error', resolve, { once: true });
-  });
+  return loadTenantStylesheet('booking', new URL('./style/booking.css', import.meta.url));
 }
 
 export async function renderBooking(root = document.querySelector('#app')) {

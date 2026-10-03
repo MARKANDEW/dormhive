@@ -1,5 +1,5 @@
 ﻿import { showToast } from '../../components/toast.js';
-import { ensureOwnerSidebarStyles, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
+import { ensureOwnerSidebarStyles, loadOwnerStylesheet, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
 
 const API = (window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1').replace(/\/$/, '');
 const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
@@ -134,24 +134,12 @@ function showPropertyPhotoViewer(property) {
 }
 
 function css() {
-  document.querySelectorAll('link[data-owner-style]:not([data-owner-style="shared"]), style[data-owner-style]:not([data-owner-style="shared"])').forEach((node) => node.remove());
-  const existing = document.querySelector('[data-owner-style="listings"]');
-  if (existing) return existing.sheet ? Promise.resolve() : new Promise((resolve) => existing.addEventListener('load', resolve, { once: true }));
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = new URL('./style/myListing.css', import.meta.url);
-  link.dataset.ownerStyle = 'listings';
-  document.head.append(link);
-  return new Promise((resolve) => {
-    link.addEventListener('load', resolve, { once: true });
-    link.addEventListener('error', resolve, { once: true });
-  });
+  return loadOwnerStylesheet('listings', new URL('./style/myListing.css', import.meta.url));
 }
 
 export async function renderMyListing(root = document.querySelector('#app')) {
   if (!root) throw new Error('My listings page requires #app.');
-  await css();
-  ensureOwnerSidebarStyles();
+  await Promise.all([css(), ensureOwnerSidebarStyles()]);
   const routeSearch = typeof window.DORMHIVE_ROUTE_SEARCH === 'string' ? window.DORMHIVE_ROUTE_SEARCH : window.location.search;
   const requestedPropertyId = new URLSearchParams(routeSearch).get('propertyId');
   const requestedAction = new URLSearchParams(routeSearch).get('action');

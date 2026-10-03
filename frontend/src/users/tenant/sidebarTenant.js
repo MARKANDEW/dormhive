@@ -10,18 +10,61 @@ const icons = {
 
 const icon = (name) => `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">${icons[name] ?? ''}</svg>`;
 
+const tenantStylesheetPromises = new Map();
+let tenantSidebarStylesPromise;
+
+export function loadTenantStylesheet(name, href) {
+  let link = document.querySelector(`link[data-tenant-style="${name}"]`);
+  if (link?.sheet) return Promise.resolve();
+  const existingPromise = tenantStylesheetPromises.get(name);
+  if (existingPromise) return existingPromise;
+
+  if (!link) {
+    link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    link.dataset.tenantStyle = name;
+  }
+
+  const promise = new Promise((resolve, reject) => {
+    link.addEventListener('load', () => {
+      tenantStylesheetPromises.delete(name);
+      resolve();
+    }, { once: true });
+    link.addEventListener('error', () => {
+      tenantStylesheetPromises.delete(name);
+      link.remove();
+      reject(new Error(`Unable to load tenant stylesheet: ${name}.`));
+    }, { once: true });
+    if (!link.isConnected) document.head.append(link);
+  });
+  tenantStylesheetPromises.set(name, promise);
+  return promise;
+}
+
 export function ensureTenantSidebarStyles() {
   const existing = document.querySelector('[data-tenant-sidebar-style="shared"]');
-  if (existing) return existing.sheet ? Promise.resolve() : new Promise((resolve) => existing.addEventListener('load', resolve, { once: true }));
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = new URL('./style/sidebarTenant.css', import.meta.url);
-  link.dataset.tenantSidebarStyle = 'shared';
-  document.head.append(link);
-  return new Promise((resolve) => {
-    link.addEventListener('load', resolve, { once: true });
-    link.addEventListener('error', resolve, { once: true });
+  if (existing?.sheet) return Promise.resolve();
+  if (tenantSidebarStylesPromise) return tenantSidebarStylesPromise;
+  const link = existing ?? document.createElement('link');
+  if (!existing) {
+    link.rel = 'stylesheet';
+    link.href = new URL('./style/sidebarTenant.css', import.meta.url);
+    link.dataset.tenantSidebarStyle = 'shared';
+  }
+  tenantSidebarStylesPromise = new Promise((resolve, reject) => {
+    link.addEventListener('load', () => {
+      tenantSidebarStylesPromise = undefined;
+      resolve();
+    }, { once: true });
+    link.addEventListener('error', () => {
+      tenantSidebarStylesPromise = undefined;
+      link.remove();
+      reject(new Error('Unable to load tenant sidebar stylesheet.'));
+    }, { once: true });
+    if (!link.isConnected) document.head.append(link);
   });
+  return tenantSidebarStylesPromise;
 }
 
 export function renderTenantSidebar(activePage = 'dashboardTenant') {

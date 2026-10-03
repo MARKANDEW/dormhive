@@ -1,4 +1,4 @@
-import { ensureOwnerSidebarStyles, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
+import { ensureOwnerSidebarStyles, loadOwnerStylesheet, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const API_BASE = API.replace(/\/api\/v1\/?$/, '');
@@ -21,13 +21,7 @@ function resolveImageUrl(value = '') {
 }
 
 function css() {
-  if (!document.querySelector('[data-owner-style="setting"]')) {
-    const l = document.createElement('link');
-    l.rel = 'stylesheet';
-    l.href = new URL('./style/setting.css', import.meta.url);
-    l.dataset.ownerStyle = 'setting';
-    document.head.append(l);
-  }
+  return loadOwnerStylesheet('setting', new URL('./style/setting.css', import.meta.url));
 }
 
 function buildAvatarSvg() {
@@ -47,8 +41,7 @@ function buildAvatarSvg() {
 
 export async function renderSetting(root = document.querySelector('#app')) {
   if (!root) throw new Error('Owner settings page requires #app.');
-  css();
-  ensureOwnerSidebarStyles();
+  await Promise.all([css(), ensureOwnerSidebarStyles()]);
   let user = getUser();
   const displayName = (user.first_name || user.last_name) ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : user.name || 'Alexander J. Reyes';
   const displayEmail = user.email || 'mr.reyes@dormhive.com';
@@ -381,5 +374,4 @@ export async function renderSetting(root = document.querySelector('#app')) {
   syncAvatarDisplay(user.avatar_url || '');
   await updateListingCountsInSidebar();
 }
-
 

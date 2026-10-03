@@ -152,22 +152,38 @@ export async function updateListingCountsInSidebar() {
   }
 }
   
+const ownerStylesheetPromises = new Map();
+
+export function loadOwnerStylesheet(name, href) {
+  const existingPromise = ownerStylesheetPromises.get(name);
+  if (existingPromise) return existingPromise;
+
+  let link = document.querySelector(`link[data-owner-style="${name}"]`);
+  if (link?.sheet) return Promise.resolve();
+
+  if (!link) {
+    link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    link.dataset.ownerStyle = name;
+  }
+
+  const promise = new Promise((resolve, reject) => {
+    link.addEventListener('load', resolve, { once: true });
+    link.addEventListener('error', () => {
+      ownerStylesheetPromises.delete(name);
+      link.remove();
+      reject(new Error(`Unable to load owner stylesheet: ${name}.`));
+    }, { once: true });
+    if (!link.isConnected) document.head.append(link);
+  });
+  ownerStylesheetPromises.set(name, promise);
+  return promise;
+}
+
 export function ensureOwnerSidebarStyles() {
   document.querySelectorAll('link[data-dormhive-auth="split"]').forEach((node) => node.remove());
-  const existing = document.querySelector('[data-owner-sidebar-style="shared"]');
-  if (existing) return existing.sheet ? Promise.resolve() : new Promise((resolve) => {
-    existing.addEventListener('load', resolve, { once: true });
-    existing.addEventListener('error', resolve, { once: true });
-  });
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = new URL('./style/sidebarOwner.css', import.meta.url);
-  link.dataset.ownerSidebarStyle = 'shared';
-  document.head.append(link);
-  return new Promise((resolve) => {
-    link.addEventListener('load', resolve, { once: true });
-    link.addEventListener('error', resolve, { once: true });
-  });
+  return loadOwnerStylesheet('shared', new URL('./style/sidebarOwner.css', import.meta.url));
 }
 
 export function renderOwnerSidebar(active = 'dashboardOwner') {

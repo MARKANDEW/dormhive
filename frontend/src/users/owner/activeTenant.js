@@ -1,5 +1,5 @@
 import { createModal, openModal } from '../../components/modal.js';
-import { ensureOwnerSidebarStyles, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
+import { ensureOwnerSidebarStyles, loadOwnerStylesheet, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const apiBase = API.replace(/\/api\/v1\/?$/, '');
@@ -26,15 +26,7 @@ function renderTenantAvatar(entry) {
 }
 
 function css() {
-  document.querySelectorAll('[data-owner-style="tenants"]').forEach((node) => node.remove());
-  const existing = document.querySelector('[data-owner-style="tenants"]');
-  if (!existing) {
-    const l = document.createElement('link');
-    l.rel = 'stylesheet';
-    l.href = new URL('./style/activeTenant.css', import.meta.url);
-    l.dataset.ownerStyle = 'tenants';
-    document.head.append(l);
-  }
+  return loadOwnerStylesheet('tenants', new URL('./style/activeTenant.css', import.meta.url));
 }
 
 function tenantStatus(entry) {
@@ -71,11 +63,9 @@ function normalizeTenantEntry(entry = {}) {
   };
 }
 
-export function renderActiveTenant(root = document.querySelector('#app')) {
+export async function renderActiveTenant(root = document.querySelector('#app')) {
   if (!root) throw new Error('Active tenants page requires #app.');
-  root.replaceChildren();
-  css();
-  ensureOwnerSidebarStyles();
+  await Promise.all([css(), ensureOwnerSidebarStyles()]);
 
   root.innerHTML = `
     <div class="owner-shell">
@@ -247,5 +237,4 @@ export function renderActiveTenant(root = document.querySelector('#app')) {
     location.assign('#/login');
   });
 }
-
 

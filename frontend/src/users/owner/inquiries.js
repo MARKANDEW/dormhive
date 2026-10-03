@@ -1,4 +1,4 @@
-import { ensureOwnerSidebarStyles, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
+import { ensureOwnerSidebarStyles, loadOwnerStylesheet, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const API_ORIGIN = API.replace(/\/api\/v1\/?$/, '');
@@ -22,16 +22,7 @@ const renderTenantAvatar = (name = 'Tenant', image = '') => {
 const renderAvatarMarkup = () => '';
 
 function css() {
-  document.querySelectorAll('link[data-owner-style], style[data-owner-style]').forEach((node) => node.remove());
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = new URL('./style/inquiries.css', import.meta.url);
-  link.dataset.ownerStyle = 'inquiries';
-  document.head.append(link);
-  return new Promise((resolve) => {
-    link.addEventListener('load', resolve, { once: true });
-    link.addEventListener('error', resolve, { once: true });
-  });
+  return loadOwnerStylesheet('inquiries', new URL('./style/inquiries.css', import.meta.url));
 }
 
 const statusInfo = (status) => {
@@ -63,8 +54,7 @@ const formatViewingTime = (value) => {
 
 export async function renderInquiries(root = document.querySelector('#app')) {
   if (!root) throw new Error('Inquiries page requires #app.');
-  await css();
-  ensureOwnerSidebarStyles();
+  await Promise.all([css(), ensureOwnerSidebarStyles()]);
 
   root.innerHTML = `
     <div class="owner-shell">
@@ -779,4 +769,3 @@ export async function renderInquiries(root = document.querySelector('#app')) {
     if (!document.hidden && root.isConnected) load();
   });
 }
-

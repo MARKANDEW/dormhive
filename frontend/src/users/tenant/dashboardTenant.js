@@ -1,5 +1,5 @@
 import { renderMapPanelShell, initLeafletMap, updateLeafletMarkers } from '../../components/mapPanel.js';
-import { ensureTenantSidebarStyles, renderTenantSidebar } from './sidebarTenant.js';
+import { ensureTenantSidebarStyles, loadTenantStylesheet, renderTenantSidebar } from './sidebarTenant.js';
 import { getUserAvatarUrl, refreshTenantUserSession } from './setting.js';
 import { createModal, openModal } from '../../components/modal.js';
 import { showToast } from '../../components/toast.js';
@@ -79,29 +79,7 @@ const formatNotificationDate = (value) => new Date(value ?? Date.now()).toLocale
 function loadStyle() {
   const stylePromises = [];
 
-  if (!document.querySelector('[data-tenant-style="dashboard"]')) {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = new URL('./style/dashboardTenant.css', import.meta.url);
-    link.dataset.tenantStyle = 'dashboard';
-    document.head.append(link);
-    stylePromises.push(new Promise((resolve) => {
-      link.addEventListener('load', resolve, { once: true });
-      link.addEventListener('error', resolve, { once: true });
-    }));
-  }
-
-  if (!document.querySelector('[data-tenant-style="amenities"]')) {
-    const aLink = document.createElement('link');
-    aLink.rel = 'stylesheet';
-    aLink.href = new URL('./style/amenities.css', import.meta.url);
-    aLink.dataset.tenantStyle = 'amenities';
-    document.head.append(aLink);
-    stylePromises.push(new Promise((resolve) => {
-      aLink.addEventListener('load', resolve, { once: true });
-      aLink.addEventListener('error', resolve, { once: true });
-    }));
-  }
+  stylePromises.push(loadTenantStylesheet('dashboard', new URL('./style/dashboardTenant.css', import.meta.url)));
 
   if (!document.querySelector('[data-tenant-style="notifications"]')) {
     const style = document.createElement('style');
@@ -681,9 +659,8 @@ async function showNearbyListingsModal(properties = []) {
 
 export async function renderDashboardTenant(root = document.querySelector('#app')) {
   if (!root) throw new Error('Tenant dashboard requires #app.');
-  await loadStyle();
+  await Promise.all([loadStyle(), ensureTenantSidebarStyles()]);
   loadPropertyDetailsStyle();
-  await ensureTenantSidebarStyles();
 
   const user = await refreshTenantUserSession();
   const displayName = tenantFullName(user);

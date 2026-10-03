@@ -1,4 +1,4 @@
-import { ensureOwnerSidebarStyles, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
+import { ensureOwnerSidebarStyles, loadOwnerStylesheet, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const auth = () => ({ Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
@@ -6,20 +6,7 @@ const current = () => JSON.parse(localStorage.getItem('dormhive.user') ?? '{}');
 const escapeHtml = (value = '') => { const element = document.createElement('span'); element.textContent = value; return element.innerHTML; };
 
 function css() {
-  const existing = document.querySelector('[data-owner-style="analytics"]');
-  if (existing) return existing.sheet ? Promise.resolve() : new Promise((resolve) => {
-    existing.addEventListener('load', resolve, { once: true });
-    existing.addEventListener('error', resolve, { once: true });
-  });
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = new URL('./style/analytics.css', import.meta.url);
-  link.dataset.ownerStyle = 'analytics';
-  document.head.append(link);
-  return new Promise((resolve) => {
-    link.addEventListener('load', resolve, { once: true });
-    link.addEventListener('error', resolve, { once: true });
-  });
+  return loadOwnerStylesheet('analytics', new URL('./style/analytics.css', import.meta.url));
 }
 
 export async function renderAnalytics(root = document.querySelector('#app')) {
@@ -128,5 +115,4 @@ export async function renderAnalytics(root = document.querySelector('#app')) {
     location.assign('#/login');
   });
 }
-
 

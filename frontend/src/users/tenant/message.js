@@ -1,4 +1,4 @@
-import { ensureTenantSidebarStyles, renderTenantSidebar } from './sidebarTenant.js';
+import { ensureTenantSidebarStyles, loadTenantStylesheet, renderTenantSidebar } from './sidebarTenant.js';
 import { getUserAvatarUrl, refreshTenantUserSession } from './setting.js';
 import { createModal, openModal } from '../../components/modal.js';
 
@@ -16,33 +16,8 @@ const resolveImageUrl = (value = '') => {
   return `${apiBase}${url.startsWith('/') ? '' : '/'}${url}`;
 };
 
-function dashboardStyle() {
-  if (!document.querySelector('[data-tenant-style="dashboard"]')) {
-    const tag = document.createElement('link');
-    tag.rel = 'stylesheet';
-    tag.href = new URL('./style/dashboardTenant.css', import.meta.url);
-    tag.dataset.tenantStyle = 'dashboard';
-    document.head.append(tag);
-  }
-}
-
 function style() {
-  const existing = document.querySelector('[data-tenant-style="message"]');
-  const stylesheetUrl = new URL('./style/message.css', import.meta.url);
-  stylesheetUrl.searchParams.set('routeRefresh', String(Date.now()));
-
-  if (existing) {
-    existing.href = stylesheetUrl.href;
-    return;
-  }
-
-  {
-    const tag = document.createElement('link');
-    tag.rel = 'stylesheet';
-    tag.href = stylesheetUrl.href;
-    tag.dataset.tenantStyle = 'message';
-    document.head.append(tag);
-  }
+  return loadTenantStylesheet('message', new URL('./style/message.css', import.meta.url));
 }
 
 const escape = (value = '') => {
@@ -251,9 +226,11 @@ const openParticipantProfile = (conversation, property) => {
 
 export async function renderMessage(root = document.querySelector('#app')) {
   if (!root) throw new Error('Messages page requires #app.');
-  dashboardStyle();
-  await ensureTenantSidebarStyles();
-  style();
+  await Promise.all([
+    loadTenantStylesheet('dashboard', new URL('./style/dashboardTenant.css', import.meta.url)),
+    style(),
+    ensureTenantSidebarStyles()
+  ]);
 
   root.innerHTML = `
     <div class="dh-app">

@@ -1,4 +1,4 @@
-import { ensureOwnerSidebarStyles, renderOwnerProfileCard, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
+import { ensureOwnerSidebarStyles, loadOwnerStylesheet, renderOwnerProfileCard, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
 import { initLeafletMap, updateLeafletMarkers } from '../../components/mapPanel.js';
 import { createModal, openModal } from '../../components/modal.js';
 import { showToast } from '../../components/toast.js';
@@ -53,7 +53,7 @@ function clearTenantRouteStyles() {
   document.querySelectorAll('[data-tenant-style], [data-tenant-sidebar-style], [data-tenant-modal-css], [data-user-style="tenant-support"]').forEach((node) => node.remove());
 }
 
-function css() { if (!document.querySelector('[data-owner-style="dashboard"]')) { const link = document.createElement('link'); link.rel = 'stylesheet'; link.href = new URL('./style/dashboardOwner.css', import.meta.url); link.dataset.ownerStyle = 'dashboard'; document.head.append(link); } }
+function css() { return loadOwnerStylesheet('dashboard', new URL('./style/dashboardOwner.css', import.meta.url)); }
 async function get(path) { const response = await fetch(`${API}${path}`, { headers: auth() }); const body = await readApiResponse(response); if (!response.ok) throw new Error(getApiErrorMessage(body, 'Unable to load this information.')); return body; }
 function metricCard(label, value, note, icon, trend = false) {
   return `<article class="metric-card"><div class="metric-icon">${icon}</div><div><p>${label}</p><strong>${value}</strong><span>${note}${trend ? ' ↗' : ''}</span></div></article>`;
@@ -335,8 +335,11 @@ function generatePerformanceReportHtml(properties = [], bookings = [], metrics =
     </div>
   `;
 }
-export function renderDashboardOwner(root = document.querySelector('#app')) {
-  if (!root) throw new Error('Owner dashboard requires #app.'); clearTenantRouteStyles(); css(); ensureOwnerSidebarStyles(); const user = session();
+export async function renderDashboardOwner(root = document.querySelector('#app')) {
+  if (!root) throw new Error('Owner dashboard requires #app.');
+  clearTenantRouteStyles();
+  await Promise.all([css(), ensureOwnerSidebarStyles()]);
+  const user = session();
   const profileName = user.name || 'Owner';
   const profileInitials = profileName
     .split(' ')
