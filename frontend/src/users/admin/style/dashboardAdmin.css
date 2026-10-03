@@ -534,9 +534,9 @@ body {
 
 .user-profile-modal .profile-identity {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.7rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.65rem;
 }
 
 .user-profile-modal .profile-identity h3 {
