@@ -18,13 +18,47 @@ const sidebarLinks = [
   ['setting', 'Settings']
 ];
 
+const adminStylesheetPromises = new Map();
+
+export function loadAdminStylesheet(name, href) {
+  const existingPromise = adminStylesheetPromises.get(name);
+  if (existingPromise) return existingPromise;
+
+  const selector = `link[data-admin-style="${name}"]`;
+  let link = document.querySelector(selector);
+  if (link?.dataset.loaded === 'true') return Promise.resolve();
+
+  if (!link) {
+    link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    link.dataset.adminStyle = name;
+  }
+
+  const promise = new Promise((resolve, reject) => {
+    link.addEventListener('load', () => {
+      link.dataset.loaded = 'true';
+      resolve();
+    }, { once: true });
+    link.addEventListener('error', () => {
+      adminStylesheetPromises.delete(name);
+      link.remove();
+      reject(new Error(`Unable to load admin stylesheet: ${name}.`));
+    }, { once: true });
+    if (!link.isConnected) document.head.append(link);
+  });
+  adminStylesheetPromises.set(name, promise);
+  return promise;
+}
+
 export function ensureAdminSidebarStyles() {
-  if (document.querySelector('[data-admin-sidebar-style="shared"]')) return;
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = new URL('./style/sidebarAdmin.css', import.meta.url);
-  link.dataset.adminSidebarStyle = 'shared';
-  document.head.append(link);
+  if (!document.querySelector('[data-admin-sidebar-logo-style="shared"]')) {
+    const logoStyle = document.createElement('style');
+    logoStyle.dataset.adminSidebarLogoStyle = 'shared';
+    logoStyle.textContent = '.admin-logo-icon path:first-of-type { filter: none !important; }';
+    document.head.append(logoStyle);
+  }
+  return loadAdminStylesheet('shared', new URL('./style/sidebarAdmin.css', import.meta.url));
 }
 
 export function renderAdminSidebar(active = 'dashboardAdmin') {

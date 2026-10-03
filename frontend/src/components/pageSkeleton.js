@@ -79,6 +79,10 @@ function ensureSkeletonStyles() {
       height: 36px;
     }
 
+    .dh-route-skeleton__admin-logo-mark svg path:first-of-type {
+      filter: none;
+    }
+
     .dh-route-skeleton__owner-dashboard {
       display: grid;
       grid-template-columns: 256px minmax(0, 1fr);

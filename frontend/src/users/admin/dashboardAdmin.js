@@ -1,4 +1,4 @@
-import { ensureAdminSidebarStyles, renderAdminSidebar } from './sidebarAdmin.js';
+import { ensureAdminSidebarStyles, loadAdminStylesheet, renderAdminSidebar } from './sidebarAdmin.js';
 import { buildActivityFeed, buildDashboardMetrics } from './analytics.js';
 import { createModal, openModal } from '../../components/modal.js';
 import { showToast } from '../../components/toast.js';
@@ -42,13 +42,7 @@ function formatDate(value) {
 }
 
 function css() {
-  if (!document.querySelector('[data-admin-style="dashboard"]')) {
-    const l = document.createElement('link');
-    l.rel = 'stylesheet';
-    l.href = new URL('./style/dashboardAdmin.css', import.meta.url);
-    l.dataset.adminStyle = 'dashboard';
-    document.head.append(l);
-  }
+  return loadAdminStylesheet('dashboard', new URL('./style/dashboardAdmin.css', import.meta.url));
 }
 
 function resetDashboardState(root) {
@@ -297,10 +291,9 @@ async function refreshDashboardData(root) {
   }
 }
 
-export function renderDashboardAdmin(root = document.querySelector('#app')) {
+export async function renderDashboardAdmin(root = document.querySelector('#app')) {
   if (!root) throw new Error('Admin dashboard requires #app.');
-  css();
-  ensureAdminSidebarStyles();
+  await Promise.all([css(), ensureAdminSidebarStyles()]);
 
   root.innerHTML = `
     <div class="admin-shell">
@@ -402,5 +395,4 @@ export function renderDashboardAdmin(root = document.querySelector('#app')) {
 
   refreshDashboardData(root);
 }
-
 

@@ -1,4 +1,4 @@
-import { ensureAdminSidebarStyles, renderAdminSidebar } from './sidebarAdmin.js';
+import { ensureAdminSidebarStyles, loadAdminStylesheet, renderAdminSidebar } from './sidebarAdmin.js';
 import { applyAdminPrivacy } from './privacy.js';
 import { showToast } from '../../components/toast.js';
 
@@ -7,19 +7,12 @@ const headers = () => ({ 'Content-Type': 'application/json', Authorization: `Bea
 const esc = (value = '') => { const e = document.createElement('span'); e.textContent = value; return e.innerHTML; };
 
 function css() {
-  if (!document.querySelector('[data-admin-style="moderation"]')) {
-    const l = document.createElement('link');
-    l.rel = 'stylesheet';
-    l.href = new URL('./style/listingModeration.css', import.meta.url);
-    l.dataset.adminStyle = 'moderation';
-    document.head.append(l);
-  }
+  return loadAdminStylesheet('moderation', new URL('./style/listingModeration.css', import.meta.url));
 }
 
-export function renderListingModeration(root = document.querySelector('#app')) {
+export async function renderListingModeration(root = document.querySelector('#app')) {
   if (!root) throw new Error('Listing moderation requires #app.');
-  css();
-  ensureAdminSidebarStyles();
+  await Promise.all([css(), ensureAdminSidebarStyles()]);
   const requestedStatus = new URLSearchParams(window.DORMHIVE_ROUTE_SEARCH || '').get('status');
   const initialStatus = ['pending', 'approved', 'rejected'].includes(requestedStatus) ? requestedStatus : 'pending';
   const initialStatusLabels = { pending: 'Pending Approvals', approved: 'Approved Listings', rejected: 'Rejected Listings' };
@@ -582,6 +575,5 @@ export function renderListingModeration(root = document.querySelector('#app')) {
   typeFilter.addEventListener('change', renderRows);
   load();
 }
-
 
 

@@ -1,4 +1,4 @@
-import { ensureAdminSidebarStyles, renderAdminSidebar } from './sidebarAdmin.js';
+import { ensureAdminSidebarStyles, loadAdminStylesheet, renderAdminSidebar } from './sidebarAdmin.js';
 import { applyAdminPrivacy } from './privacy.js';
 import { resolveUserAvatarUrl } from './avatar.js';
 
@@ -6,13 +6,7 @@ const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const BACKEND_BASE = API.replace(/\/api\/v1$/, '');
 
 function css() {
-  if (!document.querySelector('[data-admin-style="settings"]')) {
-    const l = document.createElement('link');
-    l.rel = 'stylesheet';
-    l.href = new URL('./style/setting.css', import.meta.url);
-    l.dataset.adminStyle = 'settings';
-    document.head.append(l);
-  }
+  return loadAdminStylesheet('settings', new URL('./style/setting.css', import.meta.url));
 }
 
 function displayNotice(element, text, state = 'error') {
@@ -22,10 +16,9 @@ function displayNotice(element, text, state = 'error') {
   element.className = `notice ${state}`;
 }
 
-export function renderSetting(root = document.querySelector('#app')) {
+export async function renderSetting(root = document.querySelector('#app')) {
   if (!root) throw new Error('Admin settings page requires #app.');
-  css();
-  ensureAdminSidebarStyles();
+  await Promise.all([css(), ensureAdminSidebarStyles()]);
 
   const user = JSON.parse(localStorage.getItem('dormhive.user') ?? '{}');
   const legacyParts = (user.name || '').trim().split(/\s+/).filter(Boolean);

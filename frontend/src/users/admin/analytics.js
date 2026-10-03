@@ -1,4 +1,4 @@
-﻿import { ensureAdminSidebarStyles, renderAdminSidebar } from './sidebarAdmin.js';
+import { ensureAdminSidebarStyles, loadAdminStylesheet, renderAdminSidebar } from './sidebarAdmin.js';
 import { applyAdminPrivacy } from './privacy.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
@@ -124,12 +124,7 @@ export function buildActivityFeed(users = [], properties = [], bookings = []) {
 }
 
 function css() {
-  if (document.querySelector('[data-admin-style="analytics"]')) return;
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = new URL('./style/analytics.css', import.meta.url);
-  link.dataset.adminStyle = 'analytics';
-  document.head.append(link);
+  return loadAdminStylesheet('analytics', new URL('./style/analytics.css', import.meta.url));
 }
 
 const icon = (name) => `<i class="bi ${name}" aria-hidden="true"></i>`;
@@ -144,8 +139,7 @@ const activityChart = (users, properties, bookings) => {
 
 export async function renderAnalytics(root = document.querySelector('#app')) {
   if (!root) throw new Error('Admin analytics requires #app.');
-  css();
-  ensureAdminSidebarStyles();
+  await Promise.all([css(), ensureAdminSidebarStyles()]);
   root.innerHTML = `<div class="admin-shell">${renderAdminSidebar('analytics')}<div class="admin-main"><main class="admin-analytics"><section class="analytics-content">
     <header class="analytics-heading"><div><div class="analytics-kicker">Analytics</div><h1>Analytics</h1><p>Track platform performance, growth, and activity at a glance.</p></div></header>
     <section class="kpi-grid"><article class="kpi-card kpi-green"><div class="kpi-icon">${icon('bi-people')}</div><div><span>Total Users</span><strong data-kpi="users">0</strong><small>Current registered users</small><em>All account types</em></div></article><article class="kpi-card kpi-blue"><div class="kpi-icon">${icon('bi-house')}</div><div><span>Active Listings</span><strong data-kpi="listings">0</strong><small>Approved properties</small><em>Currently published</em></div></article><article class="kpi-card kpi-purple"><div class="kpi-icon">${icon('bi-calendar-event')}</div><div><span>Booking Requests</span><strong data-kpi="bookings">0</strong><small>All booking statuses</small><em>Recorded requests</em></div></article><article class="kpi-card kpi-orange"><div class="kpi-icon">${icon('bi-shield-check')}</div><div><span>Pending Moderation</span><strong data-kpi="pending">0</strong><small>Awaiting review</small><em>Requires attention</em></div></article></section>
@@ -215,4 +209,3 @@ export async function renderAnalytics(root = document.querySelector('#app')) {
     if (recent) recent.innerHTML = `<div class="zero-state">${error.message}</div>`;
   }
 }
-

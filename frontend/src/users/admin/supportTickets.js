@@ -1,4 +1,4 @@
-import { ensureAdminSidebarStyles, renderAdminSidebar } from './sidebarAdmin.js';
+import { ensureAdminSidebarStyles, loadAdminStylesheet, renderAdminSidebar } from './sidebarAdmin.js';
 import { applyAdminPrivacy } from './privacy.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
@@ -11,18 +11,12 @@ const formatTime = (value) => value ? new Date(value).toLocaleTimeString('en-US'
 const attachmentHref = (value) => value ? `${API.replace(/\/api\/v1\/?$/, '')}${value}` : '';
 
 function css() {
-  if (document.querySelector('[data-admin-style="tickets"]')) return;
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = new URL('./style/supportTickets.css', import.meta.url);
-  link.dataset.adminStyle = 'tickets';
-  document.head.append(link);
+  return loadAdminStylesheet('tickets', new URL('./style/supportTickets.css', import.meta.url));
 }
 
-export function renderSupportTickets(root = document.querySelector('#app')) {
+export async function renderSupportTickets(root = document.querySelector('#app')) {
   if (!root) throw new Error('Support tickets requires #app.');
-  css();
-  ensureAdminSidebarStyles();
+  await Promise.all([css(), ensureAdminSidebarStyles()]);
   root.innerHTML = `<div class="admin-shell">${renderAdminSidebar('supportTickets')}<div class="admin-main"><main class="support-page">
     <header class="support-header"><div><span class="support-kicker">Support</span><h1>Support</h1><p>Manage user requests, questions, and support tickets.</p></div></header>
     <section class="support-content">
