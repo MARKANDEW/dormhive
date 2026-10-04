@@ -132,7 +132,69 @@ export async function renderLogin(root = document.querySelector('#app')) {
   const loginSubmitButton = root.querySelector('.form-box.login .auth-submit');
   const registerSubmitButton = root.querySelector('.form-box.register .auth-submit');
   const phoneInput = root.querySelector('#phone_r');
+  const authBrand = root.querySelector('.auth-brand');
+  const brandName = authBrand?.querySelector('.auth-brand-name');
+  const cornerBrand = root.querySelector('.auth-corner-brand');
+  const toggleBox = root.querySelector('.toggle-box');
+  let brandAnimationTimer;
   bindOAuthButtons(root);
+
+  const revealCornerBrand = () => {
+    if (!cornerBrand) return;
+    cornerBrand.classList.remove('auth-corner-brand--transitioning', 'auth-corner-brand--revealing');
+    void cornerBrand.offsetWidth;
+    cornerBrand.classList.add('auth-corner-brand--revealing');
+  };
+
+  if (authBrand && brandName && toggleBox) {
+    const animationOrder = 'eviHmroD';
+    const letters = Array.from(brandName.children).flatMap((segment) =>
+      Array.from(segment.textContent, (character) => {
+        const letter = document.createElement('span');
+        letter.className = 'auth-brand-name-letter';
+        if (segment.classList.contains('auth-brand-name-accent')) {
+          letter.classList.add('auth-brand-name-accent');
+        }
+        letter.style.setProperty('--letter-order', animationOrder.indexOf(character));
+        letter.textContent = character;
+        return letter;
+      }),
+    );
+    brandName.replaceChildren(...letters);
+
+    toggleBox.addEventListener('transitionend', (event) => {
+      if (event.pseudoElement !== '::before' || event.propertyName !== 'left') return;
+      window.clearTimeout(brandAnimationTimer);
+      authBrand.classList.remove('auth-brand--animate');
+      void authBrand.offsetWidth;
+      authBrand.classList.add('auth-brand--animate');
+      authBrand.classList.remove('auth-brand--transitioning');
+      revealCornerBrand();
+    });
+  }
+
+  const setPanelMode = (registering) => {
+    if (container.classList.contains('active') === registering) return;
+    authBrand?.classList.remove('auth-brand--animate');
+    authBrand?.classList.add('auth-brand--transitioning');
+    cornerBrand?.classList.remove('auth-corner-brand--revealing');
+    cornerBrand?.classList.add('auth-corner-brand--transitioning');
+    container.classList.toggle('active', registering);
+    if (!authBrand || !toggleBox) return;
+
+    const transitionDuration = getComputedStyle(toggleBox, '::before').transitionDuration
+      .split(',')
+      .map((value) => parseFloat(value) * (value.trim().endsWith('ms') ? 1 : 1000))
+      .reduce((longest, duration) => Math.max(longest, duration), 0);
+    window.clearTimeout(brandAnimationTimer);
+    brandAnimationTimer = window.setTimeout(() => {
+      authBrand.classList.remove('auth-brand--animate');
+      void authBrand.offsetWidth;
+      authBrand.classList.add('auth-brand--animate');
+      authBrand.classList.remove('auth-brand--transitioning');
+      revealCornerBrand();
+    }, transitionDuration + 50);
+  };
 
   root.querySelectorAll('.checkbox-label a[href="#/terms"], .checkbox-label a[href="#/privacy"]').forEach((link) => {
     link.addEventListener('click', (event) => {
@@ -175,8 +237,8 @@ export async function renderLogin(root = document.querySelector('#app')) {
     return valid;
   };
 
-  registerBtn.addEventListener('click', () => container.classList.add('active'));
-  loginBtn.addEventListener('click', () => container.classList.remove('active'));
+  registerBtn.addEventListener('click', () => setPanelMode(true));
+  loginBtn.addEventListener('click', () => setPanelMode(false));
 
   if (phoneInput) {
     phoneInput.addEventListener('input', () => {
