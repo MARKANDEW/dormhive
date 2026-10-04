@@ -142,6 +142,7 @@ export async function renderLogin(root = document.querySelector('#app')) {
   const revealCornerBrand = () => {
     if (!cornerBrand) return;
     cornerBrand.classList.remove('auth-corner-brand--transitioning', 'auth-corner-brand--revealing');
+    if (container.classList.contains('active')) return;
     void cornerBrand.offsetWidth;
     cornerBrand.classList.add('auth-corner-brand--revealing');
   };

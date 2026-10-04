@@ -772,8 +772,7 @@ form {
 }
 
 .container.active .auth-corner-brand {
-  right: auto;
-  left: 3rem;
+  display: none;
 }
 
   .auth-corner-brand {
@@ -1101,11 +1100,6 @@ form {
     right: 1.25rem;
     gap: 0.65rem;
     font-size: 0.48rem;
-  }
-
-  .container.active .auth-corner-brand {
-    right: auto;
-    left: 1.25rem;
   }
 
   .auth-corner-brand i {
