@@ -380,15 +380,12 @@ export async function renderDashboardOwner(root = document.querySelector('#app')
           </section>
           <section class="metrics-grid">
             <article class="metric-card metric-card--highlight">
-              <div class="metric-icon">🏠</div>
               <div><p>Listings</p><strong data-metric="listings">0 Active</strong><span data-metric-note="listings">0 / 0 properties active</span></div>
             </article>
             <article class="metric-card">
-              <div class="metric-icon">📣</div>
               <div><p>Inquiries</p><strong data-metric="inquiries">0 Total</strong><span data-metric-note="inquiries">No new inquiries</span></div>
             </article>
             <article class="metric-card">
-              <div class="metric-icon">◔</div>
               <div><p>Occupancy Rate</p><strong data-metric="occupancy">0%</strong><span data-metric-note="occupancy">0 / 0 units occupied</span></div>
             </article>
           </section>

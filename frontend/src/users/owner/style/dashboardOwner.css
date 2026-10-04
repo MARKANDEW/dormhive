@@ -409,9 +409,7 @@ a {
 }
 
 .metric-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.9rem;
+  display: block;
 
   min-width: 0;
 
