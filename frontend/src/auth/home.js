@@ -4,20 +4,29 @@ function removeAuthStyles() {
 
 function loadStylesheet() {
   const id = 'dormhive-home-style';
-  if (document.querySelector(`#${id}`)) return;
+  let link = document.querySelector(`#${id}`);
+  if (link?.sheet) return Promise.resolve();
 
-  const link = document.createElement('link');
-  link.id = id;
-  link.rel = 'stylesheet';
-  link.href = new URL('./style/home.css', import.meta.url).href;
-  document.head.appendChild(link);
+  if (!link) {
+    link = document.createElement('link');
+    link.id = id;
+    link.rel = 'stylesheet';
+    link.href = new URL('./style/home.css', import.meta.url).href;
+  }
+
+  const stylesheetReady = new Promise((resolve) => {
+    link.addEventListener('load', resolve, { once: true });
+    link.addEventListener('error', resolve, { once: true });
+  });
+  if (!link.isConnected) document.head.appendChild(link);
+  return stylesheetReady;
 }
 
 export async function renderHomePage(root = document.querySelector('#app')) {
   if (!root) throw new Error('Home page requires #app');
 
   removeAuthStyles();
-  loadStylesheet();
+  const stylesheetReady = loadStylesheet();
 
   root.innerHTML = `
     <div class="dh-home dh-home-loading" aria-live="polite" aria-busy="true" aria-label="Loading homepage">
@@ -75,7 +84,10 @@ export async function renderHomePage(root = document.querySelector('#app')) {
     </div>
   `;
 
-  await new Promise((resolve) => setTimeout(resolve, 280));
+  await Promise.all([
+    stylesheetReady,
+    new Promise((resolve) => setTimeout(resolve, 280)),
+  ]);
 
   root.innerHTML = `
     <div class="dh-home">
