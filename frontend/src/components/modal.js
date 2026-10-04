@@ -1,3 +1,15 @@
-﻿function style(){if(document.querySelector('[data-component-style="modal"]'))return;const l=document.createElement('link');l.rel='stylesheet';l.href=new URL('./style/modal.css',import.meta.url);l.dataset.componentStyle='modal';document.head.append(l)}
+﻿let stylesheetPromise;
+function style(){
+	if(stylesheetPromise)return stylesheetPromise;
+	let link=document.querySelector('[data-component-style="modal"]');
+	if(!link){link=document.createElement('link');link.rel='stylesheet';link.href=new URL('./style/modal.css',import.meta.url);link.dataset.componentStyle='modal'}
+	stylesheetPromise=new Promise(resolve=>{
+		if(link.sheet){resolve();return}
+		link.addEventListener('load',resolve,{once:true});
+		link.addEventListener('error',resolve,{once:true});
+		if(!link.isConnected)document.head.append(link);
+	});
+	return stylesheetPromise;
+}
 export function createModal({title='',content='',closeLabel='Close',footerMarkup=''}={}){style();document.querySelectorAll('.ui-modal').forEach((existing)=>existing.remove());const dialog=document.createElement('dialog');dialog.className='ui-modal';dialog.innerHTML=`<div class="ui-modal__header"><h2>${title}</h2><button type="button" aria-label="Close dialog" data-modal-close>×</button></div><div class="ui-modal__body"></div><div class="ui-modal__footer">${footerMarkup}<button type="button" data-modal-close>${closeLabel}</button></div>`;const body=dialog.querySelector('.ui-modal__body');typeof content==='string'?body.innerHTML=content:body.append(content);let closing=false;const remove=()=>{window.removeEventListener('hashchange',close);dialog.remove()};const close=()=>{if(closing)return;closing=true;if(dialog.open)dialog.close();remove()};dialog.querySelectorAll('[data-modal-close]').forEach((button)=>button.addEventListener('click',close));dialog.addEventListener('click',e=>{if(e.target===dialog)close()});dialog.addEventListener('close',remove,{once:true});window.addEventListener('hashchange',close);document.body.append(dialog);return dialog}
-export function openModal(modal){modal.showModal();}
+export function openModal(modal){return style().then(()=>{if(modal.isConnected&&!modal.open)modal.showModal();return modal})}
