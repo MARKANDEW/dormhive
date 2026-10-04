@@ -607,11 +607,15 @@ a {
 
 .map-panel .leaflet-map {
   width: 100% !important;
-  height: 17rem !important;
+  height: 100% !important;
   border-radius: 0.5rem;
   flex: 1;
   min-height: 0;
   display: block !important;
+}
+
+.map-panel .map-frame-wrap {
+  height: 20rem;
 }
 
 .map-panel #map-status {
@@ -1332,8 +1336,8 @@ a {
     text-align: center;
   }
 
-  .map-panel .leaflet-map {
-    height: 14rem !important;
+  .map-panel .map-frame-wrap {
+    height: 14rem;
   }
 
   .action-panel .action-button {
