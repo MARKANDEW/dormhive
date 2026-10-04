@@ -857,6 +857,10 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
   const mapStatus = root.querySelector('#map-status');
   const mapPanel = root.querySelector('#shared-map');
   const mapFrame = root.querySelector('#tenant-map');
+  const mapInitialization = initLeafletMap(root.querySelector('.map'), []).catch((error) => {
+    console.warn('Unable to initialize tenant map:', error);
+    return null;
+  });
   const renderSkeletonState = () => {
     if (!cards) return;
     const skeleton = document.createElement('div');
@@ -1338,9 +1342,8 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
       const response = await api('/properties?limit=100&status=approved');
       state.all = Array.isArray(response.data) ? response.data.filter((item) => isPropertyVisibleToTenant(item)) : [];
       state.visible = state.all;
+      await mapInitialization;
       syncMapLocation(state.all);
-      // Initialize Leaflet map and render approved property markers
-      await initLeafletMap(root.querySelector('.map'), state.all);
       renderCards();
       if (requestedPropertyId && !requestedPropertyOpened) {
         const requestedProperty = state.all.find((item) => String(item.id) === String(requestedPropertyId));
