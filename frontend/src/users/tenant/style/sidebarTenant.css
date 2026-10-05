@@ -312,6 +312,10 @@
     z-index: 10;
     width: 248px;
     height: 100vh;
+    height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    padding: 14px 14px calc(10px + env(safe-area-inset-bottom));
     transform: translateX(-103%);
     transition: 0.2s;
   }
@@ -361,6 +365,39 @@
   .dh-sidebar:hover,
   .dh-sidebar:focus-within {
     width: 248px;
+  }
+  .dh-sidebar > .dh-logo,
+  .dh-sidebar > nav,
+  .dh-sidebar > .dh-sidebar-footer {
+    flex-shrink: 0;
+  }
+  .dh-sidebar > .dh-sidebar-footer {
+    margin-top: auto;
+    padding-top: 6px;
+  }
+  .dh-sidebar > .dh-logo {
+    margin-bottom: 0.65rem;
+  }
+  .dh-sidebar nav {
+    gap: 0.15rem;
+  }
+  .dh-sidebar nav a {
+    min-height: 42px;
+    padding-block: 0.4rem;
+  }
+  .dh-sidebar .dh-support-notice {
+    gap: 3px;
+    margin-bottom: 6px;
+    padding: 8px 10px;
+  }
+  .dh-sidebar .logout {
+    min-height: 38px;
+    margin-top: 6px;
+  }
+  @media (max-height: 600px) {
+    .dh-sidebar .dh-support-notice {
+      display: none;
+    }
   }
   .dh-sidebar .dh-logo strong,
   .dh-sidebar .dh-logo small,
