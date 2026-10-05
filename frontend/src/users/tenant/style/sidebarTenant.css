@@ -319,7 +319,8 @@
   .tenant-mobile-menu {
     position: fixed;
     top: 0.85rem;
-    left: 0.85rem;
+    right: 0.85rem;
+    left: auto;
     z-index: 12;
     display: grid;
     width: 2.75rem;
@@ -333,6 +334,10 @@
   }
 
   .dh-dashboard .tenant-mobile-menu {
+    display: none;
+  }
+
+  .dh-app:has(.messages-page) > .tenant-mobile-menu {
     display: none;
   }
 

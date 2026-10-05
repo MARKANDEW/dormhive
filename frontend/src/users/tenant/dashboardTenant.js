@@ -679,7 +679,6 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
       <main>
         <header class="topbar">
           <button class="hamburger" type="button">${icon('menu')}</button>
-          <a class="mobile-brand" href="#/tenant/dashboardTenant">DormHive</a>
           <label class="search" aria-label="Search by location, university, or landmark...">
             ${icon('search')}
             <input id="search" type="search" placeholder="Search by location, university, or landmark...">
@@ -725,12 +724,16 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
             <section class="featured">
               <div class="section-title">
                 <h2>Featured Listings</h2>
+                <button class="mobile-filter-inline" type="button" aria-controls="tenant-filters" aria-expanded="false">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6.5 7.5v5l-3 1.5v-7L4 5z"></path></svg>
+                  <span>Filters</span>
+                </button>
               </div>
               <div class="cards" id="featured-cards"></div>
             </section>
           </div>
 
-          <aside class="filters">
+          <aside class="filters" id="tenant-filters">
             <div class="filter-title">
               <h2>Filters</h2>
               <button id="clear" type="button">Clear all</button>
@@ -782,6 +785,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
             <button class="apply" type="button" id="apply-filters">Apply Filters</button>
           </aside>
         </section>
+        <button class="mobile-filter-backdrop" type="button" aria-label="Close filters"></button>
       </main>
     </div>
   `;
@@ -791,6 +795,19 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
   hamburger?.addEventListener('click', () => {
     tenantApp?.classList.toggle('open');
   });
+  const mobileFilterTriggers = Array.from(root.querySelectorAll('.mobile-filter-inline'));
+  const mobileFilterBackdrop = root.querySelector('.mobile-filter-backdrop');
+  const setMobileFiltersOpen = (isOpen) => {
+    tenantApp?.querySelector('main')?.classList.toggle('mobile-filters-open', isOpen);
+    mobileFilterTriggers.forEach((trigger) => trigger.setAttribute('aria-expanded', String(isOpen)));
+  };
+  mobileFilterTriggers.forEach((trigger) => {
+    trigger.addEventListener('click', () => {
+      const isOpen = tenantApp?.querySelector('main')?.classList.contains('mobile-filters-open') ?? false;
+      setMobileFiltersOpen(!isOpen);
+    });
+  });
+  mobileFilterBackdrop?.addEventListener('click', () => setMobileFiltersOpen(false));
 
   const notificationMenu = root.querySelector('.notification-menu');
   const notificationTrigger = root.querySelector('.notification-trigger');
@@ -1263,7 +1280,10 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
     renderCards();
   });
 
-  applyButton.addEventListener('click', renderCards);
+  applyButton.addEventListener('click', () => {
+    renderCards();
+    setMobileFiltersOpen(false);
+  });
   search.addEventListener('input', renderCards);
   const focusSearchedLocation = async () => {
     const query = search.value.trim();

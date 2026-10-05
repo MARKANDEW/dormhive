@@ -35,6 +35,10 @@ body {
   display: none;
 }
 
+.booking-mobile-topbar {
+  display: none;
+}
+
 .booking-overview-page {
   width: 100%;
   max-width: none;
@@ -1316,4 +1320,505 @@ body {
     padding: 8px 10px;
   }
 
+}
+
+@media (max-width: 900px) {
+  .booking-mobile-topbar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    width: 100%;
+    min-width: 0;
+    height: 62px;
+    min-height: 62px;
+    padding: 0 16px 0 76px;
+    background: #159879;
+    color: #fff;
+  }
+
+  .booking-mobile-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .booking-mobile-notification-menu {
+    position: relative;
+  }
+
+  .booking-mobile-notification-trigger {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 37px;
+    height: 37px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #fff;
+    cursor: pointer;
+  }
+
+  .booking-mobile-notification-trigger > span:first-child {
+    font-size: 1.25rem;
+    line-height: 1;
+    filter: grayscale(1) brightness(0.35);
+  }
+
+  .booking-mobile-notification-badge {
+    position: absolute;
+    top: 2px;
+    right: 1px;
+    display: grid;
+    place-items: center;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+  }
+
+  .booking-mobile-notification-badge[hidden],
+  .booking-mobile-notification-dropdown[hidden] {
+    display: none;
+  }
+
+  .booking-mobile-notification-dropdown {
+    position: fixed;
+    top: 4.5rem;
+    right: 0.5rem;
+    z-index: 40;
+    width: min(21rem, calc(100vw - 1rem));
+    overflow: hidden;
+    border: 1px solid #dce6e2;
+    border-radius: 0.8rem;
+    background: #fff;
+    color: #1f3530;
+    box-shadow: 0 12px 30px rgba(20, 70, 55, 0.18);
+  }
+
+  .booking-mobile-notification-dropdown-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid #dce6e2;
+  }
+
+  .booking-mobile-notification-dropdown-header span,
+  .booking-mobile-notification-empty,
+  .booking-mobile-notification-item time {
+    color: #6d8179;
+    font-size: 0.75rem;
+  }
+
+  .booking-mobile-notification-list {
+    max-height: 20rem;
+    overflow-y: auto;
+  }
+
+  .booking-mobile-notification-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.8rem;
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border: 0;
+    border-bottom: 1px solid #edf2ef;
+    background: #fff;
+    color: #1f3530;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .booking-mobile-notification-item:hover,
+  .booking-mobile-notification-item.is-unread {
+    background: #f7fcf9;
+  }
+
+  .booking-mobile-notification-item-copy {
+    display: grid;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+
+  .booking-mobile-notification-item-copy span {
+    overflow: hidden;
+    color: #6a7c75;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+  }
+
+  .booking-mobile-notification-empty {
+    margin: 0;
+    padding: 1.1rem 1rem;
+    text-align: center;
+  }
+
+  .booking-mobile-profile {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    margin: 0;
+    padding: 2px 5px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: #fff;
+    font-size: 0.75rem;
+    text-decoration: none;
+  }
+
+  .booking-mobile-avatar {
+    display: grid;
+    flex: 0 0 32px;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    overflow: hidden;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: #ccefe1;
+    color: #127351;
+  }
+
+  .booking-mobile-avatar img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .booking-mobile-avatar b {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: #ccefe1;
+    color: #127351;
+  }
+
+  .booking-mobile-name {
+    display: inline-block;
+    max-width: 74px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .dh-app:has(.tenant-bookings) > .tenant-mobile-menu {
+    top: 13px;
+    right: auto;
+    left: 16px;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #fff;
+    box-shadow: none;
+  }
+
+  .dh-app:has(.tenant-bookings) > .tenant-mobile-menu .booking-menu-glyph {
+    font-size: 1.45rem;
+    line-height: 1;
+  }
+
+  .dh-app:has(.tenant-bookings).open > .tenant-mobile-menu,
+  .dh-app:has(.tenant-bookings):has(.dh-sidebar:hover) > .tenant-mobile-menu,
+  .dh-app:has(.tenant-bookings):has(.dh-sidebar:focus-within) > .tenant-mobile-menu {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .tenant-page-main.tenant-bookings {
+    min-height: calc(100vh - 62px);
+    background: #f7f9f8;
+  }
+
+  .tenant-bookings .booking-overview-page {
+    padding: 24px 20px 36px;
+  }
+
+  .tenant-bookings .page-title-row {
+    margin-bottom: 22px;
+  }
+
+  .tenant-bookings .page-header-copy h1 {
+    color: #164f42;
+    font-size: clamp(1.9rem, 6vw, 2.4rem);
+    letter-spacing: -0.04em;
+  }
+
+  .tenant-bookings .subtitle {
+    margin-top: 7px;
+    color: #72848c;
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+
+  .tenant-bookings .tab-row {
+    gap: 10px;
+    flex-wrap: nowrap;
+    width: calc(100% + 20px);
+    margin: 0 -10px 20px;
+    padding: 0 10px 6px;
+    overflow-x: auto;
+    border: 0;
+    scrollbar-width: none;
+  }
+
+  .tenant-bookings .tab-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tenant-bookings .tab-row .tab {
+    min-height: 44px;
+    padding: 10px 17px;
+    border-radius: 999px;
+    background: #eef5f3;
+    color: #71858b;
+    font-size: 0.88rem;
+    white-space: nowrap;
+  }
+
+  .tenant-bookings .tab-row .tab.active {
+    background: #1aa87a;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(26, 168, 122, 0.2);
+  }
+
+  .tenant-bookings .booking-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  .tenant-bookings .booking-card {
+    border: 1px solid #edf0ee;
+    border-radius: 20px;
+    box-shadow: 0 4px 16px rgba(30, 58, 48, 0.08);
+  }
+
+  .tenant-bookings .booking-card-image-wrapper {
+    height: auto;
+    aspect-ratio: 2.8 / 1;
+    border-radius: 0;
+  }
+
+  .tenant-bookings .pill-overlay {
+    top: 14px;
+    left: 14px;
+    gap: 6px;
+    padding: 7px 12px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+  }
+
+  .tenant-bookings .booking-image-count {
+    right: 12px;
+    bottom: 12px;
+    padding: 6px 9px;
+    font-size: 0.72rem;
+  }
+
+  .tenant-bookings .booking-card-content {
+    gap: 12px;
+    padding: 16px 18px;
+  }
+
+  .tenant-bookings .booking-card-header {
+    min-height: 58px;
+  }
+
+  .tenant-bookings .booking-card-title {
+    gap: 12px;
+    min-height: 52px;
+  }
+
+  .tenant-bookings .title-icon-badge {
+    width: 48px;
+    height: 48px;
+    background: #d8f1e7;
+  }
+
+  .tenant-bookings .title-icon-badge .icon {
+    width: 23px;
+    height: 23px;
+  }
+
+  .tenant-bookings .booking-card-title h3 {
+    font-size: clamp(1.05rem, 4.4vw, 1.35rem);
+  }
+
+  .tenant-bookings .booking-reference {
+    margin-top: 4px;
+    font-size: 0.8rem;
+  }
+
+  .tenant-bookings .booking-card-details {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 12px 0;
+  }
+
+  .tenant-bookings .detail-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    min-width: 0;
+    padding: 0 9px;
+  }
+
+  .tenant-bookings .detail-item + .detail-item {
+    padding-top: 0;
+    border-top: 0;
+    border-left: 1px solid #e1e5eb;
+  }
+
+  .tenant-bookings .detail-heading {
+    gap: 5px;
+  }
+
+  .tenant-bookings .detail-heading svg {
+    flex-basis: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  .tenant-bookings .detail-item .detail-label {
+    font-size: 0.68rem;
+  }
+
+  .tenant-bookings .detail-item strong {
+    width: 100%;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+
+  .tenant-bookings .booking-card-actions,
+  .tenant-bookings .booking-card-actions--two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+    padding-top: 2px;
+  }
+
+  .tenant-bookings .booking-card-actions:not(.booking-card-actions--two) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .tenant-bookings .booking-card-actions .btn {
+    min-height: 58px;
+    gap: 6px;
+    padding: 8px;
+    border-radius: 13px;
+    font-size: 0.76rem;
+  }
+
+  .tenant-bookings .booking-card-actions .btn svg {
+    width: 19px;
+    height: 19px;
+    flex-basis: 19px;
+  }
+
+  .tenant-bookings .booking-card-actions .btn::after {
+    margin-left: 0;
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .tenant-bookings .booking-overview-page {
+    padding: 20px 16px 30px;
+  }
+
+  .tenant-bookings .page-title-row {
+    margin-bottom: 18px;
+  }
+
+  .tenant-bookings .tab-row {
+    margin-bottom: 16px;
+  }
+
+  .tenant-bookings .booking-card-content {
+    gap: 10px;
+    padding: 14px 12px;
+  }
+
+  .tenant-bookings .booking-card-details {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .tenant-bookings .detail-item {
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+
+  .tenant-bookings .detail-heading {
+    gap: 4px;
+  }
+
+  .tenant-bookings .detail-item .detail-label {
+    font-size: 0.64rem;
+  }
+
+  .tenant-bookings .detail-item strong {
+    font-size: 0.72rem;
+  }
+
+  .tenant-bookings .booking-card-actions:not(.booking-card-actions--two) {
+    gap: 5px;
+  }
+
+  .tenant-bookings .booking-card-actions .btn {
+    min-height: 54px;
+    gap: 4px;
+    padding: 6px 5px;
+    font-size: 0.67rem;
+  }
+
+  .tenant-bookings .booking-card-actions .btn svg {
+    width: 17px;
+    height: 17px;
+    flex-basis: 17px;
+  }
+}
+
+@media (max-width: 360px) {
+  .booking-mobile-topbar {
+    padding-right: 8px;
+  }
+
+  .booking-mobile-actions {
+    gap: 2px;
+  }
+
+  .booking-mobile-profile {
+    gap: 5px;
+    margin-left: 2px;
+    padding-right: 5px;
+  }
+
+  .booking-mobile-name {
+    max-width: 68px;
+  }
+
+  .dh-app:has(.tenant-bookings) > .tenant-mobile-menu {
+    right: auto;
+    left: 16px;
+  }
 }

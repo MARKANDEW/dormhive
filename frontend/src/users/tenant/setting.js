@@ -150,7 +150,13 @@ export async function renderSetting(root = document.querySelector('#app')) {
       <main class="tenant-page-main tenant-settings">
         <div class="settings-card">
           <div class="settings-header">
-            <h1>Account Settings</h1>
+            <button type="button" class="settings-heading-menu tenant-mobile-menu" aria-label="Open tenant menu" aria-expanded="false">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+            <div>
+              <h1>Account Settings</h1>
+              <p>Manage your profile and account information.</p>
+            </div>
           </div>
 
           <div class="settings-body">
@@ -242,6 +248,7 @@ export async function renderSetting(root = document.querySelector('#app')) {
       </main>
     </div>`;
 
+  root.querySelector('.dh-app > .tenant-mobile-menu')?.remove();
   const tabs = [...root.querySelectorAll('.tab')];
   const profileView = root.querySelector('.profile-view');
   const securityView = root.querySelector('.security-view');
@@ -333,6 +340,7 @@ export async function renderSetting(root = document.querySelector('#app')) {
 
   function setActiveTab(tabName) {
     const isProfile = tabName === 'profile';
+    root.querySelector('.settings-card').classList.toggle('security-active', !isProfile);
     tabs.forEach((tab) => {
       const active = tab.dataset.tab === tabName;
       tab.classList.toggle('active', active);

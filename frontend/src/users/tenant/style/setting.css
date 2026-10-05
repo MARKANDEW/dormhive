@@ -353,3 +353,535 @@ input {
     padding: 1.25rem;
   }
 }
+
+.setting-mobile-topbar {
+  display: none;
+}
+
+.settings-heading-menu {
+  display: none;
+}
+
+.settings-header p {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .dh-app:has(.tenant-settings) {
+    display: block;
+    min-height: 100dvh;
+    background: #f4faf8;
+  }
+
+  .setting-mobile-topbar {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    min-height: 72px;
+    padding: 0 68px 0 16px;
+    background: #159879;
+    color: #fff;
+  }
+
+  .setting-mobile-brand {
+    display: flex;
+    flex: 0 1 auto;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    color: #fff;
+    text-decoration: none;
+  }
+
+  .setting-mobile-brand-mark {
+    display: grid;
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+    border-radius: 50%;
+    background: transparent;
+  }
+
+  .setting-mobile-brand-mark svg {
+    width: 38px;
+    height: 38px;
+    overflow: visible;
+  }
+
+  .setting-mobile-brand strong {
+    white-space: nowrap;
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+
+  .setting-mobile-brand strong b {
+    color: #ffd44d;
+  }
+
+  .setting-mobile-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    margin-left: auto;
+  }
+
+  .setting-mobile-notification-menu {
+    position: relative;
+  }
+
+  .setting-mobile-notification-trigger {
+    position: relative;
+    display: grid;
+    width: 37px;
+    height: 37px;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #fff;
+    cursor: pointer;
+  }
+
+  .setting-mobile-notification-trigger > span:first-child {
+    font-size: 1.25rem;
+    line-height: 1;
+    filter: grayscale(1) brightness(0) invert(1);
+  }
+
+  .setting-mobile-notification-badge {
+    position: absolute;
+    top: 1px;
+    right: 0;
+    display: grid;
+    min-width: 16px;
+    height: 16px;
+    place-items: center;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+  }
+
+  .setting-mobile-notification-badge[hidden],
+  .setting-mobile-notification-dropdown[hidden] {
+    display: none;
+  }
+
+  .setting-mobile-notification-dropdown {
+    position: fixed;
+    top: 4.5rem;
+    right: 0.5rem;
+    z-index: 40;
+    width: min(21rem, calc(100vw - 1rem));
+    overflow: hidden;
+    border: 1px solid #dce6e2;
+    border-radius: 0.8rem;
+    background: #fff;
+    color: #1f3530;
+    box-shadow: 0 12px 30px rgba(20, 70, 55, 0.18);
+  }
+
+  .setting-mobile-notification-dropdown-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid #dce6e2;
+  }
+
+  .setting-mobile-notification-dropdown-header span,
+  .setting-mobile-notification-empty,
+  .setting-mobile-notification-item time {
+    color: #6d8179;
+    font-size: 0.75rem;
+  }
+
+  .setting-mobile-notification-list {
+    max-height: 20rem;
+    overflow-y: auto;
+  }
+
+  .setting-mobile-notification-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.8rem;
+    width: 100%;
+    padding: 0.85rem 1rem;
+    border: 0;
+    border-bottom: 1px solid #edf2ef;
+    background: #fff;
+    color: #1f3530;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .setting-mobile-notification-item.is-unread {
+    background: #f7fcf9;
+  }
+
+  .setting-mobile-notification-item-copy {
+    display: grid;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+
+  .setting-mobile-notification-item-copy span {
+    overflow: hidden;
+    color: #6a7c75;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+  }
+
+  .setting-mobile-notification-empty {
+    margin: 0;
+    padding: 1.1rem 1rem;
+    text-align: center;
+  }
+
+  .setting-mobile-profile {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    margin: 0;
+    padding: 2px 5px;
+    border-radius: 999px;
+    color: #fff;
+    font-size: 0.75rem;
+    text-decoration: none;
+  }
+
+  .setting-mobile-avatar {
+    display: grid;
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    place-items: center;
+    overflow: hidden;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: #ccefe1;
+    color: #127351;
+  }
+
+  .setting-mobile-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .setting-mobile-avatar b {
+    font-size: 0.7rem;
+  }
+
+  .setting-mobile-name {
+    display: inline-block;
+    max-width: 74px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .setting-mobile-topbar .tenant-mobile-menu {
+    position: absolute;
+    top: 0.85rem;
+    right: 0.85rem;
+    left: auto;
+    display: grid;
+    width: 2.75rem;
+    height: 2.75rem;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #fff;
+    box-shadow: none;
+  }
+
+  .setting-mobile-topbar .tenant-mobile-menu .icon {
+    width: 1.45rem;
+    height: 1.45rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+
+  .setting-mobile-topbar .tenant-mobile-menu {
+    position: absolute;
+    top: 0.95rem;
+    left: 0.85rem;
+    display: grid;
+    width: 2.75rem;
+    height: 2.75rem;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #fff;
+    box-shadow: none;
+  }
+
+  .setting-mobile-topbar .tenant-mobile-menu .icon {
+    width: 1.45rem;
+    height: 1.45rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+
+  .tenant-page-main.tenant-settings {
+    display: block;
+    width: 100%;
+    height: auto;
+    min-height: 100dvh;
+    margin: 0;
+    padding: 20px 16px calc(28px + env(safe-area-inset-bottom)) !important;
+    overflow: visible;
+    background: linear-gradient(180deg, #f7fcfa, #eef7f4);
+  }
+
+  .tenant-settings .settings-card {
+    width: 100%;
+    max-width: none;
+    min-height: 0;
+    padding: 16px 16px 24px;
+    border: 1px solid #e7f0ed;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 12px 30px rgba(37, 77, 64, 0.08);
+  }
+
+  .tenant-settings .settings-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin: 2px 0 18px;
+  }
+
+  .tenant-settings .settings-header > .settings-heading-menu.tenant-mobile-menu {
+    position: static;
+    display: grid;
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    place-items: center;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #153b38;
+    box-shadow: none;
+  }
+
+  .tenant-settings .settings-heading-menu .icon {
+    width: 1.45rem;
+    height: 1.45rem;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    color: currentColor;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .tenant-settings .settings-header h1 {
+    color: #153b38;
+    font-size: 1.45rem;
+    line-height: 1.2;
+  }
+
+  .tenant-settings .settings-header p {
+    display: block;
+    margin: 5px 0 0;
+    color: #607986;
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+
+  .tenant-settings .settings-body {
+    display: block;
+    min-height: 0;
+  }
+
+  .tenant-settings .profile-side {
+    width: 100%;
+    gap: 0;
+    padding: 0;
+  }
+
+  .tenant-settings .segmented-tabs {
+    gap: 0;
+    padding: 3px;
+    border: 0;
+    border-radius: 15px;
+    background: #eff7f4;
+  }
+
+  .tenant-settings .tab {
+    min-height: 48px;
+    border-radius: 12px;
+    color: #1d3f3b;
+    font-size: 0.95rem;
+  }
+
+  .tenant-settings .tab.active {
+    background: linear-gradient(110deg, #19a978, #0d9e75);
+    box-shadow: 0 3px 8px rgba(13, 137, 99, 0.18);
+  }
+
+  .tenant-settings .avatar-panel {
+    padding: 26px 0 20px;
+  }
+
+  .tenant-settings .avatar-wrap {
+    width: 128px;
+    height: 128px;
+    background: #dbe7fb;
+    box-shadow: 0 8px 20px rgba(34, 60, 100, 0.14);
+  }
+
+  .tenant-settings .avatar-edit {
+    right: 0;
+    bottom: 0;
+    width: 36px;
+    height: 36px;
+    border: 3px solid #fff;
+    background: #13a777;
+  }
+
+  .tenant-settings .user-name {
+    margin-top: 15px;
+    color: #173b38;
+    font-size: 1.25rem;
+  }
+
+  .tenant-settings .profile-actions {
+    margin-top: 14px;
+  }
+
+  .tenant-settings .discard-profile,
+  .tenant-settings .edit-profile {
+    min-width: 0;
+    min-height: 46px;
+    padding: 0.7rem 1.1rem;
+    border-radius: 12px;
+  }
+
+  .tenant-settings .edit-profile {
+    background: #13a777;
+  }
+
+  .tenant-settings .details-panel {
+    width: 100%;
+  }
+
+  .tenant-settings .account-form {
+    gap: 1rem;
+    padding-top: 0;
+  }
+
+  .tenant-settings .field-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .tenant-settings .account-form label {
+    gap: 0.45rem;
+    color: #607986;
+    font-size: 0.88rem;
+  }
+
+  .tenant-settings .account-form input {
+    min-height: 54px;
+    padding: 0.8rem 1rem;
+    border-color: #dcebe6;
+    border-radius: 13px;
+    background: #f6faf9;
+    color: #1c3937;
+    font-size: 1rem;
+  }
+
+  .tenant-settings .account-form input[readonly] {
+    background: #f6faf9;
+    color: #1c3937;
+  }
+
+  .tenant-settings .settings-card.security-active .avatar-panel {
+    display: none;
+  }
+
+  .tenant-settings .settings-card.security-active .account-form {
+    padding-top: 20px;
+  }
+}
+
+@media (max-width: 360px) {
+  .setting-mobile-topbar {
+    gap: 4px;
+    padding-right: 60px;
+    padding-left: 8px;
+  }
+
+  .setting-mobile-brand {
+    gap: 5px;
+  }
+
+  .setting-mobile-brand-mark {
+    flex-basis: 32px;
+    width: 32px;
+    height: 32px;
+  }
+
+  .setting-mobile-brand strong {
+    font-size: 1rem;
+  }
+
+  .setting-mobile-actions {
+    gap: 2px;
+  }
+
+  .setting-mobile-profile {
+    gap: 4px;
+    padding-right: 2px;
+  }
+
+  .setting-mobile-name {
+    max-width: 54px;
+  }
+
+  .setting-mobile-topbar .tenant-mobile-menu {
+    right: 0.65rem;
+  }
+
+  .tenant-page-main.tenant-settings {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .tenant-settings .settings-card {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+}

@@ -240,6 +240,9 @@ export async function renderMessage(root = document.querySelector('#app')) {
           <section class="messages-layout inbox-layout">
             <aside class="conversation-list inbox-sidebar">
               <div class="sidebar-title-row">
+                <button type="button" class="tenant-mobile-menu" aria-label="Open tenant menu" aria-expanded="false">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+                </button>
                 <h1>Chats</h1>
               </div>
               <label class="messages-search" aria-label="Search conversations">

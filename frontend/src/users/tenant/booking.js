@@ -2,12 +2,27 @@ import { ensureTenantSidebarStyles, loadTenantStylesheet, renderTenantSidebar } 
 import { getUserAvatarUrl } from './setting.js';
 import { createModal, openModal } from '../../components/modal.js';
 import { attachViewingTimeSuggestions, parseViewingTime, viewingTimeFields } from './viewingTime.js';
+import { api as apiClient } from '../../services/api.js';
+import { markNotificationRead } from '../../services/notificationSystem.js';
 
 const API_URL = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const apiBase = API_URL.replace(/\/api\/v1\/?$/, '');
 const auth = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
 const escape = (value = '') => { const node = document.createElement('span'); node.textContent = value; return node.innerHTML; };
-const session = () => { try { return JSON.parse(localStorage.getItem('dormhive.user') ?? '{}'); } catch { return {}; } };
+const getTenantUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem('dormhive.user') ?? '{}');
+  } catch {
+    return {};
+  }
+};
+const tenantFullName = (user = {}) => {
+  const firstName = String(user.first_name ?? user.firstName ?? '').trim();
+  const lastName = String(user.last_name ?? user.lastName ?? '').trim();
+  const combined = [firstName, lastName].filter(Boolean).join(' ');
+  return combined || String(user.name ?? 'Tenant').trim() || 'Tenant';
+};
+const formatNotificationDate = (value) => new Date(value ?? Date.now()).toLocaleDateString([], { month: 'short', day: 'numeric' });
 const resolveImageUrl = (value = '') => {
   const url = String(value || '').trim();
   if (!url) return '';
@@ -92,12 +107,6 @@ const openBookingPhotoViewer = (photos, alt) => {
   renderPhoto();
   viewer.showModal();
 };
-const tenantFullName = (user = {}) => {
-  const firstName = String(user.first_name ?? user.firstName ?? '').trim();
-  const lastName = String(user.last_name ?? user.lastName ?? '').trim();
-  const combined = [firstName, lastName].filter(Boolean).join(' ');
-  return combined || String(user.name ?? 'Tenant').trim() || 'Tenant';
-};
 const getSearchParam = (name) => {
   const search = typeof window.DORMHIVE_ROUTE_SEARCH === 'string' ? window.DORMHIVE_ROUTE_SEARCH : window.location.search;
   return new URLSearchParams(search).get(name);
@@ -139,20 +148,31 @@ export async function renderBooking(root = document.querySelector('#app')) {
   if (!root) throw new Error('Booking page requires #app.');
   await Promise.all([ensureTenantSidebarStyles(), style()]);
 
-  const syncBookingProfile = () => {
-    const user = session();
-    const fullName = tenantFullName(user);
-    const avatarEl = root.querySelector('.profile-avatar');
-    const nameEl = root.querySelector('.profile-meta strong');
-    if (!avatarEl || !nameEl) return;
-    const avatarUrl = user.avatar_url ? getUserAvatarUrl(user, fullName) : '';
-    avatarEl.innerHTML = avatarUrl ? `<img src="${escape(avatarUrl)}" alt="${escape(fullName)} avatar" />` : `<span class="profile-initials">${escape((fullName || 'T').split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase() || 'T')}</span>`;
-    nameEl.textContent = fullName;
-  };
+  const user = getTenantUser();
+  const displayName = tenantFullName(user);
+  const avatarUrl = user.avatar_url ? getUserAvatarUrl(user, displayName) : '';
 
   root.innerHTML = `
     <div class="dh-app">
       ${renderTenantSidebar('booking')}
+      <header class="booking-mobile-topbar">
+        <div class="booking-mobile-actions">
+          <div class="booking-mobile-notification-menu">
+            <button class="booking-mobile-notification-trigger" type="button" aria-label="Notifications" aria-expanded="false">
+              <span aria-hidden="true">🔔</span>
+              <span class="booking-mobile-notification-badge">0</span>
+            </button>
+            <div class="booking-mobile-notification-dropdown" hidden>
+              <div class="booking-mobile-notification-dropdown-header"><strong>Notifications</strong><span>Recent updates</span></div>
+              <div class="booking-mobile-notification-list"><p class="booking-mobile-notification-empty">No notifications yet.</p></div>
+            </div>
+          </div>
+          <a class="booking-mobile-profile" href="#/tenant/setting">
+            <span class="booking-mobile-avatar">${avatarUrl ? `<img src="${escape(avatarUrl)}" alt="${escape(displayName)} avatar" />` : `<b>${escape((displayName || 'T').split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase() || 'T')}</b>`}</span>
+            <span class="booking-mobile-name">${escape(displayName)}</span>
+          </a>
+        </div>
+      </header>
       <main class="tenant-page-main tenant-bookings">
         <section class="booking-overview-page">
           <div class="page-title-row">
@@ -174,8 +194,75 @@ export async function renderBooking(root = document.querySelector('#app')) {
       </main>
     </div>`;
 
-  syncBookingProfile();
-  window.addEventListener('dormhive-user-updated', syncBookingProfile);
+  const bookingMenuIcon = root.querySelector('.dh-app > .tenant-mobile-menu .icon');
+  if (bookingMenuIcon) {
+    const menuGlyph = document.createElement('span');
+    menuGlyph.className = 'booking-menu-glyph';
+    menuGlyph.setAttribute('aria-hidden', 'true');
+    menuGlyph.innerHTML = '&#9776;';
+    bookingMenuIcon.replaceWith(menuGlyph);
+  }
+
+  const notificationMenu = root.querySelector('.booking-mobile-notification-menu');
+  const notificationTrigger = root.querySelector('.booking-mobile-notification-trigger');
+  const notificationBadge = root.querySelector('.booking-mobile-notification-badge');
+  const notificationDropdown = root.querySelector('.booking-mobile-notification-dropdown');
+  const notificationList = root.querySelector('.booking-mobile-notification-list');
+  let notifications = [];
+
+  const renderNotifications = () => {
+    const unreadCount = notifications.filter((item) => !item.read_at).length;
+    notificationBadge.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
+    notificationBadge.hidden = false;
+    notificationList.innerHTML = notifications.length
+      ? notifications.slice(0, 6).map((item) => `
+          <button class="booking-mobile-notification-item${item.read_at ? '' : ' is-unread'}" type="button" data-notification-id="${escape(String(item.id))}">
+            <span class="booking-mobile-notification-item-copy"><strong>${escape(item.title || 'Notification')}</strong><span>${escape(item.message || '')}</span></span>
+            <time>${escape(formatNotificationDate(item.created_at))}</time>
+          </button>`).join('')
+      : '<p class="booking-mobile-notification-empty">No notifications yet.</p>';
+  };
+
+  const loadNotifications = async () => {
+    try {
+      const response = await apiClient.notifications.list();
+      notifications = Array.isArray(response?.data) ? response.data : [];
+      renderNotifications();
+    } catch {
+      notificationList.innerHTML = '<p class="booking-mobile-notification-empty">Notifications unavailable.</p>';
+    }
+  };
+
+  notificationTrigger.addEventListener('click', () => {
+    const isOpen = !notificationDropdown.hidden;
+    notificationDropdown.hidden = isOpen;
+    notificationTrigger.setAttribute('aria-expanded', String(!isOpen));
+  });
+  notificationList.addEventListener('click', async (event) => {
+    const item = event.target.closest('[data-notification-id]');
+    if (!item) return;
+    const notification = notifications.find((entry) => String(entry.id) === item.dataset.notificationId);
+    if (!notification || notification.read_at) return;
+    try {
+      await markNotificationRead(notification.id);
+      notification.read_at = new Date().toISOString();
+      renderNotifications();
+    } catch {
+      item.classList.add('is-unread');
+    }
+  });
+  document.addEventListener('click', (event) => {
+    if (!root.isConnected) return;
+    if (!notificationMenu.contains(event.target)) {
+      notificationDropdown.hidden = true;
+      notificationTrigger.setAttribute('aria-expanded', 'false');
+    }
+  });
+  void loadNotifications();
+  const notificationPoll = setInterval(() => {
+    if (!root.isConnected) return clearInterval(notificationPoll);
+    void loadNotifications();
+  }, 15000);
 
   const grid = root.querySelector('#booking-grid');
   const tabs = root.querySelectorAll('.tab');
