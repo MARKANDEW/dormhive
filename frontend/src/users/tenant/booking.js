@@ -1,6 +1,7 @@
 import { ensureTenantSidebarStyles, loadTenantStylesheet, renderTenantSidebar } from './sidebarTenant.js';
 import { getUserAvatarUrl } from './setting.js';
 import { createModal, openModal } from '../../components/modal.js';
+import { attachViewingTimeSuggestions, parseViewingTime, viewingTimeFields } from './viewingTime.js';
 
 const API_URL = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const apiBase = API_URL.replace(/\/api\/v1\/?$/, '');
@@ -350,18 +351,20 @@ export async function renderBooking(root = document.querySelector('#app')) {
           const timeValue = hasTenantSchedule ? String(booking.viewing_time ?? '').slice(0, 5) : '';
           const modal = createModal({
             title: dateValue && timeValue ? 'Change Viewing Schedule' : 'Set Viewing Schedule',
-            content: `<form class="tenant-viewing-schedule-form"><label for="tenant-viewing-date">Viewing Date</label><input id="tenant-viewing-date" type="date" required value="${escape(dateValue)}"><label for="tenant-viewing-time">Viewing Time</label><input id="tenant-viewing-time" type="time" required value="${escape(timeValue)}"><p role="status"></p></form>`,
+            content: `<form class="tenant-viewing-schedule-form"><label for="tenant-viewing-date">Viewing Date</label><input id="tenant-viewing-date" type="date" required value="${escape(dateValue)}"><label>Viewing Time</label>${viewingTimeFields({ idPrefix: 'tenant-viewing-time', value: timeValue, required: true })}<p role="status"></p></form>`,
             closeLabel: 'Cancel',
             footerMarkup: '<button type="button" class="btn btn--primary" data-save-viewing-schedule>Save Schedule</button>'
           });
+          attachViewingTimeSuggestions(modal, 'tenant-viewing-time');
           const dateInput = modal.querySelector('#tenant-viewing-date');
-          const timeInput = modal.querySelector('#tenant-viewing-time');
+          const timeInputs = ['hour', 'minute', 'period'].map((part) => modal.querySelector(`#tenant-viewing-time-${part}`));
           const scheduleStatus = modal.querySelector('[role="status"]');
           const saveButton = modal.querySelector('[data-save-viewing-schedule]');
           dateInput.min = new Date().toISOString().split('T')[0];
           saveButton.addEventListener('click', async () => {
-            if (!dateInput.value || !timeInput.value) {
-              scheduleStatus.textContent = 'Select both a viewing date and time.';
+            const viewingTime = parseViewingTime(...timeInputs.map((input) => input.value));
+            if (!dateInput.value || !viewingTime) {
+              scheduleStatus.textContent = 'Enter an hour, minute, and AM/PM for the viewing time.';
               return;
             }
             saveButton.disabled = true;
@@ -369,7 +372,7 @@ export async function renderBooking(root = document.querySelector('#app')) {
               const response = await fetch(`${API_URL}/bookings/${encodeURIComponent(id)}/viewing-schedule`, {
                 method: 'PATCH',
                 headers: auth(),
-                body: JSON.stringify({ viewingDate: dateInput.value, viewingTime: timeInput.value })
+                body: JSON.stringify({ viewingDate: dateInput.value, viewingTime })
               });
               const body = await response.json();
               if (!response.ok) throw new Error(body.message || 'Unable to update viewing schedule.');

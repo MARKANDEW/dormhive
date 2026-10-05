@@ -5,6 +5,7 @@ import { createModal, openModal } from '../../components/modal.js';
 import { showToast } from '../../components/toast.js';
 import { api as apiClient, getApiErrorMessage, readApiResponse } from '../../services/api.js';
 import { markNotificationRead } from '../../services/notificationSystem.js';
+import { attachViewingTimeSuggestions, parseViewingTime, viewingTimeFields } from './viewingTime.js';
 
 const API_URL = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const apiBase = API_URL.replace(/\/api\/v1\/?$/, '');
@@ -331,7 +332,7 @@ function propertyDetailsMarkup(property) {
         </label>
         <label>Occupants<input type="number" name="occupants" min="1" value="1" required /></label>
         <label>Viewing Date<input type="date" name="viewingDate" /></label>
-        <label>Viewing Time<input type="time" name="viewingTime" /></label>
+        <label>Viewing Time${viewingTimeFields({ idPrefix: 'property-viewing-time' })}</label>
       </div>
       <div class="dashboard-request-actions">
         <button type="button" class="dashboard-chat-owner">Chat Owner</button>
@@ -397,8 +398,16 @@ function loadPropertyDetailsStyle() {
     .dashboard-request-heading h3 { margin: 0; color: #173b35; font-size: 1rem; font-weight: 750; }
     .dashboard-request-fields { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .75rem; align-items: start; }
     .dashboard-request-fields label { display: grid; gap: .35rem; min-width: 0; color: #526b63; font-size: .73rem; font-weight: 700; }
-    .dashboard-request-fields input:not([type="checkbox"]) { width: 100%; min-width: 0; height: 42px; padding: 0 .65rem; border: 1px solid #d4e0db; border-radius: .45rem; background: #fff; color: #183a33; font: inherit; font-size: .82rem; }
-    .dashboard-request-fields input:focus-visible { outline: 2px solid #1aa87a; outline-offset: 2px; }
+    .dashboard-request-fields input:not([type="checkbox"]), .dashboard-request-fields select { width: 100%; min-width: 0; height: 42px; padding: 0 .65rem; border: 1px solid #d4e0db; border-radius: .45rem; background: #fff; color: #183a33; font: inherit; font-size: .82rem; }
+    .viewing-time-inputs { display: flex; align-items: center; gap: .4rem; min-width: 0; }
+    .viewing-time-part { position: relative; flex: 1 1 0; min-width: 0; }
+    .dashboard-request-fields .viewing-time-inputs input { width: 100%; min-width: 0; height: 42px; padding: 0 .35rem; border: 1px solid transparent; border-radius: .45rem; background: #f1f2f2; color: #183a33; font: inherit; text-align: center; }
+    .dashboard-request-fields .viewing-time-inputs input:focus-visible { position: relative; z-index: 1; outline: 2px solid #1aa87a; outline-offset: 1px; background-color: #fff; }
+    .viewing-time-suggestions { position: absolute; z-index: 20; top: calc(100% + .25rem); left: 0; display: grid; width: 100%; max-height: 12rem; overflow-y: auto; padding: .25rem; border: 1px solid #d4e0db; border-radius: .45rem; background: #fff; box-shadow: 0 .5rem 1.25rem rgb(24 58 51 / 16%); }
+    .viewing-time-suggestions[hidden] { display: none; }
+    .viewing-time-suggestion { width: 100%; padding: .35rem .5rem; border: 0; border-radius: .25rem; background: #fff; color: #183a33; font: inherit; text-align: left; cursor: pointer; }
+    .viewing-time-suggestion:hover, .viewing-time-suggestion:focus-visible { outline: none; background: #eaf5f0; }
+    .dashboard-request-fields input:focus-visible, .dashboard-request-fields select:focus-visible { outline: 2px solid #1aa87a; outline-offset: 2px; }
     .dashboard-request-fields .dashboard-indefinite-move-out { display: flex; align-items: flex-start; gap: .4rem; margin-top: .15rem; color: #61756e; font-size: .68rem; font-weight: 500; line-height: 1.3; }
     .dashboard-request-fields .dashboard-indefinite-move-out input[type="checkbox"] { flex: 0 0 15px; width: 15px; height: 15px; margin: .05rem 0 0; padding: 0; accent-color: #13856a; }
     .dashboard-request-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .9rem; }
@@ -1006,6 +1015,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
       gallery.addEventListener('pointercancel', () => { swipeStartX = null; });
     }
     const form = modal.querySelector('.dashboard-request-form');
+    attachViewingTimeSuggestions(form, 'property-viewing-time');
     const status = modal.querySelector('.dashboard-request-status');
     const moveIn = form.querySelector('[name="moveInDate"]');
     const moveOut = form.querySelector('[name="moveOutDate"]');
@@ -1040,7 +1050,12 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
       }
       const formData = new FormData(form);
       const viewingDate = String(formData.get('viewingDate') ?? '').trim();
-      const viewingTime = String(formData.get('viewingTime') ?? '').trim();
+      const timeInputs = ['hour', 'minute', 'period'].map((part) => form.querySelector(`#property-viewing-time-${part}`));
+      const viewingTime = parseViewingTime(...timeInputs.map((input) => input.value));
+      if (viewingTime === null) {
+        status.textContent = 'Enter an hour, minute, and AM/PM for the viewing time.';
+        return;
+      }
       if (Boolean(viewingDate) !== Boolean(viewingTime)) {
         status.textContent = 'Select both a viewing date and time, or leave both blank.';
         return;
