@@ -137,7 +137,45 @@ export async function renderLogin(root = document.querySelector('#app')) {
   const cornerBrand = root.querySelector('.auth-corner-brand');
   const toggleBox = root.querySelector('.toggle-box');
   let brandAnimationTimer;
+  let mobilePanelTimer;
+  let mobilePendingMode;
   bindOAuthButtons(root);
+
+  const applyMobilePanelMode = (registering) => {
+    const incomingPanel = container.querySelector(
+      registering ? '.toggle-panel.toggle-right' : '.toggle-panel.toggle-left',
+    );
+    if (!incomingPanel) throw new Error('Mobile auth panel is missing.');
+    incomingPanel.classList.add('mobile-arriving');
+    container.classList.toggle('active', registering);
+  };
+
+  container.addEventListener('animationend', (event) => {
+    if (
+      event.target instanceof HTMLElement
+      && event.target.classList.contains('mobile-arriving')
+      && event.animationName === 'mobile-auth-welcome-enter-down'
+    ) {
+      event.target.classList.remove('mobile-arriving');
+      return;
+    }
+    if (event.target !== container || event.pseudoElement !== '::before') return;
+    if (!event.animationName.startsWith('mobile-auth-wipe-')) return;
+    window.clearTimeout(mobilePanelTimer);
+    mobilePanelTimer = undefined;
+    if (mobilePendingMode !== undefined) {
+      applyMobilePanelMode(mobilePendingMode);
+      mobilePendingMode = undefined;
+    }
+    container.querySelector('.toggle-panel.mobile-exiting')?.classList.remove('mobile-exiting');
+    container.classList.remove('mobile-switching');
+    container.style.removeProperty('--mobile-wipe-height');
+    container.style.removeProperty('--mobile-wipe-cover-height');
+    container.style.removeProperty('--mobile-wipe-start-color');
+    container.style.removeProperty('--mobile-wipe-end-color');
+    container.style.removeProperty('--mobile-wipe-return-duration');
+    animateAuthBrand();
+  });
 
   const revealCornerBrand = () => {
     if (!cornerBrand) return;
@@ -145,6 +183,14 @@ export async function renderLogin(root = document.querySelector('#app')) {
     if (container.classList.contains('active')) return;
     void cornerBrand.offsetWidth;
     cornerBrand.classList.add('auth-corner-brand--revealing');
+  };
+
+  const animateAuthBrand = () => {
+    if (!authBrand) return;
+    authBrand.classList.remove('auth-brand--animate', 'auth-brand--transitioning');
+    void authBrand.offsetWidth;
+    authBrand.classList.add('auth-brand--animate');
+    authBrand.classList.remove('auth-brand--mobile-hidden');
   };
 
   if (authBrand && brandName && toggleBox) {
@@ -175,13 +221,54 @@ export async function renderLogin(root = document.querySelector('#app')) {
   }
 
   const setPanelMode = (registering) => {
+    if (container.classList.contains('mobile-switching')) return;
     if (container.classList.contains('active') === registering) return;
-    authBrand?.classList.remove('auth-brand--animate');
-    authBrand?.classList.add('auth-brand--transitioning');
-    cornerBrand?.classList.remove('auth-corner-brand--revealing');
-    cornerBrand?.classList.add('auth-corner-brand--transitioning');
-    container.classList.toggle('active', registering);
-    if (!authBrand || !toggleBox) return;
+    const isMobile = window.matchMedia('(max-width: 800px)').matches;
+    if (isMobile) {
+      authBrand?.classList.remove('auth-brand--animate', 'auth-brand--transitioning');
+      cornerBrand?.classList.remove('auth-corner-brand--revealing', 'auth-corner-brand--transitioning');
+      const activePanel = container.querySelector(
+        container.classList.contains('active') ? '.toggle-panel.toggle-right' : '.toggle-panel.toggle-left',
+      );
+      if (!activePanel) throw new Error('Mobile auth panel is missing.');
+      const currentMode = container.classList.contains('active');
+      const currentLayoutHeight = container.scrollHeight;
+      const primaryColor = getComputedStyle(container).getPropertyValue('--dormhive-primary').trim();
+      const primaryDarkColor = getComputedStyle(container).getPropertyValue('--dormhive-primary-dark').trim();
+      container.style.setProperty('--mobile-wipe-start-color', currentMode ? primaryDarkColor : primaryColor);
+      container.style.setProperty('--mobile-wipe-end-color', registering ? primaryDarkColor : primaryColor);
+      container.classList.toggle('active', registering);
+      const destinationHeight = container.scrollHeight;
+      container.classList.toggle('active', currentMode);
+      const coverHeight = Math.max(currentLayoutHeight, destinationHeight, window.innerHeight) + 144;
+      authBrand?.classList.add('auth-brand--mobile-hidden');
+      activePanel.classList.add('mobile-exiting');
+      container.style.setProperty('--mobile-wipe-height', `${activePanel.getBoundingClientRect().height}px`);
+      container.style.setProperty('--mobile-wipe-cover-height', `${coverHeight}px`);
+      container.classList.add('mobile-switching');
+      mobilePendingMode = registering;
+      const wipeDuration = getComputedStyle(container, '::before').animationDuration
+        .split(',')[0]
+        .trim();
+      const wipeDurationMs = parseFloat(wipeDuration) * (wipeDuration.endsWith('ms') ? 1 : 1000);
+      container.style.setProperty('--mobile-wipe-return-duration', `${wipeDurationMs * 0.18}ms`);
+      mobilePanelTimer = window.setTimeout(
+        () => {
+          applyMobilePanelMode(mobilePendingMode);
+          mobilePendingMode = undefined;
+          mobilePanelTimer = undefined;
+        },
+        wipeDurationMs * 0.82,
+      );
+    } else {
+      authBrand?.classList.remove('auth-brand--animate');
+      authBrand?.classList.add('auth-brand--transitioning');
+      cornerBrand?.classList.remove('auth-corner-brand--revealing');
+      cornerBrand?.classList.add('auth-corner-brand--transitioning');
+      container.classList.remove('mobile-switching');
+      container.classList.toggle('active', registering);
+    }
+    if (isMobile || !authBrand || !toggleBox) return;
 
     const transitionDuration = getComputedStyle(toggleBox, '::before').transitionDuration
       .split(',')
