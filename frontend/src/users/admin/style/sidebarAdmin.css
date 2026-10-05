@@ -307,10 +307,58 @@
     left: 0;
     top: 0;
     width: 248px;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    padding: 14px 14px calc(10px + env(safe-area-inset-bottom));
     transform: translateX(-105%);
     transition: transform 0.2s ease;
     z-index: 6;
-    width: 248px;
+  }
+
+  .admin-shell > .admin-nav .admin-logo,
+  .admin-shell > .admin-nav .nav-item,
+  .admin-shell > .admin-nav .privacy-toggle,
+  .admin-shell > .admin-nav .logout {
+    flex-shrink: 0;
+  }
+
+  .admin-shell > .admin-nav .admin-logo {
+    margin-bottom: 0.65rem;
+  }
+
+  .admin-shell > .admin-nav .nav-item {
+    min-height: 42px;
+    padding-block: 0.4rem;
+  }
+
+  .admin-shell > .admin-nav .privacy-toggle,
+  .admin-shell > .admin-nav .logout {
+    min-height: 38px;
+    padding-block: 0.5rem;
+  }
+
+  @media (max-height: 600px) {
+    .admin-shell > .admin-nav {
+      gap: 0.12rem;
+      padding-top: 10px;
+      padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    }
+
+    .admin-shell > .admin-nav .admin-logo {
+      margin-bottom: 0.35rem;
+    }
+
+    .admin-shell > .admin-nav .nav-item {
+      min-height: 38px;
+      padding-block: 0.3rem;
+    }
+
+    .admin-shell > .admin-nav .privacy-toggle,
+    .admin-shell > .admin-nav .logout {
+      min-height: 34px;
+      padding-block: 0.35rem;
+    }
   }
 
   .admin-shell.nav-open > .admin-nav {
