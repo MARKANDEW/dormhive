@@ -109,6 +109,10 @@ export async function renderMessage(root = document.querySelector('#app')) {
       </div>
     </div>`;
 
+  const mobileMenu = root.querySelector('.owner-mobile-menu');
+  const chatsTitle = root.querySelector('.sidebar-title-row h1');
+  if (mobileMenu && chatsTitle) chatsTitle.before(mobileMenu);
+
   const state = { conversations: [], selected: null, properties: [], bookings: [], filter: 'all', sending: false };
   const list = root.querySelector('.conversation-list');
   const messages = root.querySelector('.messages');
@@ -459,4 +463,3 @@ export async function renderMessage(root = document.querySelector('#app')) {
 
   load();
 }
-

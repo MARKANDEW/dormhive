@@ -300,7 +300,13 @@ input {
 
 @media (max-width: 880px) {
   .owner-main.owner-settings {
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
     padding: 1.5rem;
+    -webkit-overflow-scrolling: touch;
   }
 
   .settings-card {

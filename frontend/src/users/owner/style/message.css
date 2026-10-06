@@ -841,6 +841,16 @@ body {
   .inbox-layout {
     grid-template-columns: 1fr;
   }
+  .sidebar-title-row {
+    justify-content: flex-start;
+  }
+  .sidebar-title-row > .owner-mobile-menu {
+    position: static;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    margin: 0;
+  }
   .inbox-sidebar {
     border-right: 0;
     border-bottom: 1px solid #dce7e2;

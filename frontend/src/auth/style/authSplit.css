@@ -512,8 +512,10 @@ form {
 }
 
 .toggle-panel.toggle-left > .btn {
-  margin-left: 11rem;
-  margin-right: auto;
+  align-self: flex-start;
+  width: min(160px, 100%);
+  margin-left: max(0px, calc((100% - 360px) / 2));
+  margin-right: 0;
 }
 
 .toggle-panel.toggle-left .welcome-kicker {
