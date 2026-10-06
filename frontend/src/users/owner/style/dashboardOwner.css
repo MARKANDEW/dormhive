@@ -1183,7 +1183,109 @@ a {
 
 @media (max-width: 700px) {
   .owner-dashboard {
-    padding: 1rem;
+    padding: calc(62px + 1rem) 1rem 1rem;
+  }
+
+  .dashboard-tools {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 15;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 62px;
+    padding: 0 12px 0 16px;
+    gap: 0.5rem;
+    background: #159879;
+    color: #fff;
+  }
+
+  .dashboard-tools .menu {
+    display: grid;
+    flex: 0 0 36px;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #fff;
+    font-size: 1.45rem;
+  }
+
+  .dashboard-tools .topbar-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 0 1 auto;
+    width: auto;
+    min-width: 0;
+    margin: 0 0 0 auto;
+    gap: 4px;
+  }
+
+  .dashboard-tools .top-icon.notification-trigger {
+    width: 37px;
+    height: 37px;
+    border-radius: 8px;
+    background: transparent;
+    color: #fff;
+  }
+
+  .dashboard-tools .notification-trigger > span:first-child {
+    filter: grayscale(1) brightness(0) invert(1);
+  }
+
+  .dashboard-tools .notification-dropdown {
+    position: fixed;
+    top: 4.5rem;
+    right: 0.5rem;
+    width: min(21rem, calc(100vw - 1rem));
+  }
+
+  .dashboard-tools .profile-identity {
+    flex: 0 1 auto;
+    width: auto;
+    min-width: 0;
+    padding: 2px 5px;
+    background: transparent;
+    color: #fff;
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .dashboard-tools .profile-identity .avatar {
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    border: 2px solid #fff;
+  }
+
+  .dashboard-tools .profile-identity > div:last-child {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .dashboard-tools .profile-identity strong,
+  .dashboard-tools .profile-identity span {
+    display: block;
+    max-width: clamp(4rem, 24vw, 7rem);
+    overflow: hidden;
+    color: #fff;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .dashboard-tools .profile-identity strong {
+    font-size: 0.75rem;
+  }
+
+  .dashboard-tools .profile-identity span {
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.62rem;
   }
 
   .dashboard-greeting--with-tools {
@@ -1195,11 +1297,12 @@ a {
   }
 
   .dashboard-tools {
-    align-items: stretch;
+    align-items: center;
   }
 
   .dashboard-tools .topbar-right {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
+    gap: 4px;
   }
 
   .panel-title-row {
@@ -1208,6 +1311,12 @@ a {
 
   .panel-title-row h2 {
     flex: 1 1 10rem;
+  }
+
+  .panel-title-row a {
+    flex: 1 0 100%;
+    width: 100%;
+    text-align: left;
   }
 
   .panel-button {
@@ -1237,10 +1346,9 @@ a {
   }
 
   .dashboard-tools .profile-identity {
-    flex: 1;
-
+    flex: 0 1 auto;
+    width: auto;
     min-width: 0;
-
     justify-content: flex-start;
   }
 
@@ -1255,8 +1363,27 @@ a {
     text-overflow: ellipsis;
   }
 
-  .metrics-grid {
-    grid-template-columns: 1fr;
+  .owner-dashboard .metrics-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .owner-dashboard .metric-card {
+    padding: 0.7rem;
+  }
+
+  .owner-dashboard .metric-card p {
+    font-size: 0.68rem;
+    line-height: 1.25;
+  }
+
+  .owner-dashboard .metric-card strong {
+    font-size: 1.1rem;
+  }
+
+  .owner-dashboard .metric-card span {
+    font-size: 0.62rem;
+    line-height: 1.25;
   }
 
   .overview-grid,
@@ -1291,6 +1418,10 @@ a {
   .map-frame-wrap iframe {
     height: 16rem;
   }
+
+  .dashboard-tools {
+    align-items: center;
+  }
 }
 
 /* =========================
@@ -1299,21 +1430,21 @@ a {
 
 @media (max-width: 480px) {
   .owner-dashboard {
-    padding: 0.75rem;
+    padding: calc(62px + 0.75rem) 0.75rem 0.75rem;
   }
 
   .dashboard-tools .topbar-right {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    flex: 0 1 auto;
+    width: auto;
+    margin-left: auto;
+    gap: 4px;
   }
 
   .dashboard-tools .profile-identity {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .dashboard-tools .topbar-right {
-    width: 100%;
-    margin-left: 0;
+    flex: 0 1 auto;
+    width: auto;
+    justify-content: flex-start;
   }
 
   .notification-dropdown {
@@ -1328,7 +1459,6 @@ a {
     gap: 0.65rem;
   }
 
-  .panel-title-row a,
   .panel-button {
     width: 100%;
     text-align: center;
@@ -1350,12 +1480,24 @@ a {
     padding: 0.4rem;
   }
 
-  .metric-card {
-    padding: 0.85rem;
+  .owner-dashboard .metrics-grid {
+    gap: 0.35rem;
   }
 
-  .metric-card strong {
-    font-size: 1.3rem;
+  .owner-dashboard .metric-card {
+    padding: 0.55rem;
+  }
+
+  .owner-dashboard .metric-card p {
+    font-size: 0.62rem;
+  }
+
+  .owner-dashboard .metric-card strong {
+    font-size: 0.95rem;
+  }
+
+  .owner-dashboard .metric-card span {
+    font-size: 0.56rem;
   }
 
   .listing-actions {
