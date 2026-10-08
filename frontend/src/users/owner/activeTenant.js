@@ -27,7 +27,7 @@ function renderTenantAvatar(entry) {
 
 function css() {
   const stylesheet = new URL('./style/activeTenant.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'mobile-tenant-cards-3');
+  stylesheet.searchParams.set('v', 'mobile-tenant-header-scroll-2');
   return loadOwnerStylesheet('tenants', stylesheet);
 }
 
@@ -122,6 +122,10 @@ export async function renderActiveTenant(root = document.querySelector('#app')) 
       </div>
     </div>`;
 
+  const menuButton = root.querySelector('.owner-mobile-menu');
+  const pageHead = root.querySelector('.tenants-page .page-head');
+  if (menuButton && pageHead) pageHead.prepend(menuButton);
+
   const tbody = root.querySelector('.tenant-table-body');
   const searchInput = root.querySelector('#tenant-search');
   const countBadge = root.querySelector('#tenant-count');
@@ -171,7 +175,7 @@ export async function renderActiveTenant(root = document.querySelector('#app')) 
             </div>
           </td>
         </tr>`;
-    }).join('') || '<tr><td colspan="5" class="empty">No active tenants matched your search.</td></tr>';
+    }).join('') || '<tr class="empty-row"><td colspan="5" class="empty">No active tenants matched your search.</td></tr>';
     if (countBadge) countBadge.textContent = String(rows.length);
   };
 

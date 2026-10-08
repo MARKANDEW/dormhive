@@ -1666,6 +1666,7 @@ body {
 @media (max-width: 680px) {
   .portfolio-page {
     min-height: 100dvh;
+    overflow-x: clip;
     background: #f2f6f7;
   }
 

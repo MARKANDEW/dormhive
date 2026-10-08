@@ -135,7 +135,7 @@ function showPropertyPhotoViewer(property) {
 
 function css() {
   const stylesheet = new URL('./style/myListing.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'mobile-filter-clarity-6');
+  stylesheet.searchParams.set('v', 'mobile-no-horizontal-scroll-1');
   return loadOwnerStylesheet('listings', stylesheet);
 }
 

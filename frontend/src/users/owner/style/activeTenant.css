@@ -185,21 +185,21 @@ body {
   border-radius: 1rem;
   background: #fff;
 }
-.table-wrap {
+.tenants-page .table-wrap {
   overflow: auto;
 }
-.table-wrap table {
+.tenants-page .table-wrap table {
   width: 100%;
   border-collapse: collapse;
 }
-.table-wrap th,
-.table-wrap td {
+.tenants-page .table-wrap th,
+.tenants-page .table-wrap td {
   padding: 1rem 0.9rem;
   border-bottom: 1px solid #e7efea;
   text-align: left;
   vertical-align: middle;
 }
-.table-wrap th {
+.tenants-page .table-wrap th {
   background: #f7faf8;
   color: #5c7268;
   font-size: 0.78rem;
@@ -302,10 +302,13 @@ body {
 
   .tenants-page {
     min-height: 100dvh;
+    min-width: 0;
+    overflow-x: clip;
     padding: max(16px, env(safe-area-inset-top)) 16px 32px;
   }
 
   .page-head {
+    position: relative;
     gap: 16px;
     margin-bottom: 16px;
   }
@@ -318,11 +321,11 @@ body {
     padding-left: 58px;
   }
 
-  .owner-shell > .owner-mobile-menu {
-    position: fixed !important;
-    top: max(16px, env(safe-area-inset-top));
+  .page-head > .owner-mobile-menu {
+    position: absolute !important;
+    top: 0;
     right: auto;
-    left: 16px;
+    left: 0;
     z-index: 13;
     width: 48px;
     height: 48px;
@@ -422,26 +425,26 @@ body {
     background: transparent;
   }
 
-  .table-wrap {
+  .tenants-page .table-wrap {
     overflow: visible;
   }
 
-  .table-wrap table,
-  .table-wrap tbody {
+  .tenants-page .table-wrap table,
+  .tenants-page .table-wrap tbody {
     display: block;
     width: 100%;
   }
 
-  .table-wrap thead {
+  .tenants-page .table-wrap thead {
     display: none;
   }
 
-  .table-wrap tbody {
+  .tenants-page .table-wrap tbody {
     display: grid;
     gap: 16px;
   }
 
-  .table-wrap tbody tr {
+  .tenants-page .table-wrap tbody tr {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     min-width: 0;
@@ -452,14 +455,14 @@ body {
     box-shadow: 0 7px 22px rgba(22, 48, 71, 0.055);
   }
 
-  .table-wrap tbody td {
+  .tenants-page .table-wrap tbody td {
     min-width: 0;
     padding: 10px 0;
     border: 0;
     text-align: left;
   }
 
-  .table-wrap tbody td.tenant-name-cell {
+  .tenants-page .table-wrap tbody td.tenant-name-cell {
     padding: 0 0 14px;
     border-bottom: 1px solid #e5edf0;
   }
@@ -504,8 +507,8 @@ body {
     display: none;
   }
 
-  .table-wrap tbody td.tenant-property-cell,
-  .table-wrap tbody td.tenant-lease-cell {
+  .tenants-page .table-wrap tbody td.tenant-property-cell,
+  .tenants-page .table-wrap tbody td.tenant-lease-cell {
     display: grid;
     grid-template-columns: minmax(110px, 0.9fr) minmax(0, 1.1fr);
     align-items: center;
@@ -513,7 +516,7 @@ body {
     padding: 8px 0 2px;
   }
 
-  .table-wrap tbody td.tenant-property-cell {
+  .tenants-page .table-wrap tbody td.tenant-property-cell {
     display: block;
   }
 
@@ -555,7 +558,7 @@ body {
     overflow-wrap: anywhere;
   }
 
-  .table-wrap tbody td.tenant-actions-cell {
+  .tenants-page .table-wrap tbody td.tenant-actions-cell {
     padding: 16px 0 0;
   }
 
@@ -587,12 +590,22 @@ body {
     font-size: 1.25rem;
   }
 
-  .table-wrap tbody td.empty,
-  .table-wrap tbody td.status {
+  .tenants-page .table-wrap tbody td.empty,
+  .tenants-page .table-wrap tbody td.status {
     display: block;
+    min-width: 0;
+    max-width: 100%;
     padding: 20px 12px;
     border: 0;
     color: #65776f;
     text-align: center;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .tenants-page .table-wrap tbody tr.empty-row {
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+    width: 100%;
   }
 }

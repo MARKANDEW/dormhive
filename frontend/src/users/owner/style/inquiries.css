@@ -1055,7 +1055,7 @@ textarea {
   }
 
   .owner-shell > .owner-mobile-menu {
-    position: absolute !important;
+    position: fixed !important;
     top: max(27px, calc(env(safe-area-inset-top) + 11px));
     right: auto;
     left: 16px;

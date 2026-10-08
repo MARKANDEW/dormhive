@@ -23,7 +23,7 @@ const renderAvatarMarkup = () => '';
 
 function css() {
   const stylesheet = new URL('./style/inquiries.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'mobile-filter-fit-5');
+  stylesheet.searchParams.set('v', 'mobile-menu-fixed-scroll-1');
   return loadOwnerStylesheet('inquiries', stylesheet);
 }
 
