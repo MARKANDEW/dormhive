@@ -22,7 +22,9 @@ const renderTenantAvatar = (name = 'Tenant', image = '') => {
 const renderAvatarMarkup = () => '';
 
 function css() {
-  return loadOwnerStylesheet('inquiries', new URL('./style/inquiries.css', import.meta.url));
+  const stylesheet = new URL('./style/inquiries.css', import.meta.url);
+  stylesheet.searchParams.set('v', 'mobile-filter-fit-5');
+  return loadOwnerStylesheet('inquiries', stylesheet);
 }
 
 const statusInfo = (status) => {
@@ -63,8 +65,10 @@ export async function renderInquiries(root = document.querySelector('#app')) {
         <main class="inquiries-page">
           <section class="inquiries-board">
             <div class="inquiries-header">
-              <p class="page-kicker">INQUIRIES</p>
-              <h1>Inquiries</h1>
+              <div class="inquiries-heading-copy">
+                <p class="page-kicker">OWNER PORTFOLIO</p>
+                <h1>Inquiries</h1>
+              </div>
               <p class="page-subtitle">Manage tenant inquiries, respond to prospective tenants, and track their status.</p>
             </div>
 

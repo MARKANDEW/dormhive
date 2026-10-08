@@ -327,3 +327,37 @@ input {
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 680px) {
+  .owner-main.owner-settings {
+    padding: 1rem 12px 1.5rem;
+  }
+
+  .settings-card {
+    margin: 0 auto 1.5rem;
+    padding: 1.4rem 1rem;
+  }
+
+  .settings-header {
+    display: flex;
+    min-height: 48px;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1.25rem;
+  }
+
+  .settings-header h1 {
+    min-width: 0;
+    margin: 0;
+    font-size: clamp(1.25rem, 5.5vw, 1.7rem);
+    line-height: 1.1;
+    overflow-wrap: anywhere;
+  }
+
+  .settings-header > .owner-mobile-menu {
+    position: static !important;
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+  }
+}

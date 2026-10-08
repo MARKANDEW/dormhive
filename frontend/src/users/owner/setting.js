@@ -21,7 +21,9 @@ function resolveImageUrl(value = '') {
 }
 
 function css() {
-  return loadOwnerStylesheet('setting', new URL('./style/setting.css', import.meta.url));
+  const stylesheet = new URL('./style/setting.css', import.meta.url);
+  stylesheet.searchParams.set('v', 'mobile-header-inline-4');
+  return loadOwnerStylesheet('setting', stylesheet);
 }
 
 function buildAvatarSvg() {
@@ -123,6 +125,10 @@ export async function renderSetting(root = document.querySelector('#app')) {
         </div>
       </main>
     </div>`;
+
+  const menuButton = root.querySelector('.owner-mobile-menu');
+  const settingsHeader = root.querySelector('.settings-header');
+  if (menuButton && settingsHeader) settingsHeader.prepend(menuButton);
 
   const profileForm = root.querySelector('form[data-form="profile"]');
   const securityForm = root.querySelector('form[data-form="security"]');
@@ -374,4 +380,3 @@ export async function renderSetting(root = document.querySelector('#app')) {
   syncAvatarDisplay(user.avatar_url || '');
   await updateListingCountsInSidebar();
 }
-

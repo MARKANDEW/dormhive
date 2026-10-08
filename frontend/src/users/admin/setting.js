@@ -6,7 +6,9 @@ const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const BACKEND_BASE = API.replace(/\/api\/v1$/, '');
 
 function css() {
-  return loadAdminStylesheet('settings', new URL('./style/setting.css', import.meta.url));
+  const stylesheet = new URL('./style/setting.css', import.meta.url);
+  stylesheet.searchParams.set('v', 'mobile-settings-header-inline-1');
+  return loadAdminStylesheet('settings', stylesheet);
 }
 
 function displayNotice(element, text, state = 'error') {
@@ -132,6 +134,10 @@ export async function renderSetting(root = document.querySelector('#app')) {
         </main>
       </div>
     </div>`;
+
+  const menuButton = root.querySelector('.admin-mobile-menu');
+  const settingsHeader = root.querySelector('.settings-header');
+  if (menuButton && settingsHeader) settingsHeader.prepend(menuButton);
 
   const tabs = [...root.querySelectorAll('.tab')];
   const profileView = root.querySelector('.profile-view');

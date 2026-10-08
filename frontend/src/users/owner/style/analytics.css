@@ -248,6 +248,11 @@ body {
   white-space: nowrap;
 }
 @media (max-width: 800px) {
+  .owner-shell > .owner-mobile-menu {
+    right: auto;
+    left: 16px;
+  }
+
   .analytics-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -257,8 +262,24 @@ body {
 }
 @media (max-width: 550px) {
   .analytics-page > section {
+    position: relative;
     margin: 0;
     padding: 1.5rem 16px;
+  }
+  .analytics-page > section > .eyebrow,
+  .analytics-page > section > h1 {
+    margin-left: 60px;
+  }
+  .analytics-page > section > h1 {
+    font-size: clamp(1.35rem, 5.5vw, 1.75rem);
+  }
+  .analytics-page > section > .owner-mobile-menu {
+    position: absolute !important;
+    top: max(22px, calc(env(safe-area-inset-top) + 6px));
+    right: auto;
+    left: 16px;
+    width: 48px;
+    height: 48px;
   }
   .analytics-grid {
     grid-template-columns: 1fr 1fr;

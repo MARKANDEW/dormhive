@@ -498,6 +498,14 @@
   .owner-shell.nav-open > .owner-sidebar {
     transform: none !important;
   }
+  .owner-shell.nav-open > .owner-sidebar .owner-brand > span:last-child {
+    width: auto;
+  }
+  .owner-shell.nav-open > .owner-sidebar .owner-brand {
+    justify-content: flex-start;
+    gap: 12px;
+    margin-left: 5px;
+  }
   .owner-shell > .owner-sidebar .owner-brand > span:last-child,
   .owner-shell > .owner-sidebar .nav-copy,
   .owner-shell > .owner-sidebar .owner-support-notice,

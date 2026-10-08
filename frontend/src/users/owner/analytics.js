@@ -6,7 +6,9 @@ const current = () => JSON.parse(localStorage.getItem('dormhive.user') ?? '{}');
 const escapeHtml = (value = '') => { const element = document.createElement('span'); element.textContent = value; return element.innerHTML; };
 
 function css() {
-  return loadOwnerStylesheet('analytics', new URL('./style/analytics.css', import.meta.url));
+  const stylesheet = new URL('./style/analytics.css', import.meta.url);
+  stylesheet.searchParams.set('v', 'mobile-menu-heading-scroll-1');
+  return loadOwnerStylesheet('analytics', stylesheet);
 }
 
 export async function renderAnalytics(root = document.querySelector('#app')) {
@@ -52,6 +54,10 @@ export async function renderAnalytics(root = document.querySelector('#app')) {
         </main>
       </div>
     </div>`;
+
+  const menuButton = root.querySelector('.owner-mobile-menu');
+  const analyticsSection = root.querySelector('.analytics-page > section');
+  if (menuButton && analyticsSection) analyticsSection.prepend(menuButton);
 
   Promise.all([
     fetch(`${API}/properties?limit=100`, { headers: auth() }),
@@ -115,4 +121,3 @@ export async function renderAnalytics(root = document.querySelector('#app')) {
     location.assign('#/login');
   });
 }
-

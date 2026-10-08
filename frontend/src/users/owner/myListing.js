@@ -134,7 +134,9 @@ function showPropertyPhotoViewer(property) {
 }
 
 function css() {
-  return loadOwnerStylesheet('listings', new URL('./style/myListing.css', import.meta.url));
+  const stylesheet = new URL('./style/myListing.css', import.meta.url);
+  stylesheet.searchParams.set('v', 'mobile-filter-clarity-6');
+  return loadOwnerStylesheet('listings', stylesheet);
 }
 
 export async function renderMyListing(root = document.querySelector('#app')) {
@@ -151,7 +153,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
         <main class="portfolio-page">
           <section class="portfolio-content">
             <div class="portfolio-headline">
-              <div>
+              <div class="portfolio-headline-copy">
                 <p class="eyebrow">OWNER PORTFOLIO</p>
                 <h1>My Property Portfolio</h1>
               </div>
@@ -159,7 +161,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
 
             <div class="portfolio-toolbar">
               <label class="property-search">
-                <span>⌕</span>
+                <span aria-hidden="true"><i class="bi bi-search" aria-hidden="true"></i></span>
                 <input type="search" placeholder="Search property" />
               </label>
               <label class="property-filter">
@@ -961,17 +963,17 @@ export async function renderMyListing(root = document.querySelector('#app')) {
           <td>${image ? `<img class="property-thumb" data-property-id="${escape(String(item.id ?? ''))}" src="${escape(image)}" alt="${escape(item.title || 'Property photo')}" />` : '<div class="thumb-placeholder"></div>'}</td>
           <td>
             <strong>${titleText}</strong><br />
-            <small>${escape([item.address, item.municipality, item.barangay].filter(Boolean).join(', ') || 'No address provided')}</small>
+            <small><i class="bi bi-geo-alt-fill property-address-icon" aria-hidden="true"></i> ${escape([item.address, item.municipality, item.barangay].filter(Boolean).join(', ') || 'No address provided')}</small>
           </td>
           <td>${renderAmenitiesChips(item) || '<span class="empty-amenity">None</span>'}</td>
-          <td>₱${Number(item.monthly_rent ?? 0).toLocaleString()}/mo</td>
-          <td>
+          <td data-label="Current Rent (PHP)">₱${Number(item.monthly_rent ?? 0).toLocaleString()}/mo</td>
+          <td data-label="Occupancy Rate">
             <div class="occupancy-cell">
               <div class="progress-track"><span data-rate="${occupancy.rate}"></span></div>
               <small>${escape(occupancy.label)}</small>
             </div>
           </td>
-          <td>${inquiryCount} ${inquiryCount === 1 ? 'inquiry' : 'inquiries'}</td>
+          <td data-label="Active Inquiries"><span class="inquiry-count"><i class="bi bi-chat-dots" aria-hidden="true"></i>${inquiryCount} ${inquiryCount === 1 ? 'inquiry' : 'inquiries'}</span></td>
           <td>
             <div class="property-row-actions">
               <div class="property-inline-actions">

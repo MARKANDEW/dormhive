@@ -183,7 +183,9 @@ export function loadOwnerStylesheet(name, href) {
 
 export function ensureOwnerSidebarStyles() {
   document.querySelectorAll('link[data-dormhive-auth="split"]').forEach((node) => node.remove());
-  return loadOwnerStylesheet('shared', new URL('./style/sidebarOwner.css', import.meta.url));
+  const stylesheet = new URL('./style/sidebarOwner.css', import.meta.url);
+  stylesheet.searchParams.set('v', 'mobile-sidebar-brand-label-2');
+  return loadOwnerStylesheet('shared', stylesheet);
 }
 
 export function renderOwnerSidebar(active = 'dashboardOwner') {

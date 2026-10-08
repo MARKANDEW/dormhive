@@ -26,7 +26,9 @@ function renderTenantAvatar(entry) {
 }
 
 function css() {
-  return loadOwnerStylesheet('tenants', new URL('./style/activeTenant.css', import.meta.url));
+  const stylesheet = new URL('./style/activeTenant.css', import.meta.url);
+  stylesheet.searchParams.set('v', 'mobile-tenant-cards-3');
+  return loadOwnerStylesheet('tenants', stylesheet);
 }
 
 function tenantStatus(entry) {
@@ -45,6 +47,11 @@ function unitLabel(entry) {
   return entry.unit || entry.property_title || 'Unit Unassigned';
 }
 
+function unitNumber(entry) {
+  const unit = entry.unit || entry.unit_number || entry.room_number || entry.unit_name || '';
+  return unit && unit !== entry.property_title ? unit : '—';
+}
+
 function formatLeaseEnd(entry) {
   if (entry.is_indefinite_move_out === true || Number(entry.is_indefinite_move_out) === 1) return 'Indefinite';
   const raw = entry.move_out_date ?? null;
@@ -59,7 +66,7 @@ function normalizeTenantEntry(entry = {}) {
     ...entry,
     tenant_name: tenantName,
     property_title: entry.property_title || entry.title || 'Property',
-    unit: entry.unit || entry.property_title || 'Unit Unassigned'
+    unit: entry.unit || entry.unit_number || entry.room_number || entry.unit_name || ''
   };
 }
 
@@ -78,8 +85,11 @@ export async function renderActiveTenant(root = document.querySelector('#app')) 
               <h1>Active Tenants</h1>
             </div>
             <article class="summary-card">
-              <span>Total Active Tenants</span>
-              <strong id="tenant-count">0</strong>
+              <span class="summary-icon" aria-hidden="true"><i class="bi bi-people"></i></span>
+              <div class="summary-copy">
+                <span class="summary-label">Total Active Tenants</span>
+                <strong id="tenant-count">0</strong>
+              </div>
             </article>
           </section>
 
@@ -129,19 +139,35 @@ export async function renderActiveTenant(root = document.querySelector('#app')) 
       const { label, className } = tenantStatus(entry);
       return `
         <tr data-booking-id="${esc(String(entry.id ?? ''))}">
-          <td>
+          <td class="tenant-name-cell">
             <div class="tenant-cell">
-                        <span class="tenant-avatar">${renderTenantAvatar(entry)}</span>
-              <span>${esc(entry.tenant_name || 'Tenant')}</span>
+              <span class="tenant-avatar">${renderTenantAvatar(entry)}</span>
+              <span class="tenant-name-copy">
+                <strong>${esc(entry.tenant_name || 'Tenant')}</strong>
+                <span class="mobile-status status-pill ${className}">${esc(label)}</span>
+              </span>
             </div>
           </td>
-          <td>${esc(unitLabel(entry))}</td>
-          <td><span class="status-pill ${className}">${esc(label)}</span></td>
-          <td>${esc(formatLeaseEnd(entry))}</td>
-          <td>
+          <td class="tenant-property-cell">
+            <span class="desktop-data-value">${esc(unitLabel(entry))}</span>
+            <span class="mobile-field">
+              <span class="mobile-data-label"><i class="bi bi-house-door" aria-hidden="true"></i> Property</span>
+              <span class="mobile-data-value">${esc(entry.property_title || 'Property')}</span>
+            </span>
+            <span class="mobile-field">
+              <span class="mobile-data-label"><i class="bi bi-door-closed" aria-hidden="true"></i> Unit</span>
+              <span class="mobile-data-value">${esc(unitNumber(entry))}</span>
+            </span>
+          </td>
+          <td class="tenant-status-cell"><span class="status-pill ${className}">${esc(label)}</span></td>
+          <td class="tenant-lease-cell">
+            <span class="mobile-data-label"><i class="bi bi-calendar3" aria-hidden="true"></i> Lease End Date</span>
+            <span class="mobile-data-value">${esc(formatLeaseEnd(entry))}</span>
+          </td>
+          <td class="tenant-actions-cell">
             <div class="action-group">
-              <button type="button" data-action="message" data-booking-id="${esc(String(entry.id ?? ''))}">Message</button>
-              <button type="button" data-action="lease" data-booking-id="${esc(String(entry.id ?? ''))}">View Lease</button>
+              <button type="button" data-action="message" data-booking-id="${esc(String(entry.id ?? ''))}"><i class="bi bi-chat-dots mobile-action-icon" aria-hidden="true"></i>Message</button>
+              <button type="button" data-action="lease" data-booking-id="${esc(String(entry.id ?? ''))}"><i class="bi bi-eye mobile-action-icon" aria-hidden="true"></i>View Lease</button>
             </div>
           </td>
         </tr>`;
@@ -237,4 +263,3 @@ export async function renderActiveTenant(root = document.querySelector('#app')) 
     location.assign('#/login');
   });
 }
-

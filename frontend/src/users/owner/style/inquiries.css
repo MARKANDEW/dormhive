@@ -150,7 +150,7 @@ textarea {
   color: #fff;
 }
 
-.property-filter {
+.inquiries-page .property-filter {
   position: relative;
   display: flex;
   align-items: center;
@@ -164,7 +164,7 @@ textarea {
   flex-shrink: 0;
 }
 
-.property-filter::after {
+.inquiries-page .property-filter::after {
   width: 7px;
   height: 7px;
   border-right: 2px solid currentColor;
@@ -175,7 +175,7 @@ textarea {
   transform: rotate(45deg) translateY(-2px);
 }
 
-.property-filter select {
+.inquiries-page .property-filter select {
   border: 0;
   outline: none;
   background: transparent;
@@ -976,6 +976,402 @@ textarea {
   }
 }
 
+@media (min-width: 721px) and (max-width: 980px) {
+  .inquiries-page::before {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 11;
+    height: 132px;
+    background: rgba(243, 246, 247, 0.97);
+    box-shadow: 0 5px 14px rgba(22, 48, 71, 0.05);
+    content: "";
+    pointer-events: none;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .owner-shell > .owner-mobile-menu {
+    position: fixed !important;
+    top: max(40px, calc(env(safe-area-inset-top) + 24px));
+    right: auto;
+    left: 14px;
+    z-index: 13;
+  }
+
+  .inquiries-heading-copy {
+    position: fixed;
+    top: 32px;
+    right: 24px;
+    left: 76px;
+    z-index: 12;
+  }
+
+  .page-subtitle {
+    position: fixed;
+    top: 99px;
+    right: 24px;
+    left: 76px;
+    z-index: 12;
+  }
+}
+
+@media (max-width: 720px) {
+  .inquiries-board {
+    padding-top: max(16px, env(safe-area-inset-top));
+  }
+
+  .inquiries-page .search-box,
+  .inquiries-page .property-filter {
+    min-height: 0;
+  }
+
+  .inquiries-page .search-box {
+    min-height: 40px;
+  }
+
+  .inquiries-page .property-filter {
+    min-height: 30px;
+  }
+
+  .inquiries-page .filters-row {
+    min-height: 30px;
+    align-items: center;
+  }
+
+  .inquiries-page .list-footer {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+@media (max-width: 720px) {
+  .inquiries-board {
+    padding: max(16px, env(safe-area-inset-top)) 16px 24px;
+  }
+
+  .inquiries-page {
+    min-height: 100dvh;
+    background: #f3f6f7;
+  }
+
+  .owner-shell > .owner-mobile-menu {
+    position: absolute !important;
+    top: max(27px, calc(env(safe-area-inset-top) + 11px));
+    right: auto;
+    left: 16px;
+    z-index: 13;
+    display: grid;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 10px;
+    background: #e8eef1;
+    box-shadow: none;
+    color: #17344f;
+    font-size: 1.35rem;
+  }
+
+  .inquiries-header {
+    position: relative;
+    min-height: 76px;
+    margin: 0 0 14px;
+    padding-left: 48px;
+  }
+
+  .inquiries-heading-copy {
+    position: relative;
+    min-width: 0;
+  }
+
+  .page-kicker {
+    margin: 0;
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+  }
+
+  .inquiries-header h1 {
+    margin: 1px 0 0;
+    color: #17344f;
+    font-size: 1.2rem;
+    line-height: 1.1;
+  }
+
+  .page-subtitle {
+    position: relative;
+    max-width: 340px;
+    margin: 4px 0 0;
+    color: #73869a;
+    font-size: 0.69rem;
+    line-height: 1.35;
+  }
+
+  .inquiries-toolbar {
+    gap: 8px;
+    margin: 0 0 14px;
+  }
+
+  .search-box {
+    min-height: 40px;
+    gap: 8px;
+    padding: 0 11px;
+    border-color: #e2e9ec;
+    border-radius: 11px;
+    box-shadow: 0 2px 8px rgba(22, 48, 71, 0.035);
+  }
+
+  .search-box span {
+    font-size: 0.95rem;
+  }
+
+  .search-box input {
+    font-size: 0.72rem;
+  }
+
+  .search-box input::placeholder {
+    color: #899bad;
+    opacity: 1;
+  }
+
+  .filters-row {
+    justify-content: flex-start;
+    gap: 5px;
+    width: 100%;
+  }
+
+  .filter-pills {
+    flex: 0 0 auto;
+    min-width: 0;
+    gap: 4px;
+  }
+
+  .pill {
+    flex: 0 0 auto;
+    flex-shrink: 0;
+    min-height: 30px;
+    padding: 0 5px;
+    border-color: #edf1f3;
+    font-size: 9px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .inquiries-page .property-filter {
+    flex: 0 0 92px;
+    min-width: 92px;
+    min-height: 30px;
+    gap: 4px;
+    margin-left: auto;
+    padding: 0 7px;
+    border-radius: 9px;
+  }
+
+  .inquiries-page .property-filter select {
+    min-width: 0;
+    max-width: 74px;
+    font-size: 9px;
+  }
+
+  .inquiries-page .property-filter::after {
+    width: 5px;
+    height: 5px;
+  }
+
+  .inquiries-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    margin-top: 0;
+  }
+
+  .list-shell,
+  .detail-shell {
+    width: 100%;
+    max-width: none;
+    border-color: #e8eef0;
+    border-radius: 13px;
+    box-shadow: 0 4px 14px rgba(22, 48, 71, 0.045);
+  }
+
+  .list-shell {
+    padding: 0;
+  }
+
+  .inquiry-table-header,
+  .inquiry-row {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.1fr) minmax(0, 0.9fr) minmax(0, 0.76fr) 28px;
+    gap: 4px;
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+
+  .inquiry-table-header {
+    display: grid;
+    min-height: 32px;
+    padding-top: 0;
+    padding-bottom: 0;
+    font-size: 0.48rem;
+    letter-spacing: 0.035em;
+  }
+
+  .inquiry-row {
+    min-height: 58px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+    gap: 4px;
+  }
+
+  .message-header,
+  .message-cell {
+    display: none;
+  }
+
+  .tenant-cell,
+  .property-cell,
+  .date-cell,
+  .status-cell,
+  .action-cell {
+    min-width: 0;
+    font-size: 0.56rem;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  .tenant-name-group {
+    gap: 4px;
+  }
+
+  .tenant-name-group > span:last-child,
+  .property-cell,
+  .date-stack > span {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .inquiry-avatar {
+    width: 22px;
+    height: 22px;
+    font-size: 0.58rem;
+  }
+
+  .date-stack {
+    gap: 2px;
+    font-size: 0.55rem;
+  }
+
+  .date-stack small {
+    font-size: 0.48rem;
+  }
+
+  .status-cell .badge {
+    gap: 3px;
+    padding: 4px 5px;
+    font-size: 0.5rem;
+  }
+
+  .status-cell .badge::before {
+    width: 5px;
+    height: 5px;
+  }
+
+  .action-cell {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .reply-action {
+    width: 26px;
+    min-height: 26px;
+    border-radius: 7px;
+    transform: none;
+  }
+
+  .list-footer {
+    min-height: 28px;
+    padding: 6px 8px;
+    border-top: 0;
+  }
+
+  .pagination-summary {
+    font-size: 0.52rem;
+  }
+
+  .detail-shell {
+    justify-self: stretch;
+    padding: 12px 11px 10px;
+  }
+
+  .detail-header {
+    margin-bottom: 6px;
+  }
+
+  .detail-kicker {
+    font-size: 0.72rem;
+  }
+
+  .more-menu {
+    font-size: 1.05rem;
+  }
+
+  .detail-person {
+    min-height: 36px;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+
+  .detail-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 0.66rem;
+  }
+
+  .tenant-profile-heading {
+    gap: 7px;
+  }
+
+  .detail-name-wrap strong {
+    font-size: 0.78rem;
+  }
+
+  .detail-person .badge {
+    padding: 4px 6px;
+    font-size: 0.52rem;
+  }
+
+  .detail-person .badge::before {
+    width: 5px;
+    height: 5px;
+  }
+
+  .detail-item {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr);
+    gap: 8px;
+    padding: 6px 0;
+  }
+
+  .detail-label {
+    font-size: 0.5rem;
+    letter-spacing: 0.04em;
+  }
+
+  .detail-item strong {
+    font-size: 0.59rem;
+    line-height: 1.3;
+  }
+
+  .detail-actions {
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .detail-actions .accept-action,
+  .detail-actions .reject-tenant-panel-action {
+    min-height: 28px;
+    border-radius: 7px;
+    font-size: 0.62rem;
+  }
+}
+
 .badge {
   display: inline-flex;
   align-items: center;
@@ -1367,7 +1763,7 @@ textarea {
   }
 
   .search-box,
-  .property-filter {
+  .inquiries-page .property-filter {
     min-height: 52px;
   }
 
