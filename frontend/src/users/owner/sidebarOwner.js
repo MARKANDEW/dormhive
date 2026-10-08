@@ -155,27 +155,35 @@ export async function updateListingCountsInSidebar() {
 const ownerStylesheetPromises = new Map();
 
 export function loadOwnerStylesheet(name, href) {
+  const stylesheetHref = new URL(href, document.baseURI).href;
   const existingPromise = ownerStylesheetPromises.get(name);
-  if (existingPromise) return existingPromise;
-
   let link = document.querySelector(`link[data-owner-style="${name}"]`);
-  if (link?.sheet) return Promise.resolve();
+  if (link?.href === stylesheetHref) {
+    if (link.sheet) return existingPromise ?? Promise.resolve();
+    if (existingPromise) return existingPromise;
+  }
 
   if (!link) {
     link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = href;
     link.dataset.ownerStyle = name;
   }
 
-  const promise = new Promise((resolve, reject) => {
+  let promise;
+  promise = new Promise((resolve, reject) => {
     link.addEventListener('load', resolve, { once: true });
     link.addEventListener('error', () => {
-      ownerStylesheetPromises.delete(name);
-      link.remove();
+      if (ownerStylesheetPromises.get(name) === promise) {
+        ownerStylesheetPromises.delete(name);
+        link.remove();
+      }
       reject(new Error(`Unable to load owner stylesheet: ${name}.`));
     }, { once: true });
-    if (!link.isConnected) document.head.append(link);
+    if (link.isConnected) link.href = stylesheetHref;
+    else {
+      link.href = stylesheetHref;
+      document.head.append(link);
+    }
   });
   ownerStylesheetPromises.set(name, promise);
   return promise;
@@ -206,9 +214,11 @@ export function renderOwnerSidebar(active = 'dashboardOwner') {
 document.addEventListener('click', (event) => {
   const menuButton = event.target.closest('.owner-mobile-menu');
   if (menuButton) {
+    if (menuButton.dataset.ownerMenuBound === 'true') return;
     const shell = menuButton.closest('.owner-shell');
     const isOpen = shell?.classList.toggle('nav-open');
     menuButton.setAttribute('aria-expanded', String(Boolean(isOpen)));
+    menuButton.setAttribute('aria-label', isOpen ? 'Close owner menu' : 'Open owner menu');
     return;
   }
 

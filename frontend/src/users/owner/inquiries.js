@@ -23,7 +23,7 @@ const renderAvatarMarkup = () => '';
 
 function css() {
   const stylesheet = new URL('./style/inquiries.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'mobile-menu-fixed-scroll-1');
+  stylesheet.searchParams.set('v', 'mobile-menu-fixed-scroll-2');
   return loadOwnerStylesheet('inquiries', stylesheet);
 }
 
@@ -170,6 +170,14 @@ export async function renderInquiries(root = document.querySelector('#app')) {
         <button type="button" class="success-ok-btn">OK</button>
       </div>
     </div>`;
+
+  const ownerMenuButton = root.querySelector('.owner-mobile-menu');
+  ownerMenuButton.dataset.ownerMenuBound = 'true';
+  ownerMenuButton.addEventListener('click', () => {
+    const isOpen = ownerMenuButton.closest('.owner-shell').classList.toggle('nav-open');
+    ownerMenuButton.setAttribute('aria-expanded', String(isOpen));
+    ownerMenuButton.setAttribute('aria-label', isOpen ? 'Close owner menu' : 'Open owner menu');
+  });
 
   const state = {
     bookings: [],
