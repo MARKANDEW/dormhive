@@ -28,7 +28,7 @@ function renderTenantAvatar(entry) {
 
 function css() {
   const stylesheet = new URL('./style/activeTenant.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'mobile-tenant-header-scroll-2');
+  stylesheet.searchParams.set('v', 'mobile-tenant-empty-row-width-3');
   return loadOwnerStylesheet('tenants', stylesheet);
 }
 

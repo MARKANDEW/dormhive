@@ -1828,6 +1828,7 @@ body {
     display: block;
     width: 100%;
     min-width: 0;
+    max-width: 100%;
     table-layout: auto;
   }
 
@@ -1837,6 +1838,9 @@ body {
 
   .portfolio-table tbody {
     display: grid;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     gap: 16px;
   }
 
@@ -1844,6 +1848,8 @@ body {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
     padding: 14px 14px 0;
     overflow: visible;
     border: 1px solid #edf1f3;

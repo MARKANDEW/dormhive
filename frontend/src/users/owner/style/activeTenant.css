@@ -426,6 +426,9 @@ body {
   }
 
   .tenants-page .table-wrap {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     overflow: visible;
   }
 
@@ -433,6 +436,8 @@ body {
   .tenants-page .table-wrap tbody {
     display: block;
     width: 100%;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .tenants-page .table-wrap thead {
@@ -604,8 +609,22 @@ body {
   }
 
   .tenants-page .table-wrap tbody tr.empty-row {
-    grid-template-columns: minmax(0, 1fr);
+    display: block;
+    grid-template-columns: none;
     min-width: 0;
     width: 100%;
+    max-width: 100%;
+    padding: 0;
+  }
+
+  .tenants-page .table-wrap tbody tr.empty-row td.empty {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    padding: 20px 12px;
+    text-align: center;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 }
