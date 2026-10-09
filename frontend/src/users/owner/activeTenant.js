@@ -1,5 +1,6 @@
 import { createModal, openModal } from '../../components/modal.js';
 import { ensureOwnerSidebarStyles, loadOwnerStylesheet, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
+import { withMediaAccessToken } from '../../services/mediaAccess.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const apiBase = API.replace(/\/api\/v1\/?$/, '');
@@ -15,7 +16,7 @@ const resolveAvatarUrl = (value = '') => {
   if (!url) return '';
   if (url.startsWith('data:') || url.startsWith('blob:')) return url;
   if (/^https?:\/\//i.test(url)) return url;
-  return `${apiBase}${url.startsWith('/') ? '' : '/'}${url}`;
+  return withMediaAccessToken(`${apiBase}${url.startsWith('/') ? '' : '/'}${url}`);
 };
 
 function renderTenantAvatar(entry) {

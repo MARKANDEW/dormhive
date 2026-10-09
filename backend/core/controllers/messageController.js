@@ -2,6 +2,8 @@ import * as bookings from '../models/Booking.js';
 import * as messages from '../models/Message.js';
 import { query } from '../config/database.js';
 import { findById as findPropertyById } from '../models/Property.js';
+import * as mediaFiles from '../models/Media.js';
+import { validateUpload } from '../utils/fileValidation.js';
 
 export async function listConversations(request, response, next) {
   try { response.json({ data: await messages.conversationsFor(request.user) }); } catch (error) { next(error); }
@@ -64,7 +66,17 @@ export async function send(request, response, next) {
   try {
     const conversation = await messages.conversationFor(request.body.conversationId, request.user);
     if (!conversation) return response.status(404).json({ message: 'Conversation not found.' });
-    response.status(201).json({ data: await messages.send(conversation.id, request.user.id, request.body.body.trim()) });
+    const body = String(request.body?.body ?? '').trim();
+    if (!body && !request.file) return response.status(422).json({ message: 'A message or image is required.' });
+    if (body.length > 2000) return response.status(422).json({ message: 'Message is too long.' });
+
+    let fileMetadata = null;
+    if (request.file) fileMetadata = validateUpload(request.file, { imagesOnly: true });
+    const message = await messages.send(conversation.id, request.user.id, body, request.file ? {
+      ...fileMetadata,
+      buffer: request.file.buffer
+    } : null);
+    response.status(201).json({ data: message });
   } catch (error) { next(error); }
 }
 

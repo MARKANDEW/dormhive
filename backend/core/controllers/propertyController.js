@@ -1,5 +1,7 @@
 import * as notifications from '../models/Notification.js';
 import * as properties from '../models/Property.js';
+import * as mediaFiles from '../models/Media.js';
+import { validateUpload } from '../utils/fileValidation.js';
 
 const parseImages = (value) => {
   if (Array.isArray(value)) return value;
@@ -8,6 +10,18 @@ const parseImages = (value) => {
     const parsed = JSON.parse(value);
     return Array.isArray(parsed) ? parsed : [value];
   } catch { return [value]; }
+};
+
+const validateImageReferences = (values) => {
+  const references = [...new Set(values.filter((value) => typeof value === 'string' && value.trim()))];
+  const invalid = references.some((value) => !/^\/api\/v1\/media\/\d+$/.test(value));
+  if (invalid) {
+    const error = new Error('Property photos must be uploaded to database storage first; legacy filesystem paths are not accepted.');
+    error.statusCode = 422;
+    error.expose = true;
+    throw error;
+  }
+  return references;
 };
 
 export async function list(request, response, next) {
@@ -39,6 +53,12 @@ export async function get(request, response, next) {
 export async function create(request, response, next) {
   try {
     const uploadedFiles = [...(request.files?.images ?? []), ...(request.files?.image ?? [])];
+    const requestedImages = parseImages(request.body.images);
+    const imageReferences = validateImageReferences([...requestedImages, request.body.imageUrl]);
+    const stagedImages = imageReferences.filter((image) => /^\/api\/v1\/media\/\d+$/.test(image));
+    const fileMetadata = uploadedFiles.map((file) => ({ file, ...validateUpload(file, { imagesOnly: true }) }));
+    const stagedIds = stagedImages.map((image) => Number(image.match(/^\/api\/v1\/media\/(\d+)$/)[1]));
+    await mediaFiles.assertPropertyPhotosAvailable(stagedIds, null, request.user.id);
     const amenitiesRaw = request.body.amenities;
     const amenities = Array.isArray(amenitiesRaw)
       ? JSON.stringify(amenitiesRaw)
@@ -47,22 +67,41 @@ export async function create(request, response, next) {
         : null;
     const input = {
       ...request.body,
-      imageUrl: uploadedFiles[0] ? `/uploads/properties/${uploadedFiles[0].filename}` : request.body.imageUrl ?? null,
-      images: uploadedFiles.length ? uploadedFiles.map((file) => `/uploads/properties/${file.filename}`) : parseImages(request.body.images),
+      imageUrl: imageReferences[0] ?? (fileMetadata.length ? null : request.body.imageUrl ?? null),
+      images: imageReferences,
       availableSlots: Number(request.body.availableSlots ?? request.body.available_slots ?? 0) || null,
       genderPreference: request.body.genderPreference ?? request.body.gender_preference ?? null,
       amenities
     };
-    response.status(201).json({ data: await properties.create(request.user.id, input) });
+    const property = await properties.create(request.user.id, input);
+    await properties.attachUploadedImages(property.id, stagedImages, request.user.id);
+    for (const item of fileMetadata) {
+      const stored = await mediaFiles.create({
+        uploadedBy: request.user.id,
+        propertyId: property.id,
+        filename: item.filename,
+        mimeType: item.mimeType,
+        buffer: item.file.buffer
+      });
+      stagedImages.push(stored.url);
+    }
+    if (fileMetadata.length) await properties.update(property.id, { imageUrl: stagedImages[0], images: stagedImages });
+    response.status(201).json({ data: await properties.findById(property.id) });
   } catch (error) { next(error); }
 }
 
 export async function update(request, response, next) {
   try {
     const uploadedFiles = [...(request.files?.images ?? []), ...(request.files?.image ?? [])];
+    const requestedImages = parseImages(request.body.images);
+    const imageReferences = validateImageReferences([...requestedImages, request.body.imageUrl]);
+    const stagedImages = imageReferences.filter((image) => /^\/api\/v1\/media\/\d+$/.test(image));
+    const fileMetadata = uploadedFiles.map((file) => ({ file, ...validateUpload(file, { imagesOnly: true }) }));
     const property = await properties.findById(request.params.id);
     if (!property) return response.status(404).json({ message: 'Property not found.' });
     if (property.owner_id !== request.user.id && request.user.role !== 'admin') return response.status(403).json({ message: 'Permission denied.' });
+    const stagedIds = stagedImages.map((image) => Number(image.match(/^\/api\/v1\/media\/(\d+)$/)[1]));
+    await mediaFiles.assertPropertyPhotosAvailable(stagedIds, property.id, request.user.id);
 
     const requestedStatus = typeof request.body.status === 'string' ? request.body.status.trim().toLowerCase() : '';
     if (requestedStatus && request.user.role !== 'admin') {
@@ -88,14 +127,53 @@ export async function update(request, response, next) {
 
     const input = {
       ...request.body,
-      imageUrl: uploadedFiles[0] ? `/uploads/properties/${uploadedFiles[0].filename}` : request.body.imageUrl ?? null,
-      images: uploadedFiles.length ? uploadedFiles.map((file) => `/uploads/properties/${file.filename}`) : parseImages(request.body.images),
+      imageUrl: undefined,
+      images: undefined,
       availableSlots: Number(request.body.availableSlots ?? request.body.available_slots ?? 0) || null,
       genderPreference: request.body.genderPreference ?? request.body.gender_preference ?? null,
       amenities
     };
 
-    response.json({ data: await properties.update(request.params.id, input) });
+    const updated = await properties.update(request.params.id, input);
+    await properties.attachUploadedImages(request.params.id, stagedImages, request.user.id);
+    const addedImageUrls = [];
+    const photoFieldsProvided = request.body.images !== undefined || request.body.imageUrl !== undefined;
+    if (fileMetadata.length) {
+      for (const item of fileMetadata) {
+        const stored = await mediaFiles.create({
+          uploadedBy: request.user.id,
+          propertyId: request.params.id,
+          filename: item.filename,
+          mimeType: item.mimeType,
+          buffer: item.file.buffer
+        });
+        addedImageUrls.push(stored.url);
+      }
+    }
+    const photosChanged = photoFieldsProvided || fileMetadata.length > 0;
+    let savedImages = [];
+    if (photosChanged) {
+      if (request.body.images !== undefined) {
+        savedImages = [...imageReferences, ...addedImageUrls];
+      } else {
+        const existingImages = [
+          ...(property.image_url ? [property.image_url] : []),
+          ...parseImages(property.images)
+        ];
+        savedImages = [...new Set([...existingImages, ...imageReferences, ...addedImageUrls])];
+      }
+      const imageUrl = request.body.images !== undefined
+        ? savedImages[0] ?? null
+        : request.body.imageUrl !== undefined
+          ? imageReferences[0] ?? null
+          : property.image_url ?? savedImages[0] ?? null;
+      await properties.replaceImages(request.params.id, imageUrl, savedImages);
+      const retainedIds = [...savedImages, imageUrl]
+        .map((image) => Number(String(image).match(/^\/api\/v1\/media\/(\d+)$/)?.[1]))
+        .filter(Number.isInteger);
+      await mediaFiles.removePropertyPhotosNotIn(request.params.id, retainedIds);
+    }
+    response.json({ data: photosChanged ? await properties.findById(request.params.id) : updated });
   } catch (error) { next(error); }
 }
 
@@ -105,25 +183,32 @@ export async function addImage(request, response, next) {
     if (!property) return response.status(404).json({ message: 'Property not found.' });
     if (property.owner_id !== request.user.id && request.user.role !== 'admin') return response.status(403).json({ message: 'Permission denied.' });
     if (!request.file) return response.status(422).json({ message: 'An image is required.' });
-    const imageUrl = `/uploads/properties/${request.file.filename}`;
+    const file = validateUpload(request.file, { imagesOnly: true });
+    const stored = await mediaFiles.create({
+      uploadedBy: request.user.id,
+      propertyId: request.params.id,
+      filename: file.filename,
+      mimeType: file.mimeType,
+      buffer: request.file.buffer
+    });
+    const imageUrl = stored.url;
     const updated = await properties.appendImage(request.params.id, imageUrl);
     response.status(201).json({ data: updated });
   } catch (error) { next(error); }
 }
 
-export function uploadImage(request, response) {
-  console.info('[property upload] received', {
-    userId: request.user?.id,
-    role: request.user?.role,
-    field: request.file?.fieldname,
-    originalName: request.file?.originalname,
-    size: request.file?.size,
-    path: request.file?.path
-  });
-  if (!request.file) return response.status(422).json({ message: 'An image is required.' });
-  const imageUrl = `/uploads/properties/${request.file.filename}`;
-  console.info('[property upload] stored', { imageUrl, filename: request.file.filename });
-  response.status(201).json({ data: { imageUrl, fileId: request.file.filename } });
+export async function uploadImage(request, response, next) {
+  try {
+    if (!request.file) return response.status(422).json({ message: 'An image is required.' });
+    const file = validateUpload(request.file, { imagesOnly: true });
+    const stored = await mediaFiles.create({
+      uploadedBy: request.user.id,
+      filename: file.filename,
+      mimeType: file.mimeType,
+      buffer: request.file.buffer
+    });
+    response.status(201).json({ data: { imageUrl: stored.url, fileId: stored.id } });
+  } catch (error) { next(error); }
 }
 
 export async function remove(request, response, next) {

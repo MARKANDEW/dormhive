@@ -1,4 +1,5 @@
 import { ensureOwnerSidebarStyles, loadOwnerStylesheet, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
+import { withMediaAccessToken } from '../../services/mediaAccess.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const API_ORIGIN = API.replace(/\/api\/v1\/?$/, '');
@@ -10,7 +11,7 @@ const avatarUrl = (value = '') => {
   const raw = String(value || '').trim();
   if (!raw) return '';
   if (/^(data:|blob:|https?:\/\/)/i.test(raw)) return raw;
-  return `${API_ORIGIN}${raw.startsWith('/') ? '' : '/'}${raw}`;
+  return withMediaAccessToken(`${API_ORIGIN}${raw.startsWith('/') ? '' : '/'}${raw}`);
 };
 const renderTenantAvatar = (name = 'Tenant', image = '') => {
   const source = avatarUrl(image);

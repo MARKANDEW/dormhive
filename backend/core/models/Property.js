@@ -1,4 +1,5 @@
 import { query } from '../config/database.js';
+import * as mediaFiles from './Media.js';
 
 export async function list({ page, limit, municipality, roomType, minPrice, maxPrice, status, viewer }) {
   const filters = [];
@@ -67,6 +68,10 @@ export async function appendImage(id, imageUrl) {
   return findById(id);
 }
 
+export async function replaceImages(id, imageUrl, images) {
+  await query('UPDATE properties SET image_url = ?, images = ? WHERE id = ?', [imageUrl, JSON.stringify(images), id]);
+}
+
 export async function syncAvailability(id) {
   const property = await findById(id);
   if (!property) return null;
@@ -86,4 +91,9 @@ export async function updateStatus(id, status) {
 export async function remove(id) {
   await query('DELETE FROM bookings WHERE property_id = ?', [id]);
   return query('DELETE FROM properties WHERE id = ?', [id]);
+}
+
+export async function attachUploadedImages(id, images, uploaderId) {
+  const ids = images.map((image) => Number(String(image).match(/^\/api\/v1\/media\/(\d+)$/)?.[1])).filter(Number.isInteger);
+  if (ids.length) await mediaFiles.attachStagedToProperty(ids, id, uploaderId);
 }

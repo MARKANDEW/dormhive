@@ -1,4 +1,5 @@
 import { query } from '../config/database.js';
+import * as mediaFiles from './Media.js';
 
 const normalizeStatus = (status) => {
   const value = String(status ?? 'open').trim().toLowerCase();
@@ -34,6 +35,8 @@ async function ensureMessageTable() {
     attachment_name VARCHAR(255) NULL,
     is_internal TINYINT(1) NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (ticket_id) REFERENCES support_tickets(id) ON DELETE CASCADE,
+    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_ticket_messages_ticket (ticket_id),
     INDEX idx_ticket_messages_sender (sender_id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
@@ -45,25 +48,43 @@ async function ensureMessageTable() {
 
 export async function listMessages(ticketId) {
   await ensureMessageTable();
-  return query(`SELECT m.id, m.ticket_id, m.sender_id, m.body, m.attachment_url, m.attachment_name, m.is_internal, m.created_at,
+  return query(`SELECT m.id, m.ticket_id, m.sender_id, m.body, COALESCE(CONCAT('/api/v1/media/', media.id), m.attachment_url) AS attachment_url,
+    COALESCE(media.original_filename, m.attachment_name) AS attachment_name, media.mime_type AS attachment_mime_type, m.is_internal, m.created_at,
     COALESCE(CONCAT_WS(' ', u.first_name, u.last_name), u.name) AS sender_name,
     u.email AS sender_email, u.role AS sender_role
     FROM support_ticket_messages m
     JOIN users u ON u.id = m.sender_id
+    LEFT JOIN media_files media ON media.ticket_message_id = m.id
     WHERE m.ticket_id = ? ORDER BY m.created_at ASC, m.id ASC`, [ticketId]);
 }
 
-export async function addMessage(ticketId, senderId, body, isInternal = false, attachmentUrl = null, attachmentName = null) {
+export async function addMessage(ticketId, senderId, body, isInternal = false, attachment = null) {
   await ensureMessageTable();
   const result = await query(
-    'INSERT INTO support_ticket_messages (ticket_id, sender_id, body, attachment_url, attachment_name, is_internal) VALUES (?, ?, ?, ?, ?, ?)',
-    [ticketId, senderId, body, attachmentUrl, attachmentName, isInternal ? 1 : 0]
+    'INSERT INTO support_ticket_messages (ticket_id, sender_id, body, is_internal) VALUES (?, ?, ?, ?)',
+    [ticketId, senderId, body, isInternal ? 1 : 0]
   );
+  if (attachment) {
+    const stored = await mediaFiles.create({
+      uploadedBy: senderId,
+      ticketMessageId: result.insertId,
+      filename: attachment.filename,
+      mimeType: attachment.mimeType,
+      buffer: attachment.buffer
+    });
+    await query('UPDATE support_ticket_messages SET attachment_url = ?, attachment_name = ? WHERE id = ?', [stored.url, attachment.filename, result.insertId]);
+  }
   const rows = await query(`SELECT m.id, m.ticket_id, m.sender_id, m.body, m.attachment_url, m.attachment_name, m.is_internal, m.created_at,
     COALESCE(CONCAT_WS(' ', u.first_name, u.last_name), u.name) AS sender_name,
     u.email AS sender_email, u.role AS sender_role
     FROM support_ticket_messages m JOIN users u ON u.id = m.sender_id WHERE m.id = ?`, [result.insertId]);
-  return rows[0] ?? null;
+  const file = attachment ? await query('SELECT id, original_filename, mime_type FROM media_files WHERE ticket_message_id = ? LIMIT 1', [result.insertId]) : [];
+  return rows[0] ? {
+    ...rows[0],
+    attachment_url: file[0] ? `/api/v1/media/${file[0].id}` : rows[0].attachment_url,
+    attachment_name: file[0]?.original_filename ?? rows[0].attachment_name,
+    attachment_mime_type: file[0]?.mime_type ?? null
+  } : null;
 }
 
 export async function listForUser(user) {

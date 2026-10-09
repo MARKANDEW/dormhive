@@ -307,7 +307,70 @@ async function checkAndFixDatabase() {
           console.log('✓ message column added to notifications table');
         }
       }
+
     }
+
+    await query(`CREATE TABLE IF NOT EXISTS support_ticket_messages (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      ticket_id INT NOT NULL,
+      sender_id INT NOT NULL,
+      body TEXT NOT NULL,
+      attachment_url VARCHAR(500) NULL,
+      attachment_name VARCHAR(255) NULL,
+      is_internal TINYINT(1) NOT NULL DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (ticket_id) REFERENCES support_tickets(id) ON DELETE CASCADE,
+      FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+      INDEX idx_ticket_messages_ticket (ticket_id),
+      INDEX idx_ticket_messages_sender (sender_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+    const ticketMessageColumns = await query('SHOW COLUMNS FROM support_ticket_messages');
+    const ticketMessageColumnNames = ticketMessageColumns.map((column) => column.Field);
+    if (!ticketMessageColumnNames.includes('attachment_url')) {
+      await query('ALTER TABLE support_ticket_messages ADD COLUMN attachment_url VARCHAR(500) NULL');
+    }
+    if (!ticketMessageColumnNames.includes('attachment_name')) {
+      await query('ALTER TABLE support_ticket_messages ADD COLUMN attachment_name VARCHAR(255) NULL');
+    }
+
+    const parentIdType = async (tableName) => {
+      const columns = await query(`SHOW COLUMNS FROM \`${tableName}\``);
+      const idColumn = columns.find((column) => column.Field === 'id');
+      const columnType = String(idColumn?.Type ?? '').toLowerCase();
+      if (!/^(tinyint|smallint|mediumint|int|bigint)(\(\d+\))?( unsigned)?$/.test(columnType)) {
+        throw new Error(`Unsupported ${tableName}.id type for media foreign key: ${columnType || 'missing'}`);
+      }
+      return columnType.replace(/\(\d+\)/, '');
+    };
+    const userIdType = await parentIdType('users');
+    const propertyIdType = await parentIdType('properties');
+    const messageIdType = await parentIdType('messages');
+    const ticketMessageIdType = await parentIdType('support_ticket_messages');
+
+    await query(`CREATE TABLE IF NOT EXISTS media_files (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      uploaded_by ${userIdType} NOT NULL,
+      user_id ${userIdType} NULL,
+      property_id ${propertyIdType} NULL,
+      message_id ${messageIdType} NULL,
+      ticket_message_id ${ticketMessageIdType} NULL,
+      original_filename VARCHAR(255) NOT NULL,
+      mime_type VARCHAR(127) NOT NULL,
+      file_size INT UNSIGNED NOT NULL,
+      file_data LONGBLOB NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE,
+      FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE,
+      FOREIGN KEY (ticket_message_id) REFERENCES support_ticket_messages(id) ON DELETE CASCADE,
+      INDEX idx_media_uploaded_by (uploaded_by),
+      INDEX idx_media_user (user_id),
+      INDEX idx_media_property (property_id),
+      INDEX idx_media_message (message_id),
+      INDEX idx_media_ticket_message (ticket_message_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
     
     console.log('✨ Database setup complete! You can now:');
     console.log('   1. Run the backend: npm start');

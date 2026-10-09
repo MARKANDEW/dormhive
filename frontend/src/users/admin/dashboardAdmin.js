@@ -4,6 +4,7 @@ import { createModal, openModal } from '../../components/modal.js';
 import { showToast } from '../../components/toast.js';
 import { applyAdminPrivacy } from './privacy.js';
 import { resolveUserAvatarUrl } from './avatar.js';
+import { buildInitialsAvatarSvg } from '../../services/avatar.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const auth = () => ({ Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
@@ -104,13 +105,14 @@ function statIcon(type) {
 
 function renderUserCard(user) {
   const status = (user.status || 'active').toString();
-  const avatarUrl = resolveUserAvatarUrl(user.avatar_url || '', user.name || 'User');
-  const initials = (user.name || 'U').split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '').join('') || 'U';
+  const userName = user.name || 'User';
+  const avatarUrl = resolveUserAvatarUrl(user.avatar_url || '', userName);
+  const fallbackAvatar = buildInitialsAvatarSvg(userName);
 
   return `
     <article class="user-card" data-user-id="${user.id ?? ''}">
       <div class="user-avatar" aria-hidden="true">
-        <img src="${esc(avatarUrl)}" alt="${esc(user.name || 'User')} avatar" onerror="this.onerror=null;this.src='data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect width="120" height="120" rx="60" fill="#efe6d6"/><circle cx="60" cy="42" r="22" fill="#4a3d2f"/><path d="M28 96c6-16 18-25 32-25s26 9 32 25" fill="#8d6435"/><text x="50%" y="68%" text-anchor="middle" font-size="30" font-family="Inter, Arial, sans-serif" font-weight="700" fill="#ffffff">${initials}</text></svg>`)}'" />
+        <img src="${esc(avatarUrl)}" alt="${esc(userName)} avatar" onerror="this.onerror=null;this.src='${fallbackAvatar}'" />
       </div>
       <div class="user-info">
         <div class="user-name-row">
@@ -165,7 +167,7 @@ function showUserProfileModal(user) {
     <div class="user-profile-detail">
       <div class="profile-summary">
         <div class="profile-avatar-wrap">
-          <img src="${resolveUserAvatarUrl(user.avatar_url || '', user.name || 'User')}" alt="${esc(user.name || 'User')} avatar" onerror="this.onerror=null;this.src='data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect width="120" height="120" rx="60" fill="#efe6d6"/><circle cx="60" cy="42" r="22" fill="#4a3d2f"/><path d="M28 96c6-16 18-25 32-25s26 9 32 25" fill="#8d6435"/><text x="50%" y="68%" text-anchor="middle" font-size="30" font-family="Inter, Arial, sans-serif" font-weight="700" fill="#ffffff">${(user.name || 'U').split(/\s+/).filter(Boolean).slice(0,2).map((part) => part[0]?.toUpperCase() ?? '').join('') || 'U'}</text></svg>`)}'" />
+          <img src="${resolveUserAvatarUrl(user.avatar_url || '', user.name || 'User')}" alt="${esc(user.name || 'User')} avatar" onerror="this.onerror=null;this.src='${buildInitialsAvatarSvg(user.name || 'User')}'" />
         </div>
         <div class="profile-identity">
           <h3>${esc(user.name || 'Unknown user')}</h3>
@@ -395,4 +397,3 @@ export async function renderDashboardAdmin(root = document.querySelector('#app')
 
   refreshDashboardData(root);
 }
-

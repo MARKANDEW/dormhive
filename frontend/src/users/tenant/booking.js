@@ -4,6 +4,8 @@ import { createModal, openModal } from '../../components/modal.js';
 import { attachViewingTimeSuggestions, parseViewingTime, viewingTimeFields } from './viewingTime.js';
 import { api as apiClient } from '../../services/api.js';
 import { markNotificationRead } from '../../services/notificationSystem.js';
+import { withMediaAccessToken } from '../../services/mediaAccess.js';
+import { buildInitialsAvatarSvg, getAvatarInitials } from '../../services/avatar.js';
 
 const API_URL = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const apiBase = API_URL.replace(/\/api\/v1\/?$/, '');
@@ -26,8 +28,7 @@ const formatNotificationDate = (value) => new Date(value ?? Date.now()).toLocale
 const resolveImageUrl = (value = '') => {
   const url = String(value || '').trim();
   if (!url) return '';
-  if (/^https?:\/\//i.test(url)) return url;
-  return `${apiBase}${url.startsWith('/') ? '' : '/'}${url}`;
+  return withMediaAccessToken(/^https?:\/\//i.test(url) ? url : `${apiBase}${url.startsWith('/') ? '' : '/'}${url}`);
 };
 const getPropertyImageUrls = (property = {}, booking = {}) => {
   let images = property.images ?? booking.images;
@@ -168,7 +169,7 @@ export async function renderBooking(root = document.querySelector('#app')) {
             </div>
           </div>
           <a class="booking-mobile-profile" href="#/tenant/setting">
-            <span class="booking-mobile-avatar">${avatarUrl ? `<img src="${escape(avatarUrl)}" alt="${escape(displayName)} avatar" />` : `<b>${escape((displayName || 'T').split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase() || 'T')}</b>`}</span>
+            <span class="booking-mobile-avatar">${avatarUrl ? `<img src="${escape(avatarUrl)}" alt="${escape(displayName)} avatar" onerror="this.onerror=null;this.src='${buildInitialsAvatarSvg(displayName, 'T')}'" />` : `<b>${escape(getAvatarInitials(displayName, 'T'))}</b>`}</span>
             <span class="booking-mobile-name">${escape(displayName)}</span>
           </a>
         </div>

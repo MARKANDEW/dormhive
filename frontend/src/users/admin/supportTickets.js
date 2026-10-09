@@ -1,5 +1,6 @@
 import { ensureAdminSidebarStyles, loadAdminStylesheet, renderAdminSidebar } from './sidebarAdmin.js';
 import { applyAdminPrivacy } from './privacy.js';
+import { withMediaAccessToken } from '../../services/mediaAccess.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const headers = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
@@ -8,7 +9,7 @@ const normalizeStatus = (value) => ['pending', 'in-progress', 'in_progress'].inc
 const normalizePriority = (value) => ['high', 'low', 'medium'].includes(String(value).toLowerCase()) ? String(value).toLowerCase() : 'medium';
 const formatDate = (value) => value ? new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 const formatTime = (value) => value ? new Date(value).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
-const attachmentHref = (value) => value ? `${API.replace(/\/api\/v1\/?$/, '')}${value}` : '';
+const attachmentHref = (value) => value ? withMediaAccessToken(`${API.replace(/\/api\/v1\/?$/, '')}${value}`) : '';
 
 function css() {
   return loadAdminStylesheet('tickets', new URL('./style/supportTickets.css', import.meta.url));
@@ -59,7 +60,11 @@ export async function renderSupportTickets(root = document.querySelector('#app')
     const cards = initialMessage ? [`<div class="message-card user-message"><i class="bi bi-person-circle"></i><div><strong>${escape(user)}</strong><time>${formatDate(ticket.created_at)} ${formatTime(ticket.created_at)}</time><p>${escape(initialMessage)}</p></div></div>`] : [];
     messages.forEach((message) => {
       const internalClass = Number(message.is_internal) ? ' internal-message' : '';
-      const attachment = message.attachment_url ? `<a class="message-attachment" href="${escape(attachmentHref(message.attachment_url))}" target="_blank" rel="noopener"><i class="bi bi-paperclip"></i> ${escape(message.attachment_name || 'Open attachment')}</a>` : '';
+      const attachmentUrl = attachmentHref(message.attachment_url);
+      const attachmentPreview = attachmentUrl && String(message.attachment_mime_type || '').startsWith('image/')
+        ? `<img class="message-attachment-preview" src="${escape(attachmentUrl)}" alt="${escape(message.attachment_name || 'Ticket attachment')}" />`
+        : '';
+      const attachment = attachmentUrl ? `${attachmentPreview}<a class="message-attachment" href="${escape(attachmentUrl)}" target="_blank" rel="noopener"><i class="bi bi-paperclip"></i> ${escape(message.attachment_name || 'Open attachment')}</a>` : '';
       cards.push(`<div class="message-card${internalClass}"><i class="bi ${Number(message.is_internal) ? 'bi-lock' : 'bi-person-circle'}"></i><div><strong>${escape(message.sender_name || 'Support')}</strong><time>${formatDate(message.created_at)} ${formatTime(message.created_at)}</time><p>${escape(message.body)}</p>${attachment}</div></div>`);
     });
     return cards.length ? cards.join('') : '<p class="conversation-empty">No messages yet.</p>';
@@ -124,7 +129,7 @@ export async function renderSupportTickets(root = document.querySelector('#app')
     const priority = normalizePriority(ticket.priority);
     const user = ticket.requester_name || ticket.name || 'Unknown user';
     const email = ticket.requester_email || ticket.email || 'No email provided';
-    details.innerHTML = `<div class="ticket-detail-header"><div><h2>Ticket #${escape(ticket.id)}</h2><div class="ticket-badges"><span class="ticket-status ${status}">${status[0].toUpperCase() + status.slice(1)}</span><span class="ticket-priority ${priority}">${priority[0].toUpperCase() + priority.slice(1)}</span></div></div><div class="ticket-actions"><button>Assign</button><button data-status="pending">Mark Pending</button><button class="resolve-ticket" data-status="resolved">Resolve Ticket</button></div></div><div class="ticket-info-grid"><div><i class="bi bi-pencil"></i><small>SUBJECT</small><strong>${escape(ticket.subject || 'Support request')}</strong></div><div><i class="bi bi-person"></i><small>USER</small><strong>${escape(user)}</strong><span>${escape(email)}</span></div><div><i class="bi bi-folder"></i><small>CATEGORY</small><strong>${escape(ticket.category || 'Support')}</strong></div><div><i class="bi bi-calendar3"></i><small>CREATED</small><strong>${formatDate(ticket.created_at)}</strong></div></div><div class="conversation"><h3>Conversation</h3>${renderConversation(ticket)}</div><div class="reply-area"><textarea placeholder="Write a reply..."></textarea><div><button type="button" class="attach-file"><i class="bi bi-paperclip"></i> Attach</button><input class="ticket-file-input" type="file" hidden /><label><input type="checkbox" /> Internal note</label><button type="button" class="send-reply"><i class="bi bi-send"></i> Send</button></div><small class="attachment-name"></small></div>`;
+    details.innerHTML = `<div class="ticket-detail-header"><div><h2>Ticket #${escape(ticket.id)}</h2><div class="ticket-badges"><span class="ticket-status ${status}">${status[0].toUpperCase() + status.slice(1)}</span><span class="ticket-priority ${priority}">${priority[0].toUpperCase() + priority.slice(1)}</span></div></div><div class="ticket-actions"><button>Assign</button><button data-status="pending">Mark Pending</button><button class="resolve-ticket" data-status="resolved">Resolve Ticket</button></div></div><div class="ticket-info-grid"><div><i class="bi bi-pencil"></i><small>SUBJECT</small><strong>${escape(ticket.subject || 'Support request')}</strong></div><div><i class="bi bi-person"></i><small>USER</small><strong>${escape(user)}</strong><span>${escape(email)}</span></div><div><i class="bi bi-folder"></i><small>CATEGORY</small><strong>${escape(ticket.category || 'Support')}</strong></div><div><i class="bi bi-calendar3"></i><small>CREATED</small><strong>${formatDate(ticket.created_at)}</strong></div></div><div class="conversation"><h3>Conversation</h3>${renderConversation(ticket)}</div>    <div class="reply-area"><textarea placeholder="Write a reply..."></textarea><div><button type="button" class="attach-file"><i class="bi bi-paperclip"></i> Attach</button><input class="ticket-file-input" type="file" accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden /><label><input type="checkbox" /> Internal note</label><button type="button" class="send-reply"><i class="bi bi-send"></i> Send</button></div><small class="attachment-name"></small></div>`;
     const internalNoteCheckbox = details.querySelector('.reply-area input[type="checkbox"]');
     internalNoteCheckbox.checked = state.internalNotes[String(ticket.id)] === true;
     internalNoteCheckbox.addEventListener('change', () => { state.internalNotes[String(ticket.id)] = internalNoteCheckbox.checked; saveInternalNotes(); });

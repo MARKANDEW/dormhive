@@ -1,6 +1,8 @@
 import { ensureTenantSidebarStyles, loadTenantStylesheet, renderTenantSidebar } from './sidebarTenant.js';
 import { getUserAvatarUrl, refreshTenantUserSession } from './setting.js';
 import { createModal, openModal } from '../../components/modal.js';
+import { withMediaAccessToken } from '../../services/mediaAccess.js';
+import { buildInitialsAvatarSvg } from '../../services/avatar.js';
 
 const API_URL = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const apiBase = API_URL.replace(/\/api\/v1\/?$/, '');
@@ -12,8 +14,8 @@ const headers = () => ({
 const resolveImageUrl = (value = '') => {
   const url = String(value || '').trim();
   if (!url) return '';
-  if (/^(https?:|data:|blob:)/i.test(url)) return url;
-  return `${apiBase}${url.startsWith('/') ? '' : '/'}${url}`;
+  if (/^(data:|blob:)/i.test(url)) return url;
+  return withMediaAccessToken(/^https?:\/\//i.test(url) ? url : `${apiBase}${url.startsWith('/') ? '' : '/'}${url}`);
 };
 
 function style() {
@@ -49,10 +51,12 @@ const currentUser = () => {
 };
 
 const participantAvatar = (item = {}) => {
-  if (item.participant_avatar_url) {
-    return `<img src="${escape(getUserAvatarUrl({ avatar_url: item.participant_avatar_url }, item.participant_name ?? 'Conversation'))}" alt="${escape(item.participant_name ?? 'Conversation')} avatar" />`;
-  }
-  return escape((item.participant_name ?? 'C').split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase());
+  const name = item.participant_name ?? 'Conversation';
+  const fallback = buildInitialsAvatarSvg(name, 'C');
+  const source = item.participant_avatar_url
+    ? getUserAvatarUrl({ avatar_url: item.participant_avatar_url }, name)
+    : fallback;
+  return `<img src="${escape(source)}" alt="${escape(name)} avatar" onerror="this.onerror=null;this.src='${fallback}'" />`;
 };
 
 const formatMessageTime = (value) => {
@@ -107,10 +111,13 @@ const renderBookingCard = (value = '') => {
   `;
 };
 
-const renderMessageBody = (value = '') => {
+const renderMessageBody = (value = '', attachmentUrl = '') => {
   const text = String(value ?? '');
+  if (attachmentUrl) {
+    return `<div class="message-attachment"><img src="${escape(resolveImageUrl(attachmentUrl))}" alt="Sent image" /></div>${text ? `<p>${escape(text)}</p>` : ''}`;
+  }
   if (isImageDataUrl(text)) {
-    return `<div class="message-attachment"><img src="${text}" alt="Sent image" /></div>`;
+    return `<div class="message-attachment"><img src="${escape(text)}" alt="Sent image" /></div>`;
   }
   if (isBookingSystemMessage(text)) {
     return renderBookingCard(text);
@@ -327,7 +334,8 @@ export async function renderMessage(root = document.querySelector('#app')) {
   const videoCallButton = root.querySelector('.video-call-button');
   const profileButton = root.querySelector('.profile-button');
   const propertyId = getSearchParam('propertyId');
-  let pendingImage = '';
+  let pendingImage = null;
+  let pendingImagePreview = '';
 
   const propertyFor = (conversation = {}) => {
     const key = String(conversation.property_id ?? '');
@@ -490,7 +498,7 @@ export async function renderMessage(root = document.querySelector('#app')) {
         const isMine = item.sender_id === currentUser().id;
         return `
           <article class="message ${isMine ? 'is-mine' : ''}">
-            <div class="bubble-body">${renderMessageBody(item.body)}</div>
+            <div class="bubble-body">${renderMessageBody(item.body, item.attachment_url)}</div>
             <time>${escape(formatMessageTime(item.created_at))}</time>
           </article>
         `;
@@ -519,7 +527,8 @@ export async function renderMessage(root = document.querySelector('#app')) {
   };
 
   const clearPendingImage = () => {
-    pendingImage = '';
+    pendingImage = null;
+    pendingImagePreview = '';
     imageInput.value = '';
     attachmentPreview.src = '';
     attachmentStrip.classList.add('hidden');
@@ -530,15 +539,16 @@ export async function renderMessage(root = document.querySelector('#app')) {
   imageInput.addEventListener('change', (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
+    if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
       status.textContent = 'Please choose an image file.';
       return;
     }
 
     const reader = new FileReader();
     reader.onload = () => {
-      pendingImage = String(reader.result ?? '');
-      attachmentPreview.src = pendingImage;
+      pendingImage = file;
+      pendingImagePreview = String(reader.result ?? '');
+      attachmentPreview.src = pendingImagePreview;
       attachmentStrip.classList.remove('hidden');
     };
     reader.readAsDataURL(file);
@@ -605,10 +615,13 @@ export async function renderMessage(root = document.querySelector('#app')) {
       }
 
       if (hasImage) {
+        const imageForm = new FormData();
+        imageForm.append('conversationId', state.selected.id);
+        imageForm.append('attachment', pendingImage);
         const response = await fetch(`${API_URL}/messages`, {
           method: 'POST',
-          headers: headers(),
-          body: JSON.stringify({ conversationId: state.selected.id, body: pendingImage })
+          headers: { Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
+          body: imageForm
         });
         if (!response.ok) {
           const body = await response.json();

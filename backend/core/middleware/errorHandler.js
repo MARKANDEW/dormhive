@@ -4,6 +4,9 @@ export function notFound(_request, response) {
 
 export function errorHandler(error, _request, response, _next) {
   console.error(error);
+  if (error.code === 'LIMIT_FILE_SIZE') {
+    return response.status(413).json({ message: 'Uploaded files must be 2 MB or smaller.' });
+  }
   if (error.code === 'ER_DUP_ENTRY') {
     return response.status(409).json({ message: 'A record with those details already exists.' });
   }

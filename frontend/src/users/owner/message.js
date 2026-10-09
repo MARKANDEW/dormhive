@@ -1,5 +1,6 @@
 import { ensureOwnerSidebarStyles, loadOwnerStylesheet, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
 import { createModal, openModal } from '../../components/modal.js';
+import { withMediaAccessToken } from '../../services/mediaAccess.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const API_ORIGIN = API.replace(/\/api\/v1\/?$/, '');
@@ -10,8 +11,11 @@ const initials = (value = '') => value.split(' ').filter(Boolean).map((part) => 
 const dayTime = (value) => new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(new Date(value));
 const shortDate = (value) => new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(value));
 const isImageDataUrl = (value = '') => typeof value === 'string' && /^data:image\//i.test(value.trim());
-const renderMessageBody = (value = '') => {
+const renderMessageBody = (value = '', attachmentUrl = '') => {
   const text = String(value ?? '');
+  if (attachmentUrl) {
+    return `<div class="message-attachment"><img src="${esc(withMediaAccessToken(`${API_ORIGIN}${attachmentUrl}`))}" alt="Sent image" /></div>${text ? `<p>${esc(text)}</p>` : ''}`;
+  }
   if (isImageDataUrl(text)) {
     return `<div class="message-attachment"><img src="${text}" alt="Sent image" /></div>`;
   }
@@ -21,7 +25,7 @@ const avatarUrl = (value = '') => {
   const raw = String(value || '').trim();
   if (!raw) return '';
   if (/^(data:|blob:|https?:\/\/)/i.test(raw)) return raw;
-  return `${API_ORIGIN}${raw.startsWith('/') ? '' : '/'}${raw}`;
+  return withMediaAccessToken(`${API_ORIGIN}${raw.startsWith('/') ? '' : '/'}${raw}`);
 };
 const renderAvatar = (name = 'User', image = '') => {
   const source = avatarUrl(image);
@@ -131,10 +135,12 @@ export async function renderMessage(root = document.querySelector('#app')) {
   const attachmentStrip = form.querySelector('.attachment-strip');
   const attachmentPreview = form.querySelector('.attachment-preview');
   const removeAttachmentButton = form.querySelector('.remove-attachment');
-  let pendingImage = '';
+  let pendingImage = null;
+  let pendingImagePreview = '';
 
   const clearPendingImage = () => {
-    pendingImage = '';
+    pendingImage = null;
+    pendingImagePreview = '';
     imageInput.value = '';
     attachmentPreview.src = '';
     attachmentStrip.classList.add('hidden');
@@ -145,15 +151,16 @@ export async function renderMessage(root = document.querySelector('#app')) {
   imageInput.addEventListener('change', (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
+    if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
       status.textContent = 'Please choose an image file.';
       return;
     }
 
     const reader = new FileReader();
     reader.onload = () => {
-      pendingImage = String(reader.result ?? '');
-      attachmentPreview.src = pendingImage;
+      pendingImage = file;
+      pendingImagePreview = String(reader.result ?? '');
+      attachmentPreview.src = pendingImagePreview;
       attachmentStrip.classList.remove('hidden');
     };
     reader.readAsDataURL(file);
@@ -253,7 +260,7 @@ export async function renderMessage(root = document.querySelector('#app')) {
 
       messages.innerHTML = (Array.isArray(body.data) ? body.data : []).map((message) => `
         <article class="message-bubble ${message.sender_id === Number(user().id) ? 'mine' : 'their'}">
-          <div class="bubble-body">${isBookingMessage(message.body) ? renderBookingCard(message.body, state.selected) : renderMessageBody(message.body)}</div>
+          <div class="bubble-body">${isBookingMessage(message.body) ? renderBookingCard(message.body, state.selected) : renderMessageBody(message.body, message.attachment_url)}</div>
           <small>${esc(shortDate(message.created_at))} • ${esc(dayTime(message.created_at))}</small>
         </article>
       `).join('') || '<p class="empty">Start the conversation.</p>';
@@ -304,11 +311,16 @@ export async function renderMessage(root = document.querySelector('#app')) {
       form.classList.add('is-sending');
       form.querySelector('button[type="submit"]').disabled = true;
       if (hasImage) {
-        await fetch(`${API}/messages`, {
+        const imageForm = new FormData();
+        imageForm.append('conversationId', state.selected.id);
+        imageForm.append('attachment', pendingImage);
+        const response = await fetch(`${API}/messages`, {
           method: 'POST',
-          headers: headers(),
-          body: JSON.stringify({ conversationId: state.selected.id, body: pendingImage })
+          headers: { Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
+          body: imageForm
         });
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.message ?? 'Image could not be sent.');
       }
 
       if (hasText) {

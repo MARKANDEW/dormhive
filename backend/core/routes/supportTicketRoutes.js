@@ -8,7 +8,7 @@ import { uploadSupport } from '../config/upload.js';
 const router = Router();
 router.use(authenticate);
 router.get('/', controller.list);
-router.post('/', validate(['subject', 'description']), controller.create);
+router.post('/', uploadSupport.single('attachment'), validate(['subject', 'description']), controller.create);
 router.get('/:id/messages', controller.messages);
 router.post('/:id/messages', uploadSupport.single('attachment'), controller.addMessage);
 router.patch('/:id', authorize('admin'), controller.update);

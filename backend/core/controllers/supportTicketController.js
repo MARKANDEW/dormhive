@@ -1,11 +1,19 @@
 import * as tickets from '../models/SupportTicket.js';
+import { validateUpload } from '../utils/fileValidation.js';
 
 export async function list(request, response, next) {
   try { response.json({ data: await tickets.listForUser(request.user) }); } catch (error) { next(error); }
 }
 
 export async function create(request, response, next) {
-  try { response.status(201).json({ data: await tickets.create(request.user.id, request.body) }); } catch (error) { next(error); }
+  try {
+    const attachment = request.file
+      ? { ...validateUpload(request.file), buffer: request.file.buffer }
+      : null;
+    const ticket = await tickets.create(request.user.id, request.body);
+    if (attachment) await tickets.addMessage(ticket.id, request.user.id, '', false, attachment);
+    response.status(201).json({ data: ticket });
+  } catch (error) { next(error); }
 }
 
 export async function messages(request, response, next) {
@@ -29,7 +37,9 @@ export async function addMessage(request, response, next) {
     if (request.user.role !== 'admin' && !ticketRows.some((ticket) => Number(ticket.id) === Number(request.params.id))) {
       return response.status(403).json({ message: 'Permission denied.' });
     }
-    const message = await tickets.addMessage(request.params.id, request.user.id, body, request.body.isInternal === true && request.user.role === 'admin', request.file ? `/uploads/support/${request.file.filename}` : null, request.file?.originalname ?? null);
+    const attachment = request.file ? { ...validateUpload(request.file), buffer: request.file.buffer } : null;
+    const isInternal = ['true', '1'].includes(String(request.body.isInternal).toLowerCase()) && request.user.role === 'admin';
+    const message = await tickets.addMessage(request.params.id, request.user.id, body, isInternal, attachment);
     response.status(201).json({ data: message });
   } catch (error) { next(error); }
 }

@@ -1,6 +1,6 @@
 import { ensureAdminSidebarStyles, loadAdminStylesheet, renderAdminSidebar } from './sidebarAdmin.js';
 import { applyAdminPrivacy } from './privacy.js';
-import { resolveUserAvatarUrl } from './avatar.js';
+import { buildDefaultUserAvatarSvg, resolveUserAvatarUrl } from './avatar.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const BACKEND_BASE = API.replace(/\/api\/v1$/, '');
@@ -51,19 +51,7 @@ export async function renderSetting(root = document.querySelector('#app')) {
 
                 <div class="avatar-panel">
                   <div class="avatar-wrap" aria-label="Admin avatar">
-                    <img class="avatar-image" src="${getAvatarUrl(user.avatar_url)}" alt="Admin avatar" ${user.avatar_url ? '' : 'hidden'}>
-                    <svg class="avatar-svg" viewBox="0 0 80 80" aria-hidden="true" ${user.avatar_url ? 'style="display:none;"' : ''}>
-                      <defs>
-                        <linearGradient id="avatarShield" x1="0%" x2="100%" y1="0%" y2="100%">
-                          <stop offset="0%" stop-color="#f7d36d"/>
-                          <stop offset="100%" stop-color="#c38e21"/>
-                        </linearGradient>
-                      </defs>
-                      <path d="M40 12l22 7v16c0 14-9 25-22 33C27 60 18 49 18 35V19l22-7zm-1 15l-9 9 6 6 3-3 3 3 6-6-9-9zm-13 13h26v6H26v-6zm2 12h22v6H28v-6z" fill="#1d3d41" opacity="0.9"/>
-                      <path d="M40 18l16 5v12c0 10-6 18-16 24-10-6-16-14-16-24V23l16-5zm-8 16h16v6H32v-6zm2 12h12v6H34v-6z" fill="url(#avatarShield)"/>
-                      <circle cx="56" cy="23" r="8" fill="#1d3d41"/>
-                      <path d="M52 23h8M56 19v8" stroke="#f3d57d" stroke-width="2.5" stroke-linecap="round"/>
-                    </svg>
+                    <img class="avatar-image" src="${getAvatarUrl(user.avatar_url)}" alt="Admin avatar">
                     <button type="button" class="avatar-edit" aria-label="Upload profile picture">
                       <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm14.71-9.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/>
@@ -154,7 +142,12 @@ export async function renderSetting(root = document.querySelector('#app')) {
   const avatarInput = root.querySelector('.avatar-input');
   const avatarEditButton = root.querySelector('.avatar-edit');
   const avatarImage = root.querySelector('.avatar-image');
-  const avatarSvg = root.querySelector('.avatar-svg');
+  avatarImage.addEventListener('error', () => {
+    if (avatarImage.dataset.fallbackApplied === 'true') return;
+    avatarImage.dataset.fallbackApplied = 'true';
+    const currentName = root.querySelector('.user-name')?.textContent || userName;
+    avatarImage.src = buildDefaultUserAvatarSvg(currentName);
+  });
   let isEditMode = false;
   let profileSnapshot = {
     first_name: firstName,
@@ -266,6 +259,10 @@ export async function renderSetting(root = document.querySelector('#app')) {
 
       const updatedUser = { ...(user || {}), ...payload, email: user.email ?? email };
       localStorage.setItem('dormhive.user', JSON.stringify(updatedUser));
+      if (!updatedUser.avatar_url) {
+        avatarImage.dataset.fallbackApplied = 'false';
+        avatarImage.src = buildDefaultUserAvatarSvg(payload.name || 'Admin User');
+      }
       displayNotice(profileNotice, 'Profile saved.', 'success');
       setEditState(false);
       root.querySelector('.user-name').textContent = payload.name || 'Admin User';
@@ -336,9 +333,9 @@ export async function renderSetting(root = document.querySelector('#app')) {
       if (!response.ok) throw new Error(body.message ?? 'Unable to upload profile picture.');
 
       const newSrc = getAvatarUrl(body.data.avatar_url);
+      avatarImage.dataset.fallbackApplied = 'false';
       avatarImage.src = newSrc;
       avatarImage.hidden = false;
-      avatarSvg.style.display = 'none';
 
       const savedUser = { ...(user || {}), avatar_url: body.data.avatar_url };
       localStorage.setItem('dormhive.user', JSON.stringify(savedUser));

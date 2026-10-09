@@ -10,11 +10,6 @@ function css() {
   return loadAdminStylesheet('users', new URL('./style/userManagement.css', import.meta.url));
 }
 
-const fallbackAvatar = (name = 'User') => {
-  const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '').join('') || 'U';
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect width="120" height="120" rx="60" fill="#dff3ee"/><circle cx="60" cy="42" r="22" fill="#17344f"/><path d="M28 96c6-16 18-25 32-25s26 9 32 25" fill="#2b78a8"/><text x="50%" y="68%" text-anchor="middle" font-size="30" font-family="Inter,Arial,sans-serif" font-weight="700" fill="#ffffff">${initials}</text></svg>`)}`;
-};
-
 export async function renderUserManagement(root = document.querySelector('#app')) {
   if (!root) throw new Error('User management requires #app.');
   await Promise.all([css(), ensureAdminSidebarStyles()]);
@@ -59,12 +54,13 @@ export async function renderUserManagement(root = document.querySelector('#app')
       const currentUser = JSON.parse(localStorage.getItem('dormhive.user') ?? '{}');
       body.innerHTML = users.map((user) => {
         const name = user.name || 'User';
-        const avatar = resolveUserAvatarUrl(user.avatar_url || '', name) || fallbackAvatar(name);
+        const avatar = resolveUserAvatarUrl(user.avatar_url || '', name);
+        const fallbackAvatar = resolveUserAvatarUrl('', name);
         const active = user.status === 'active';
         const isCurrentUser = Number(currentUser.id) === Number(user.id);
         const isAdminUser = String(user.role).toLowerCase() === 'admin';
         const disableAction = isCurrentUser || isAdminUser;
-        return `<tr><td><div class="user-table-cell"><img class="user-row-avatar" src="${esc(avatar)}" alt="${esc(name)} avatar" onerror="this.onerror=null;this.src='${fallbackAvatar(name)}'" /><div><strong data-privacy-mask="name">${esc(name)}</strong><small data-privacy-mask="email">${esc(user.email)}</small></div></div></td><td>${esc(user.role)}</td><td><span class="pill ${active ? 'active' : 'suspended'}"><i aria-hidden="true"></i>${esc(active ? 'Active' : 'Suspended')}</span></td><td><button class="user-status-button" data-id="${esc(user.id)}" data-status="${active ? 'suspended' : 'active'}" ${disableAction ? 'disabled title="Admin accounts cannot be suspended from this panel."' : ''}>${disableAction ? 'Locked' : (active ? 'Suspend' : 'Activate')}</button></td></tr>`;
+        return `<tr><td><div class="user-table-cell"><img class="user-row-avatar" src="${esc(avatar)}" alt="${esc(name)} avatar" onerror="this.onerror=null;this.src='${esc(fallbackAvatar)}'" /><div><strong data-privacy-mask="name">${esc(name)}</strong><small data-privacy-mask="email">${esc(user.email)}</small></div></div></td><td>${esc(user.role)}</td><td><span class="pill ${active ? 'active' : 'suspended'}"><i aria-hidden="true"></i>${esc(active ? 'Active' : 'Suspended')}</span></td><td><button class="user-status-button" data-id="${esc(user.id)}" data-status="${active ? 'suspended' : 'active'}" ${disableAction ? 'disabled title="Admin accounts cannot be suspended from this panel."' : ''}>${disableAction ? 'Locked' : (active ? 'Suspend' : 'Activate')}</button></td></tr>`;
       }).join('') || '<tr><td colspan="4" class="empty-row">No users found.</td></tr>';
       applyAdminPrivacy(root);
       body.querySelectorAll('.user-status-button').forEach((button) => button.addEventListener('click', async () => {

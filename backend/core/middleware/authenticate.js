@@ -15,6 +15,29 @@ export async function authenticate(request, response, next) {
   }
 }
 
+export async function authenticateMedia(request, response, next) {
+  const authorization = request.headers.authorization ?? '';
+  const [scheme, headerToken] = authorization.split(' ');
+  const token = scheme === 'Bearer' && headerToken
+    ? headerToken
+    : String(request.query.access_token ?? '');
+  if (!token) return response.status(401).end();
+  let payload;
+  try {
+    payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+  } catch {
+    return response.status(401).end();
+  }
+  try {
+    const user = await findById(payload.sub);
+    if (!user || user.status !== 'active') return response.status(401).end();
+    request.user = user;
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+}
+
 export async function optionalAuthenticate(request, response, next) {
   if (!request.headers.authorization) return next();
   const [scheme, token] = String(request.headers.authorization).split(' ');

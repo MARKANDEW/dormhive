@@ -1,19 +1,19 @@
 ﻿import { showToast } from '../../components/toast.js';
 import { ensureOwnerSidebarStyles, loadOwnerStylesheet, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
+import { withMediaAccessToken } from '../../services/mediaAccess.js';
 
 const API = (window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1').replace(/\/$/, '');
 const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
 const user = () => JSON.parse(localStorage.getItem('dormhive.user') ?? '{}');
 const apiBase = API.replace(/\/api\/v1\/?$/, '');
 const MAX_PROPERTY_PHOTO_SIZE = 2 * 1024 * 1024;
-const SUPPORTED_PROPERTY_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+const SUPPORTED_PROPERTY_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 const DEFAULT_IMAGE_PLACEHOLDER = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 300"><rect width="500" height="300" fill="#ecf5ef"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#4a7160" font-family="Inter,Arial,sans-serif" font-size="28">No image available</text></svg>');
 const resolveImageUrl = (value = '') => {
   const url = String(value || '').trim();
   if (!url) return '';
   if (url.startsWith('data:') || url.startsWith('blob:')) return url;
-  if (/^https?:\/\//i.test(url)) return url;
-  return `${apiBase}${url.startsWith('/') ? '' : '/'}${url}`;
+  return withMediaAccessToken(/^https?:\/\//i.test(url) ? url : `${apiBase}${url.startsWith('/') ? '' : '/'}${url}`);
 };
 const normalizePropertyImage = (property) => {
   const source = property.image_url || property.cover_image || (Array.isArray(property.images) && property.images[0]) || '';
@@ -277,13 +277,13 @@ export async function renderMyListing(root = document.querySelector('#app')) {
                       </div>
                     </div>
                     <div class="media-dropzone">
-                      <input id="property-image" name="images" type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml" multiple hidden>
+                      <input id="property-image" name="images" type="file" accept="image/jpeg,image/png,image/gif,image/webp" multiple hidden>
                       <label for="property-image" class="media-dropzone-label">
                         <span class="dropzone-icon" aria-hidden="true">☁</span>
                         <strong>Drag files to upload</strong>
                         <span class="dropzone-or">or</span>
                         <span class="browse-files">Browse Files</span>
-                        <span class="dropzone-hint">JPG, PNG, GIF, WEBP or SVG up to 2 MB each</span>
+                        <span class="dropzone-hint">JPG, PNG, GIF or WEBP up to 2 MB each</span>
                       </label>
                       <div class="media-upload-status" aria-live="polite">Select as many photos as you need</div>
                     </div>
@@ -410,7 +410,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
   const syncInputFiles = () => {
     if (!imageInput || typeof DataTransfer === 'undefined') return;
     const dataTransfer = new DataTransfer();
-    selectedPhotos.forEach(({ file }) => dataTransfer.items.add(file));
+    selectedPhotos.filter((photo) => !photo.existing).forEach(({ file }) => dataTransfer.items.add(file));
     imageInput.files = dataTransfer.files;
   };
 
@@ -425,7 +425,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
         errors.push(`${file.name}: file exceeds the 2 MB limit.`);
         return;
       }
-      if (selectedPhotos.some((item) => item.file.name === file.name && item.file.size === file.size)) return;
+      if (selectedPhotos.some((item) => !item.existing && item.file.name === file.name && item.file.size === file.size)) return;
       const photo = { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, file, previewUrl: URL.createObjectURL(file), progress: 0, error: '', uploading: false, uploadedUrl: '' };
       selectedPhotos.push(photo);
       photo.uploadPromise = uploadPhoto(photo);
@@ -436,7 +436,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
   };
 
   const resetPhotos = () => {
-    selectedPhotos.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
+    selectedPhotos.filter((photo) => !photo.existing).forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
     selectedPhotos = [];
     if (imageInput) imageInput.value = '';
     renderUploadFiles();
@@ -482,7 +482,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
     const button = event.target.closest('.media-file-remove');
     if (!button) return;
     const photo = selectedPhotos.find((item) => item.id === button.dataset.photoId);
-    if (photo) URL.revokeObjectURL(photo.previewUrl);
+    if (photo && !photo.existing) URL.revokeObjectURL(photo.previewUrl);
     selectedPhotos = selectedPhotos.filter((item) => item.id !== button.dataset.photoId);
     syncInputFiles();
     renderUploadFiles();
@@ -840,13 +840,15 @@ export async function renderMyListing(root = document.querySelector('#app')) {
       
       formData.delete('images');
       formData.delete('image');
-      const uploadResults = await Promise.allSettled(selectedPhotos.map((photo) => photo.uploadPromise));
+      const newPhotos = selectedPhotos.filter((photo) => !photo.existing);
+      const uploadResults = await Promise.allSettled(newPhotos.map((photo) => photo.uploadPromise));
       if (uploadResults.some((result) => result.status === 'rejected' || !result.value?.data?.imageUrl)) {
         setFormMessage('Some photos failed to upload. Retry them individually before closing this form.');
         return;
       }
-      formData.append('imageUrl', selectedPhotos[0]?.uploadedUrl ?? '');
-      formData.append('images', JSON.stringify(selectedPhotos.map((photo) => photo.uploadedUrl)));
+      const photoUrls = selectedPhotos.map((photo) => photo.uploadedUrl).filter(Boolean);
+      formData.append('imageUrl', photoUrls[0] ?? '');
+      formData.append('images', JSON.stringify(photoUrls));
       const finalResponse = await fetch(url, { method, headers: authHeaders(), body: formData });
       let responseBody = {};
       try { responseBody = await finalResponse.json(); } catch {}
@@ -1151,6 +1153,27 @@ export async function renderMyListing(root = document.querySelector('#app')) {
   });
 
   const loadPropertyForEdit = (propertyData) => {
+    resetPhotos();
+    let existingImages = propertyData.images;
+    if (typeof existingImages === 'string') {
+      try { existingImages = JSON.parse(existingImages); } catch { existingImages = []; }
+    }
+    const existingPhotoUrls = [...new Set([
+      propertyData.image_url,
+      ...(Array.isArray(existingImages) ? existingImages : [])
+    ].filter((image) => typeof image === 'string' && image.trim()))];
+    selectedPhotos = existingPhotoUrls.map((url, index) => ({
+      id: `existing-${propertyData.id}-${index}`,
+      file: { name: url.split('/').pop() || 'Property photo', size: 0 },
+      previewUrl: resolveImageUrl(url),
+      uploadedUrl: url,
+      progress: 100,
+      error: '',
+      uploading: false,
+      existing: true
+    }));
+    renderUploadFiles();
+
     // Populate the form with existing property data
     const form = propertyForm;
     form.elements.title.value = propertyData.title || '';

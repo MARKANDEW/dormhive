@@ -6,6 +6,8 @@ import { showToast } from '../../components/toast.js';
 import { api as apiClient, getApiErrorMessage, readApiResponse } from '../../services/api.js';
 import { markNotificationRead } from '../../services/notificationSystem.js';
 import { attachViewingTimeSuggestions, parseViewingTime, viewingTimeFields } from './viewingTime.js';
+import { withMediaAccessToken } from '../../services/mediaAccess.js';
+import { buildInitialsAvatarSvg, getAvatarInitials } from '../../services/avatar.js';
 
 const API_URL = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const apiBase = API_URL.replace(/\/api\/v1\/?$/, '');
@@ -14,8 +16,7 @@ const DEFAULT_IMAGE_PLACEHOLDER = 'data:image/svg+xml;charset=UTF-8,' + encodeUR
 const resolveImageUrl = (value = '') => {
   const url = String(value || '').trim();
   if (!url) return '';
-  if (/^https?:\/\//i.test(url)) return url;
-  return `${apiBase}${url.startsWith('/') ? '' : '/'}${url}`;
+  return withMediaAccessToken(/^https?:\/\//i.test(url) ? url : `${apiBase}${url.startsWith('/') ? '' : '/'}${url}`);
 };
 const normalizePropertyImage = (property) => {
   const source = property.image_url || property.cover_image || (Array.isArray(property.images) && property.images[0]) || '';
@@ -485,7 +486,11 @@ function syncTenantProfileUi(root, user = {}) {
 
   const fullName = tenantFullName(nextUser);
   const avatarUrl = nextUser.avatar_url ? getUserAvatarUrl(nextUser, fullName) : '';
-  avatarEl.innerHTML = avatarUrl ? `<img src="${esc(avatarUrl)}" alt="${esc(fullName)} avatar" />` : `<b>${esc((fullName || 'T').split(' ').map((part) => part[0]).join('').slice(0,2).toUpperCase() || 'T')}</b>`;
+  const initials = getAvatarInitials(fullName, 'T');
+  avatarEl.innerHTML = avatarUrl ? `<img src="${esc(avatarUrl)}" alt="${esc(fullName)} avatar" />` : `<b>${esc(initials)}</b>`;
+  avatarEl.querySelector('img')?.addEventListener('error', () => {
+    avatarEl.innerHTML = `<b>${esc(initials)}</b>`;
+  }, { once: true });
   nameEl.textContent = fullName;
 }
 
@@ -695,7 +700,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
               </div>
             </div>
             <a class="profile" href="#/tenant/setting">
-              <span class="profile-avatar">${user.avatar_url ? `<img src="${esc(getUserAvatarUrl(user, displayName))}" alt="${esc(displayName)} avatar" />` : `<b>${esc((displayName || 'T').split(' ').map((part) => part[0]).join('').slice(0,2).toUpperCase() || 'T')}</b>`}</span>
+              <span class="profile-avatar">${user.avatar_url ? `<img src="${esc(getUserAvatarUrl(user, displayName))}" alt="${esc(displayName)} avatar" onerror="this.onerror=null;this.src='${buildInitialsAvatarSvg(displayName, 'T')}'" />` : `<b>${esc(getAvatarInitials(displayName, 'T'))}</b>`}</span>
               <span class="profile-name">${esc(displayName)}</span>
             </a>
           </div>

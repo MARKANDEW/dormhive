@@ -1,3 +1,5 @@
+import { withMediaAccessToken } from '../../services/mediaAccess.js';
+
 const glyphs = {
   dashboardOwner: '<i class="bi bi-grid-1x2-fill" aria-hidden="true"></i>',
   myListing: '<i class="bi bi-buildings" aria-hidden="true"></i>',
@@ -53,7 +55,7 @@ const getOwnerAvatarUrl = (value = '') => {
   if (/^https?:\/\//i.test(raw)) return raw;
   const API = getAPI();
   const apiBase = API.replace(/\/api\/v1\/?$/, '');
-  return `${apiBase}${raw.startsWith('/') ? '' : '/'}${raw}`;
+  return withMediaAccessToken(`${apiBase}${raw.startsWith('/') ? '' : '/'}${raw}`);
 };
 
 export function renderOwnerProfileCard() {

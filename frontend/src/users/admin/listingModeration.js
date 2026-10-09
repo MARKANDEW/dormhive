@@ -1,6 +1,7 @@
 import { ensureAdminSidebarStyles, loadAdminStylesheet, renderAdminSidebar } from './sidebarAdmin.js';
 import { applyAdminPrivacy } from './privacy.js';
 import { showToast } from '../../components/toast.js';
+import { withMediaAccessToken } from '../../services/mediaAccess.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const headers = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
@@ -186,8 +187,7 @@ export async function renderListingModeration(root = document.querySelector('#ap
   const resolveImageUrl = (value = '') => {
     const url = String(value || '').trim();
     if (!url) return '';
-    if (/^https?:\/\//i.test(url)) return url;
-    return `${apiBase}${url.startsWith('/') ? '' : '/'}${url}`;
+    return withMediaAccessToken(/^https?:\/\//i.test(url) ? url : `${apiBase}${url.startsWith('/') ? '' : '/'}${url}`);
   };
 
   const getPropertyImages = (row = {}) => {
@@ -575,5 +575,3 @@ export async function renderListingModeration(root = document.querySelector('#ap
   typeFilter.addEventListener('change', renderRows);
   load();
 }
-
-
