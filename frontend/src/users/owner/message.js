@@ -36,10 +36,7 @@ const renderAvatar = (name = 'User', image = '') => {
 const participantAvatar = (item = {}) => renderAvatar(item.participant_name ?? 'Conversation', item.participant_avatar_url);
 
 function css() {
-  return Promise.all([
-    loadOwnerStylesheet('dashboard', new URL('./style/dashboardOwner.css', import.meta.url)),
-    loadOwnerStylesheet('message', new URL('./style/message.css', import.meta.url))
-  ]);
+  return loadOwnerStylesheet('message', new URL('./style/message.css', import.meta.url));
 }
 
 export async function renderMessage(root = document.querySelector('#app')) {

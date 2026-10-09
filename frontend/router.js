@@ -10,11 +10,27 @@ const routes = [
   ['/owner/dashboardOwner', 'owner', './src/users/owner/dashboardOwner.js', 'renderDashboardOwner'], ['/owner/myListing', 'owner', './src/users/owner/myListing.js', 'renderMyListing'], ['/owner/inquiries', 'owner', './src/users/owner/inquiries.js', 'renderInquiries'], ['/owner/activeTenant', 'owner', './src/users/owner/activeTenant.js', 'renderActiveTenant'], ['/owner/analytics', 'owner', './src/users/owner/analytics.js', 'renderAnalytics'], ['/owner/message', 'owner', './src/users/owner/message.js', 'renderMessage'], ['/owner/support', 'owner', './src/users/owner/support.js', 'renderSupport'], ['/owner/setting', 'owner', './src/users/owner/setting.js', 'renderSetting'],
   ['/admin/dashboardAdmin', 'admin', './src/users/admin/dashboardAdmin.js', 'renderDashboardAdmin'], ['/admin/userManagement', 'admin', './src/users/admin/userManagement.js', 'renderUserManagement'], ['/admin/listingModeration', 'admin', './src/users/admin/listingModeration.js', 'renderListingModeration'], ['/admin/analytics', 'admin', './src/users/admin/analytics.js', 'renderAnalytics'], ['/admin/supportTickets', 'admin', './src/users/admin/supportTickets.js', 'renderSupportTickets'], ['/admin/setting', 'admin', './src/users/admin/setting.js', 'renderSetting'],
 ];
+const ownerStylesByPath = {
+  '/owner/dashboardOwner': ['dashboard'],
+  '/owner/myListing': ['listings'],
+  '/owner/inquiries': ['inquiries'],
+  '/owner/activeTenant': ['tenants'],
+  '/owner/analytics': ['analytics'],
+  '/owner/message': ['message'],
+  '/owner/support': ['owner-support'],
+  '/owner/setting': ['setting'],
+};
 export function currentUser() { try { return JSON.parse(localStorage.getItem('dormhive.user')); } catch { return null; } }
 export function redirectForRole(role) { return home[role] || '/'; }
 export function navigate(path, replace = false) { const target = `#${path.startsWith('/') ? path : `/${path}`}`; history[replace ? 'replaceState' : 'pushState']({}, '', target); return renderRoute(); }
 function routeLocation() { const hash = location.hash.replace(/^#/, ''); const [path, search = ''] = (hash || '/').split('?'); return { path: path || '/', search: search ? `?${search}` : '' }; }
 let routeRenderId = 0;
+function syncOwnerStyles(path) {
+  const activeStyles = new Set(path.startsWith('/owner/') ? ['shared', ...(ownerStylesByPath[path] ?? [])] : []);
+  document.querySelectorAll('link[data-owner-style]').forEach((link) => {
+    if (!activeStyles.has(link.dataset.ownerStyle)) link.remove();
+  });
+}
 function resetAdminScroll() {
   window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   const adminMain = ROOT().querySelector('.admin-main');
@@ -28,6 +44,7 @@ export async function renderRoute() {
   if (!route) return navigate(redirectForRole(user?.role), true);
   if (!user && !publicRoutes.includes(path)) return navigate('/login', true);
   if (user && publicRoutes.includes(path) && path !== '/' && !['/terms', '/privacy'].includes(path)) return navigate(redirectForRole(user.role), true);
+  syncOwnerStyles(path);
   if (path.startsWith('/admin/')) resetAdminScroll();
   window.DORMHIVE_ROUTE_SEARCH = search;
   const authRouteSkeletonDisabled = ['/login', '/register', '/terms', '/privacy', '/forgot-password', '/reset-password', '/oauth/callback'].includes(path);
@@ -38,6 +55,7 @@ export async function renderRoute() {
   try {
     const module = await import(`${route[2]}?routeRender=${renderId}`);
     await module[route[3]](ROOT());
+    syncOwnerStyles(routeLocation().path);
     if (renderId !== routeRenderId) return;
     if (path.startsWith('/admin/')) {
       const adminMain = resetAdminScroll();

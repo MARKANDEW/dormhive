@@ -24,7 +24,7 @@ const renderAvatarMarkup = () => '';
 
 function css() {
   const stylesheet = new URL('./style/inquiries.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'mobile-menu-fixed-scroll-2');
+  stylesheet.searchParams.set('v', 'mobile-inquiry-empty-actions-4');
   return loadOwnerStylesheet('inquiries', stylesheet);
 }
 
@@ -402,6 +402,7 @@ export async function renderInquiries(root = document.querySelector('#app')) {
     if (!tbody) return;
 
     if (!pageItems.length) {
+      root.querySelector('.list-shell')?.classList.add('is-empty');
       tbody.innerHTML = `
         <div class="empty-state">
           <div class="empty-state-icon">✉</div>
@@ -412,6 +413,7 @@ export async function renderInquiries(root = document.querySelector('#app')) {
       return;
     }
 
+    root.querySelector('.list-shell')?.classList.remove('is-empty');
     tbody.innerHTML = pageItems.map((booking) => {
       const info = statusInfo(booking.status);
       const selectedClass = state.selected?.id === booking.id ? 'selected' : '';
