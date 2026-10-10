@@ -1,6 +1,7 @@
 import { ensureOwnerSidebarStyles, loadOwnerStylesheet, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
 import { withMediaAccessToken } from '../../services/mediaAccess.js';
 import { buildInitialsAvatarSvg } from '../../services/avatar.js';
+import { openAvatarEditor, uploadAvatarPhoto } from '../../services/avatarEditor.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const API_BASE = API.replace(/\/api\/v1\/?$/, '');
@@ -58,6 +59,7 @@ export async function renderSetting(root = document.querySelector('#app')) {
                 <div class="avatar-wrap" aria-label="User avatar">
                   <img src="${resolveImageUrl(user.avatar_url) || buildAvatarSvg(displayName)}" alt="${displayName} avatar" />
                   <button type="button" class="avatar-edit" aria-label="Edit profile photo">✎</button>
+                  <input class="avatar-input" type="file" accept="image/jpeg,image/png,image/webp" hidden>
                 </div>
                 <div class="user-name">${displayName}</div>
                 <div class="profile-actions">
@@ -129,10 +131,9 @@ export async function renderSetting(root = document.querySelector('#app')) {
   const discardProfileButton = root.querySelector('.discard-profile');
   const avatarEditButton = root.querySelector('.avatar-edit');
   const avatarImage = root.querySelector('.avatar-wrap img');
-  let avatarInput = root.querySelector('input[type="file"]');
+  const avatarInput = root.querySelector('.avatar-input');
   const notice = root.querySelector('.notice');
   let isEditMode = false;
-  let pendingAvatarFile = null;
   let profileSnapshot = {
     first_name: user.first_name ?? '',
     last_name: user.last_name ?? '',
@@ -141,14 +142,6 @@ export async function renderSetting(root = document.querySelector('#app')) {
     name: user.name ?? ''
   };
   
-  if (!avatarInput) {
-    avatarInput = document.createElement('input');
-    avatarInput.type = 'file';
-    avatarInput.accept = 'image/*';
-    avatarInput.hidden = true;
-    avatarInput.className = 'avatar-input';
-    root.querySelector('.avatar-wrap').appendChild(avatarInput);
-  }
   const legacyParts = (user.name || '').trim().split(/\s+/).filter(Boolean);
   profileForm.querySelector('#owner-profile-first').value = user.first_name ?? (legacyParts[0] ?? '');
   profileForm.querySelector('#owner-profile-last').value = user.last_name ?? (legacyParts.slice(1).join(' ') || legacyParts[legacyParts.length - 1] || '');
@@ -185,7 +178,6 @@ export async function renderSetting(root = document.querySelector('#app')) {
       ? `${snapshot.first_name || ''} ${snapshot.last_name || ''}`.trim()
       : snapshot.name || 'Alexander J. Reyes';
     syncAvatarDisplay(snapshot.avatar_url || user.avatar_url || '');
-    pendingAvatarFile = null;
     if (avatarInput) avatarInput.value = '';
   }
 
@@ -270,24 +262,6 @@ export async function renderSetting(root = document.querySelector('#app')) {
     try {
       let currentAvatarUrl = user.avatar_url ?? '';
 
-      if (pendingAvatarFile) {
-        const formData = new FormData();
-        formData.append('avatar', pendingAvatarFile);
-        const avatarRes = await fetch(`${API}/users/${user.id}/avatar`, {
-          method: 'PATCH',
-          headers: { Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
-          body: formData
-        });
-        const avatarData = await avatarRes.json().catch(() => ({}));
-        if (!avatarRes.ok) throw new Error(avatarData.message || 'Upload failed');
-
-        currentAvatarUrl = avatarData.data?.avatar_url || avatarData.avatar_url || currentAvatarUrl;
-        user = saveUser({ ...user, ...avatarData.data, avatar_url: currentAvatarUrl });
-        syncAvatarDisplay(currentAvatarUrl);
-        pendingAvatarFile = null;
-        if (avatarInput) avatarInput.value = '';
-      }
-
       const res = await fetch(`${API}/users/${user.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
@@ -308,12 +282,22 @@ export async function renderSetting(root = document.querySelector('#app')) {
 
   avatarEditButton.addEventListener('click', () => avatarInput.click());
 
-  avatarInput.addEventListener('change', (e) => {
+  avatarInput.addEventListener('change', async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    pendingAvatarFile = file;
-    const previewUrl = URL.createObjectURL(file);
-    syncAvatarDisplay(previewUrl);
+    try {
+      await openAvatarEditor(file, async (optimizedFile) => {
+        const updatedUser = await uploadAvatarPhoto(user.id, optimizedFile);
+        user = saveUser({ ...user, ...updatedUser });
+        syncAvatarDisplay(user.avatar_url);
+        profileSnapshot.avatar_url = user.avatar_url;
+        displayNotice(notice, 'Profile photo saved.', 'success');
+      });
+    } catch (error) {
+      displayNotice(notice, error.message || 'Unable to upload profile picture.', 'error');
+    } finally {
+      avatarInput.value = '';
+    }
   });
 
   securityForm.addEventListener('submit', async (e) => {

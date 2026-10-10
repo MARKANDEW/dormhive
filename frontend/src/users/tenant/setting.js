@@ -1,6 +1,7 @@
 import { ensureTenantSidebarStyles, loadTenantStylesheet, renderTenantSidebar } from './sidebarTenant.js';
 import { withMediaAccessToken } from '../../services/mediaAccess.js';
 import { buildInitialsAvatarSvg } from '../../services/avatar.js';
+import { openAvatarEditor, uploadAvatarPhoto } from '../../services/avatarEditor.js';
 
 // Avatar helper functions
 const API_BASE = (window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1').replace(/\/api\/v1\/?$/, '');
@@ -163,7 +164,7 @@ export async function renderSetting(root = document.querySelector('#app')) {
                       <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm14.71-9.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/>
                     </svg>
                   </button>
-                  <input class="avatar-input" type="file" accept="image/*" hidden>
+                  <input class="avatar-input" type="file" accept="image/jpeg,image/png,image/webp" hidden>
                 </div>
                 <div class="user-name">${displayName}</div>
                 <div class="profile-actions">
@@ -246,7 +247,6 @@ export async function renderSetting(root = document.querySelector('#app')) {
   const avatarImage = root.querySelector('.avatar-image');
   const profileCaption = root.querySelector('.user-name');
   let isEditMode = false;
-  let pendingAvatarFile = null;
   let profileSnapshot = {
     first_name: user.first_name ?? '',
     last_name: user.last_name ?? '',
@@ -288,7 +288,6 @@ export async function renderSetting(root = document.querySelector('#app')) {
       ? `${snapshot.first_name || ''} ${snapshot.last_name || ''}`.trim()
       : snapshot.name || 'Tenant User';
     syncAvatarDisplay(snapshot.avatar_url || '');
-    pendingAvatarFile = null;
     avatarInput.value = '';
   }
 
@@ -374,28 +373,6 @@ export async function renderSetting(root = document.querySelector('#app')) {
     try {
       let currentAvatarUrl = user.avatar_url || '';
 
-      if (pendingAvatarFile) {
-        console.debug('Tenant setting: uploading avatar', pendingAvatarFile && { name: pendingAvatarFile.name, type: pendingAvatarFile.type, size: pendingAvatarFile.size });
-        const uploadFormData = new FormData();
-        uploadFormData.append('avatar', pendingAvatarFile);
-        const uploadResponse = await fetch(`${API}/users/${user.id}/avatar`, {
-          method: 'PATCH',
-          headers: { Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
-          body: uploadFormData
-        });
-        const uploadBody = await uploadResponse.json().catch(() => ({}));
-        console.debug('Tenant setting: upload response', uploadResponse.status, uploadBody);
-        if (!uploadResponse.ok) throw new Error(uploadBody.message ?? 'Unable to upload profile picture.');
-
-        currentAvatarUrl = uploadBody.data?.avatar_url || uploadBody.avatar_url || user.avatar_url || '';
-        const avatarUpdatedUser = { ...user, ...uploadBody.data, avatar_url: currentAvatarUrl };
-        user = avatarUpdatedUser;
-        saveUser(avatarUpdatedUser);
-        syncAvatarDisplay(currentAvatarUrl);
-        pendingAvatarFile = null;
-        avatarInput.value = '';
-      }
-
       const response = await fetch(`${API}/users/${user.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
@@ -479,11 +456,19 @@ export async function renderSetting(root = document.querySelector('#app')) {
   avatarInput.addEventListener('change', async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    console.debug('Tenant setting: avatar selected', { name: file.name, type: file.type, size: file.size });
-
-    pendingAvatarFile = file;
-    const previewUrl = URL.createObjectURL(file);
-    avatarImage.src = previewUrl;
-    avatarImage.hidden = false;
+    try {
+      await openAvatarEditor(file, async (optimizedFile) => {
+        const updatedUser = await uploadAvatarPhoto(user.id, optimizedFile);
+        user = { ...user, ...updatedUser };
+        saveUser(user);
+        syncAvatarDisplay(user.avatar_url);
+        profileSnapshot.avatar_url = user.avatar_url;
+        displayNotice(profileNotice, 'Profile photo saved.', 'success');
+      });
+    } catch (error) {
+      displayNotice(profileNotice, error.message, 'error');
+    } finally {
+      avatarInput.value = '';
+    }
   });
 }

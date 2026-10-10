@@ -1,6 +1,7 @@
 import { ensureAdminSidebarStyles, loadAdminStylesheet, renderAdminSidebar } from './sidebarAdmin.js';
 import { applyAdminPrivacy } from './privacy.js';
 import { buildDefaultUserAvatarSvg, resolveUserAvatarUrl } from './avatar.js';
+import { openAvatarEditor, uploadAvatarPhoto } from '../../services/avatarEditor.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const BACKEND_BASE = API.replace(/\/api\/v1$/, '');
@@ -22,7 +23,7 @@ export async function renderSetting(root = document.querySelector('#app')) {
   if (!root) throw new Error('Admin settings page requires #app.');
   await Promise.all([css(), ensureAdminSidebarStyles()]);
 
-  const user = JSON.parse(localStorage.getItem('dormhive.user') ?? '{}');
+  let user = JSON.parse(localStorage.getItem('dormhive.user') ?? '{}');
   const legacyParts = (user.name || '').trim().split(/\s+/).filter(Boolean);
   const firstName = user.first_name ?? (legacyParts[0] ?? 'Admin');
   const lastName = user.last_name ?? (legacyParts.slice(1).join(' ') || legacyParts[legacyParts.length - 1] || 'User');
@@ -57,7 +58,7 @@ export async function renderSetting(root = document.querySelector('#app')) {
                         <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm14.71-9.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/>
                       </svg>
                     </button>
-                    <input class="avatar-input" type="file" accept="image/*" hidden>
+                    <input class="avatar-input" type="file" accept="image/jpeg,image/png,image/webp" hidden>
                   </div>
                   <div class="user-name" data-privacy-mask="name">${userName}</div>
                   <div class="profile-actions">
@@ -319,29 +320,20 @@ export async function renderSetting(root = document.querySelector('#app')) {
   avatarInput.addEventListener('change', async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
-    const formData = new FormData();
-    formData.append('avatar', file);
-
     try {
-      const response = await fetch(`${API}/users/${user.id}/avatar`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
-        body: formData
+      await openAvatarEditor(file, async (optimizedFile) => {
+        const updatedUser = await uploadAvatarPhoto(user.id, optimizedFile);
+        user = { ...user, ...updatedUser };
+        localStorage.setItem('dormhive.user', JSON.stringify(user));
+        avatarImage.dataset.fallbackApplied = 'false';
+        avatarImage.src = getAvatarUrl(user.avatar_url);
+        avatarImage.hidden = false;
+        displayNotice(profileNotice, 'Profile photo saved.', 'success');
       });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.message ?? 'Unable to upload profile picture.');
-
-      const newSrc = getAvatarUrl(body.data.avatar_url);
-      avatarImage.dataset.fallbackApplied = 'false';
-      avatarImage.src = newSrc;
-      avatarImage.hidden = false;
-
-      const savedUser = { ...(user || {}), avatar_url: body.data.avatar_url };
-      localStorage.setItem('dormhive.user', JSON.stringify(savedUser));
-      avatarInput.value = '';
     } catch (error) {
       displayNotice(profileNotice, error.message, 'error');
+    } finally {
+      avatarInput.value = '';
     }
   });
 
