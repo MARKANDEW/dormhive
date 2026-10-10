@@ -24,6 +24,9 @@ function ensureStyles() {
   style.dataset.avatarEditorStyles = 'true';
   style.textContent = `
     .avatar-editor {
+      position: fixed;
+      inset: 0;
+      margin: auto;
       width: min(94vw, 460px);
       max-width: 460px;
       max-height: min(92vh, 760px);
