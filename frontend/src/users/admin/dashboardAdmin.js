@@ -18,23 +18,6 @@ const esc = (v = '') => {
   return e.innerHTML;
 };
 
-const demoUsers = [
-  { id: 1, name: 'Miguel cruz', email: 'tenant@tenant2.com', role: 'tenant', status: 'active', avatar_url: '' },
-  { id: 2, name: 'robin wall', email: 'tenant@tenant.com', role: 'tenant', status: 'active', avatar_url: '' },
-  { id: 3, name: 'Jose cayetano', email: 'owner@owner.com', role: 'owner', status: 'active', avatar_url: '' },
-  { id: 4, name: 'juan luna', email: 'admin@admin.com', role: 'admin', status: 'active', avatar_url: '' }
-];
-
-const demoActivity = [
-  { icon: 'user', title: 'User profile updated', detail: '[Miguel cruz]', time: '2 mins ago' },
-  { icon: 'user', title: 'User profile updated', detail: '[juan luna]', time: '1 day ago' },
-  { icon: 'alert', title: 'Property rejected', detail: '[432432]', time: '1 day ago' },
-  { icon: 'sync', title: 'Property approved', detail: '[10]', time: '1 day ago' },
-  { icon: 'sync', title: 'Property approved', detail: '[hotels]', time: '2 days ago' },
-  { icon: 'user', title: 'User profile updated', detail: '[robin wall]', time: '5 days ago' },
-  { icon: 'user', title: 'User profile updated', detail: '[Jose cayetano]', time: '5 days ago' }
-];
-
 function formatDate(value) {
   if (!value) return '—';
   const date = new Date(value);
@@ -43,7 +26,9 @@ function formatDate(value) {
 }
 
 function css() {
-  return loadAdminStylesheet('dashboard', new URL('./style/dashboardAdmin.css', import.meta.url));
+  const stylesheet = new URL('./style/dashboardAdmin.css', import.meta.url);
+  stylesheet.searchParams.set('v', 'mobile-stat-cards-two-columns-12');
+  return loadAdminStylesheet('dashboard', stylesheet);
 }
 
 function resetDashboardState(root) {
@@ -262,8 +247,10 @@ async function refreshDashboardData(root) {
     root.querySelector('[data-metric="pending"]').textContent = metrics.pendingModeration;
     root.querySelector('[data-metric="bookings"]').textContent = metrics.totalBookings;
 
-    const userData = Array.isArray(users.data) && users.data.length ? users.data.slice(0, 4) : demoUsers;
-    root.querySelector('.user-grid').innerHTML = userData.map(renderUserCard).join('');
+    const userData = Array.isArray(users.data) ? users.data.slice(0, 4) : [];
+    root.querySelector('.user-grid').innerHTML = userData.length
+      ? userData.map(renderUserCard).join('')
+      : '<p class="dashboard-empty-state">No users found.</p>';
     bindUserActions(root, userData);
 
     const liveActivity = buildActivityFeed(
@@ -282,13 +269,8 @@ async function refreshDashboardData(root) {
       return;
     }
 
-    root.querySelector('[data-metric="users"]').textContent = '4';
-    root.querySelector('[data-metric="listings"]').textContent = '5';
-    root.querySelector('[data-metric="pending"]').textContent = '2';
-    root.querySelector('[data-metric="bookings"]').textContent = '0';
-    root.querySelector('.user-grid').innerHTML = demoUsers.map(renderUserCard).join('');
-    bindUserActions(root, demoUsers);
-    root.querySelector('.activity-list').innerHTML = demoActivity.map(renderActivityItem).join('');
+    root.querySelector('.user-grid').innerHTML = `<p class="dashboard-empty-state">${esc(error.message || 'Unable to load users.')}</p>`;
+    root.querySelector('.activity-list').innerHTML = `<div class="activity-row"><div class="activity-main"><span class="activity-text">${esc(error.message || 'Unable to load recent activity.')}</span></div></div>`;
     showToast({ message: error.message || 'Unable to load admin dashboard data.', type: 'error' });
   }
 }
@@ -321,7 +303,7 @@ export async function renderDashboardAdmin(root = document.querySelector('#app')
               </div>
               <div class="stat-body">
                 <span class="stat-label">Registered Users</span>
-                <strong data-metric="users">4</strong>
+                <strong data-metric="users">0</strong>
                 <small>Total platform accounts</small>
               </div>
             </article>
@@ -332,7 +314,7 @@ export async function renderDashboardAdmin(root = document.querySelector('#app')
               </div>
               <div class="stat-body">
                 <span class="stat-label">Published Listings</span>
-                <strong data-metric="listings">5</strong>
+                <strong data-metric="listings">0</strong>
                 <small>Active property listings</small>
               </div>
             </article>
@@ -343,7 +325,7 @@ export async function renderDashboardAdmin(root = document.querySelector('#app')
               </div>
               <div class="stat-body">
                 <span class="stat-label">Pending Moderation</span>
-                <strong data-metric="pending">2</strong>
+                <strong data-metric="pending">0</strong>
                 <small>Awaiting review</small>
               </div>
             </article>
@@ -390,6 +372,16 @@ export async function renderDashboardAdmin(root = document.querySelector('#app')
       </div>
     </div>
   `;
+
+  const mobileMenu = root.querySelector('.admin-mobile-menu');
+  const overviewPill = root.querySelector('.overview-pill');
+  const overviewTitle = root.querySelector('.overview-title-wrap h1');
+  if (mobileMenu && overviewPill && overviewTitle) {
+    const overviewKicker = document.createElement('div');
+    overviewKicker.className = 'overview-kicker-row';
+    overviewTitle.before(overviewKicker);
+    overviewKicker.append(mobileMenu, overviewPill);
+  }
 
   root.querySelector('.users-panel .panel-button')?.addEventListener('click', () => {
     window.location.hash = '#/admin/userManagement';

@@ -7,7 +7,9 @@ const headers = () => ({ 'Content-Type': 'application/json', Authorization: `Bea
 const esc = (value = '') => { const element = document.createElement('span'); element.textContent = value; return element.innerHTML; };
 
 function css() {
-  return loadAdminStylesheet('users', new URL('./style/userManagement.css', import.meta.url));
+  const stylesheet = new URL('./style/userManagement.css', import.meta.url);
+  stylesheet.searchParams.set('v', 'mobile-users-profile-cards-4');
+  return loadAdminStylesheet('users', stylesheet);
 }
 
 export async function renderUserManagement(root = document.querySelector('#app')) {
@@ -38,6 +40,15 @@ export async function renderUserManagement(root = document.querySelector('#app')
       </div>
     </div>`;
 
+  const mobileMenu = root.querySelector('.admin-mobile-menu');
+  const usersKicker = root.querySelector('.users-kicker');
+  if (mobileMenu && usersKicker) {
+    const kickerRow = document.createElement('div');
+    kickerRow.className = 'users-kicker-row';
+    usersKicker.before(kickerRow);
+    kickerRow.append(mobileMenu, usersKicker);
+  }
+
   const input = root.querySelector('.users-search input');
   const body = root.querySelector('tbody');
   const status = root.querySelector('.status');
@@ -60,7 +71,7 @@ export async function renderUserManagement(root = document.querySelector('#app')
         const isCurrentUser = Number(currentUser.id) === Number(user.id);
         const isAdminUser = String(user.role).toLowerCase() === 'admin';
         const disableAction = isCurrentUser || isAdminUser;
-        return `<tr><td><div class="user-table-cell"><img class="user-row-avatar" src="${esc(avatar)}" alt="${esc(name)} avatar" onerror="this.onerror=null;this.src='${esc(fallbackAvatar)}'" /><div><strong data-privacy-mask="name">${esc(name)}</strong><small data-privacy-mask="email">${esc(user.email)}</small></div></div></td><td>${esc(user.role)}</td><td><span class="pill ${active ? 'active' : 'suspended'}"><i aria-hidden="true"></i>${esc(active ? 'Active' : 'Suspended')}</span></td><td><button class="user-status-button" data-id="${esc(user.id)}" data-status="${active ? 'suspended' : 'active'}" ${disableAction ? 'disabled title="Admin accounts cannot be suspended from this panel."' : ''}>${disableAction ? 'Locked' : (active ? 'Suspend' : 'Activate')}</button></td></tr>`;
+        return `<tr><td data-label="User"><div class="user-table-cell"><img class="user-row-avatar" src="${esc(avatar)}" alt="${esc(name)} avatar" onerror="this.onerror=null;this.src='${esc(fallbackAvatar)}'" /><div><strong data-privacy-mask="name">${esc(name)}</strong><small data-privacy-mask="email">${esc(user.email)}</small></div></div></td><td data-label="Role">${esc(user.role)}</td><td data-label="Status"><span class="pill ${active ? 'active' : 'suspended'}"><i aria-hidden="true"></i>${esc(active ? 'Active' : 'Suspended')}</span></td><td data-label="Action"><button class="user-status-button" data-id="${esc(user.id)}" data-status="${active ? 'suspended' : 'active'}" ${disableAction ? 'disabled title="Admin accounts cannot be suspended from this panel."' : ''}>${disableAction ? 'Locked' : (active ? 'Suspend' : 'Activate')}</button></td></tr>`;
       }).join('') || '<tr><td colspan="4" class="empty-row">No users found.</td></tr>';
       applyAdminPrivacy(root);
       body.querySelectorAll('.user-status-button').forEach((button) => button.addEventListener('click', async () => {

@@ -2067,7 +2067,7 @@ body {
   }
 
   .owner-shell > .owner-mobile-menu {
-    position: fixed !important;
+    position: absolute !important;
     top: max(47px, calc(env(safe-area-inset-top) + 47px));
     left: 14px;
   }

@@ -321,7 +321,7 @@
   }
 
   .tenant-mobile-menu {
-    position: fixed;
+    position: absolute;
     top: 0.85rem;
     right: 0.85rem;
     left: auto;

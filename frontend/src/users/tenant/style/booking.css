@@ -1540,6 +1540,7 @@ body {
   }
 
   .dh-app:has(.tenant-bookings) > .tenant-mobile-menu {
+    position: absolute;
     top: 13px;
     right: auto;
     left: 16px;

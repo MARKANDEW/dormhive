@@ -297,6 +297,7 @@
 @media (max-width: 980px) {
   .owner-shell {
     grid-template-columns: 1fr;
+    position: relative;
   }
 
   .owner-shell > .owner-sidebar {
@@ -314,7 +315,7 @@
   }
 
   .owner-mobile-menu {
-    position: fixed;
+    position: absolute;
     top: 0.85rem;
     left: 0.85rem;
     z-index: 12;

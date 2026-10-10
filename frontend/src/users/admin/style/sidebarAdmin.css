@@ -302,6 +302,12 @@
     grid-template-columns: 1fr;
   }
 
+  .admin-shell > .admin-main {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
   .admin-shell > .admin-nav {
     position: fixed;
     left: 0;
@@ -365,12 +371,13 @@
     transform: none;
   }
 
+  .admin-shell.nav-open .admin-mobile-menu {
+    visibility: hidden;
+  }
+
   .admin-mobile-menu {
     display: block;
-    position: fixed;
-    top: 0.85rem;
-    left: 0.85rem;
-    z-index: 8;
+    position: static;
     width: 2.75rem;
     height: 2.75rem;
     border: 1px solid #d5dee4;

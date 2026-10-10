@@ -8,7 +8,9 @@ const headers = () => ({ 'Content-Type': 'application/json', Authorization: `Bea
 const esc = (value = '') => { const e = document.createElement('span'); e.textContent = value; return e.innerHTML; };
 
 function css() {
-  return loadAdminStylesheet('moderation', new URL('./style/listingModeration.css', import.meta.url));
+  const stylesheet = new URL('./style/listingModeration.css', import.meta.url);
+  stylesheet.searchParams.set('v', 'moderation-approved-status-badge-6');
+  return loadAdminStylesheet('moderation', stylesheet);
 }
 
 export async function renderListingModeration(root = document.querySelector('#app')) {
@@ -26,7 +28,7 @@ export async function renderListingModeration(root = document.querySelector('#ap
         <main class="moderation-page">
           <header class="moderation-header">
             <div>
-              <div class="moderation-kicker">Moderation</div>
+              <div class="moderation-kicker-row"><div class="moderation-kicker">Moderation</div></div>
               <h1>Listing Moderation: ${initialLabel}</h1>
               <p>Manage and review property listings submitted by users.</p>
             </div>
@@ -92,9 +94,9 @@ export async function renderListingModeration(root = document.querySelector('#ap
                 <div class="detail-body">
                   <h2 id="detail-name">Select a listing</h2>
                   <p id="detail-address">No property selected.</p>
-                  <p class="detail-meta">📍 <span id="detail-location">Waiting for backend data…</span></p>
-                  <p class="detail-meta">👤 <span id="detail-owner">Owner details will appear here.</span></p>
-                  <p class="detail-meta">🟡 <span id="detail-status">Status pending review</span></p>
+                  <p class="detail-meta detail-location">📍 <span id="detail-location">Waiting for backend data…</span></p>
+                  <p class="detail-meta detail-owner">👤 <span id="detail-owner">Owner details will appear here.</span></p>
+                  <p class="detail-meta detail-status"><span class="status-dot" aria-hidden="true"></span><span id="detail-status">Status pending review</span></p>
                   <div class="detail-extra" id="detail-extra"></div>
                   <div class="detail-actions">
                       <button type="button" class="secondary owner-contact">Owner Contact</button>
@@ -138,7 +140,12 @@ export async function renderListingModeration(root = document.querySelector('#ap
       </div>
     </div>`;
 
-  const tbody = root.querySelector('#moderation-rows');
+    const mobileMenu = root.querySelector('.admin-mobile-menu');
+    const moderationKickerRow = root.querySelector('.moderation-kicker-row');
+    if (mobileMenu && moderationKickerRow) moderationKickerRow.prepend(mobileMenu);
+
+    const tbody = root.querySelector('#moderation-rows');
+    const tableShell = root.querySelector('.table-shell');
   const searchInput = root.querySelector('#moderation-search');
   const typeFilter = root.querySelector('#moderation-filter');
   const tabs = Array.from(root.querySelectorAll('.moderation-tab'));
@@ -301,9 +308,9 @@ export async function renderListingModeration(root = document.querySelector('#ap
     detailOwner.textContent = `Owner: ${row.owner_name || row.owner_id || 'Unknown owner'}`;
     detailStatus.textContent = String(row.status || 'pending').replaceAll('_', ' ');
     detailExtra.innerHTML = `
-      <p data-privacy-mask="detail">Type: ${esc(String(row.room_type || 'Unknown').replaceAll('_', ' '))}</p>
-      <p data-privacy-mask="stat">Rent: ${esc(formatCurrency(row.monthly_rent))}</p>
-      <p>Submitted: ${esc(formatDate(row.created_at))}</p>`;
+      <p data-label="Type" data-privacy-mask="detail">${esc(String(row.room_type || 'Unknown').replaceAll('_', ' '))}</p>
+      <p data-label="Rent" data-privacy-mask="stat">${esc(formatCurrency(row.monthly_rent))}</p>
+      <p data-label="Submitted">${esc(formatDate(row.created_at))}</p>`;
     applyAdminPrivacy(root);
     const imageUrls = getPropertyImages(row);
     const visibleImages = imageUrls.slice(0, 6);
@@ -312,6 +319,9 @@ export async function renderListingModeration(root = document.querySelector('#ap
       const showCount = index === visibleImages.length - 1 && remainingCount > 0;
       return `<div class="thumb${showCount ? ' has-more' : ''}" style="background-image:url('${esc(imageUrl)}');background-position:center;background-size:cover;background-repeat:no-repeat">${showCount ? `<span>+${remainingCount}</span>` : ''}</div>`;
     });
+    if (imageUrls.length > 3) {
+      photoTiles.splice(3, 0, `<div class="thumb has-more mobile-gallery-more" style="background-image:url('${esc(imageUrls[3])}');background-position:center;background-size:cover;background-repeat:no-repeat"><span>+${imageUrls.length - 3}</span></div>`);
+    }
     detailPhotos.innerHTML = photoTiles.length ? photoTiles.join('') : '<div class="thumb"></div>';
     updateDetailActions();
   };
@@ -332,14 +342,15 @@ export async function renderListingModeration(root = document.querySelector('#ap
       return matchesQuery && matchesType;
     });
 
+    tableShell.classList.toggle('is-empty', visibleRows.length === 0);
     tbody.innerHTML = visibleRows.map((row) => `
-      <tr class="${selected?.id === row.id ? 'selected' : ''}" data-id="${row.id}">
-        <td><div class="thumbnail" ${getThumbStyles(row)}></div></td>
-        <td data-privacy-mask="detail">${esc(row.title || 'Untitled property')}</td>
-        <td data-privacy-mask="name">${esc(row.owner_name || 'Unknown owner')}</td>
-        <td data-privacy-mask="detail">${esc(String(row.room_type || 'Unknown').replaceAll('_', ' '))}</td>
-        <td data-privacy-mask="stat">${esc(formatCurrency(row.monthly_rent))}</td>
-        <td>${esc(formatDate(row.created_at))}</td>
+      <tr class="listing-summary-row${selected?.id === row.id ? ' selected' : ''}" data-id="${row.id}">
+        <td data-label="Thumbnail"><div class="thumbnail" ${getThumbStyles(row)}></div></td>
+        <td data-label="Property" data-privacy-mask="detail">${esc(row.title || 'Untitled property')}</td>
+        <td data-label="Owner" data-privacy-mask="name">${esc(row.owner_name || 'Unknown owner')}</td>
+        <td data-label="Type" data-privacy-mask="detail">${esc(String(row.room_type || 'Unknown').replaceAll('_', ' '))}</td>
+        <td data-label="Rent" data-privacy-mask="stat">${esc(formatCurrency(row.monthly_rent))}</td>
+        <td data-label="Submitted">${esc(formatDate(row.created_at))}</td>
         <td class="action-icons"><button type="button" aria-label="View details">🔎</button></td>
       </tr>`).join('') || '<tr><td colspan="7" class="empty-row">No matching listings found.</td></tr>';
 
@@ -374,6 +385,7 @@ export async function renderListingModeration(root = document.querySelector('#ap
       listingCardSubtitle.textContent = `Showing ${rows.length} ${statusLabels[currentStatus].toLowerCase()}.`;
       listingTotal.textContent = `${rows.length} total`;
       if (!rows.length) {
+        tableShell.classList.add('is-empty');
         statusLabel.textContent = `No ${statusLabels[currentStatus].toLowerCase()} found.`;
         tbody.innerHTML = '<tr><td colspan="7" class="empty-row">No listings available for this tab.</td></tr>';
         clearSelection();
@@ -384,6 +396,7 @@ export async function renderListingModeration(root = document.querySelector('#ap
       syncDetails(selected);
       renderRows();
     } catch (error) {
+      tableShell.classList.add('is-empty');
       statusLabel.textContent = error.message;
       clearSelection();
       detailName.textContent = 'Unable to load listing details';

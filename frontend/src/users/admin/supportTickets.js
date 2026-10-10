@@ -19,7 +19,7 @@ export async function renderSupportTickets(root = document.querySelector('#app')
   if (!root) throw new Error('Support tickets requires #app.');
   await Promise.all([css(), ensureAdminSidebarStyles()]);
   root.innerHTML = `<div class="admin-shell">${renderAdminSidebar('supportTickets')}<div class="admin-main"><main class="support-page">
-    <header class="support-header"><div><span class="support-kicker">Support</span><h1>Support</h1><p>Manage user requests, questions, and support tickets.</p></div></header>
+    <header class="support-header"><div class="support-heading"><div class="support-kicker-row"><span class="support-kicker">Support</span></div><h1>Support</h1><p>Manage user requests, questions, and support tickets.</p></div></header>
     <section class="support-content">
       <section class="support-summary"><article class="support-summary-card support-blue"><i class="bi bi-ticket-perforated"></i><div><span>Open Tickets</span><strong data-summary="open">0</strong><small>Currently open</small></div></article><article class="support-summary-card support-orange"><i class="bi bi-clock"></i><div><span>Pending</span><strong data-summary="pending">0</strong><small>Waiting for response</small></div></article><article class="support-summary-card support-red"><i class="bi bi-exclamation-triangle"></i><div><span>High Priority</span><strong data-summary="high">0</strong><small>Needs attention</small></div></article><article class="support-summary-card support-green"><i class="bi bi-check-circle"></i><div><span>Resolved</span><strong data-summary="resolved">0</strong><small>Resolved tickets</small></div></article></section>
       <section class="support-filter-bar"><label class="support-search"><i class="bi bi-search"></i><input id="ticket-search" type="search" placeholder="Search tickets, users, or subjects..." /></label><select id="status-filter"><option value="all">All Statuses</option><option value="open">Open</option><option value="pending">Pending</option><option value="resolved">Resolved</option></select><select id="priority-filter"><option value="all">All Priorities</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select><select id="requester-filter"><option value="all">All Users</option><option value="tenant">Tenants</option><option value="owner">Owners</option></select><button type="button" class="reset-filters"><i class="bi bi-arrow-clockwise"></i> Reset</button></section>
@@ -27,6 +27,9 @@ export async function renderSupportTickets(root = document.querySelector('#app')
       <section class="support-workspace"><article class="ticket-table-card"><div class="ticket-table-head"><span>TICKET</span><span>USER</span><span>CATEGORY</span><span>PRIORITY</span><span>STATUS</span><span>LAST UPDATED</span><span>ACTIONS</span></div><div id="ticket-list" class="ticket-list"></div><footer class="ticket-footer"><span data-ticket-range>Showing 0–0 of 0 tickets</span><div><button disabled aria-label="Previous page">‹</button><button class="current-page">1</button><button disabled aria-label="Next page">›</button></div></footer></article><aside class="ticket-details" id="ticket-details"></aside></section>
     </section>
   </main></div></div>`;
+  const mobileMenu = root.querySelector('.admin-mobile-menu');
+  const supportKickerRow = root.querySelector('.support-kicker-row');
+  if (mobileMenu && supportKickerRow) supportKickerRow.prepend(mobileMenu);
   root.querySelector('.ticket-footer')?.remove();
 
   const state = { tickets: [], tab: 'all', search: '', status: 'all', priority: 'all', requesterRole: 'all', selected: null, internalNotes: {} };
@@ -124,7 +127,8 @@ export async function renderSupportTickets(root = document.querySelector('#app')
   };
 
   const renderDetails = (ticket) => {
-    if (!ticket) { details.innerHTML = '<div class="ticket-detail-empty"><i class="bi bi-headset"></i><strong>Select a ticket</strong><span>Ticket details and conversation will appear here.</span></div>'; return; }
+    if (!ticket) { details.classList.add('is-empty'); details.innerHTML = '<div class="ticket-detail-empty"><i class="bi bi-headset"></i><strong>Select a ticket</strong><span>Ticket details and conversation will appear here.</span></div>'; return; }
+    details.classList.remove('is-empty');
     const status = normalizeStatus(ticket.status);
     const priority = normalizePriority(ticket.priority);
     const user = ticket.requester_name || ticket.name || 'Unknown user';
