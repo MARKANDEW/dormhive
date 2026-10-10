@@ -1195,8 +1195,9 @@ a {
     min-height: 62px;
     padding: 0 12px 0 16px;
     gap: 0.5rem;
-    background: #159879;
-    color: #fff;
+    background: transparent;
+    color: var(--text);
+    order: -1;
   }
 
   .dashboard-tools .menu {
@@ -1209,7 +1210,7 @@ a {
     border: 0;
     border-radius: 0;
     background: transparent;
-    color: #fff;
+    color: #111827;
     font-size: 1.45rem;
   }
 
@@ -1229,11 +1230,12 @@ a {
     height: 37px;
     border-radius: 8px;
     background: transparent;
-    color: #fff;
+    color: #111827;
   }
 
   .dashboard-tools .notification-trigger > span:first-child {
-    filter: grayscale(1) brightness(0) invert(1);
+    filter: none;
+    color: #111827;
   }
 
   .dashboard-tools .notification-dropdown {
@@ -1249,7 +1251,7 @@ a {
     min-width: 0;
     padding: 2px 5px;
     background: transparent;
-    color: #fff;
+    color: #111827;
     justify-content: flex-start;
     gap: 6px;
   }
@@ -1258,7 +1260,7 @@ a {
     flex: 0 0 32px;
     width: 32px;
     height: 32px;
-    border: 2px solid #fff;
+    border: 2px solid #111827;
   }
 
   .dashboard-tools .profile-identity > div:last-child {
@@ -1271,7 +1273,7 @@ a {
     display: block;
     max-width: clamp(4rem, 24vw, 7rem);
     overflow: hidden;
-    color: #fff;
+    color: #111827;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -1281,7 +1283,7 @@ a {
   }
 
   .dashboard-tools .profile-identity span {
-    color: rgba(255, 255, 255, 0.78);
+    color: rgba(17, 24, 39, 0.76);
     font-size: 0.62rem;
   }
 

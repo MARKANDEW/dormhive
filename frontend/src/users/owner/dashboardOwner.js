@@ -54,7 +54,11 @@ function clearTenantRouteStyles() {
   document.querySelectorAll('[data-tenant-style], [data-tenant-sidebar-style], [data-tenant-modal-css], [data-user-style="tenant-support"]').forEach((node) => node.remove());
 }
 
-function css() { return loadOwnerStylesheet('dashboard', new URL('./style/dashboardOwner.css', import.meta.url)); }
+function css() {
+  const stylesheet = new URL('./style/dashboardOwner.css', import.meta.url);
+  stylesheet.searchParams.set('v', 'owner-dashboard-mobile-black-1');
+  return loadOwnerStylesheet('dashboard', stylesheet);
+}
 async function get(path) { const response = await fetch(`${API}${path}`, { headers: auth() }); const body = await readApiResponse(response); if (!response.ok) throw new Error(getApiErrorMessage(body, 'Unable to load this information.')); return body; }
 function metricCard(label, value, note, icon, trend = false) {
   return `<article class="metric-card"><div class="metric-icon">${icon}</div><div><p>${label}</p><strong>${value}</strong><span>${note}${trend ? ' ↗' : ''}</span></div></article>`;
