@@ -13,6 +13,7 @@ function installGlobalAuthHandlers() {
     if (!button) return;
     event.preventDefault();
     clearSession();
+    document.querySelector('#app')?.replaceChildren();
     navigate('/login', true);
   });
 }
