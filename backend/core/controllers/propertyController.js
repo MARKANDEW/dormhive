@@ -45,7 +45,9 @@ export async function list(request, response, next) {
 export async function get(request, response, next) {
   try {
     const property = await properties.findById(request.params.id);
-    const mayView = property?.status === 'approved' || property?.owner_id === request.user?.id || request.user?.role === 'admin';
+    const mayView = (property?.status === 'approved' && property?.owner_status === 'active')
+      || property?.owner_id === request.user?.id
+      || request.user?.role === 'admin';
     return mayView ? response.json({ data: property }) : response.status(404).json({ message: 'Property not found.' });
   } catch (error) { next(error); }
 }
@@ -134,7 +136,10 @@ export async function update(request, response, next) {
       amenities
     };
 
-    const updated = await properties.update(request.params.id, input);
+    const updated = requestedStatus === 'archived'
+      ? await properties.archive(request.params.id)
+      : await properties.update(request.params.id, input);
+    if (!updated) return response.status(409).json({ message: 'This property is already archived.' });
     await properties.attachUploadedImages(request.params.id, stagedImages, request.user.id);
     const addedImageUrls = [];
     const photoFieldsProvided = request.body.images !== undefined || request.body.imageUrl !== undefined;
@@ -218,6 +223,17 @@ export async function remove(request, response, next) {
     if (property.owner_id !== request.user.id && request.user.role !== 'admin') return response.status(403).json({ message: 'Permission denied.' });
     await properties.remove(request.params.id);
     response.status(204).end();
+  } catch (error) { next(error); }
+}
+
+export async function restore(request, response, next) {
+  try {
+    const property = await properties.findById(request.params.id);
+    if (!property) return response.status(404).json({ message: 'Property not found.' });
+    if (property.owner_id !== request.user.id && request.user.role !== 'admin') return response.status(403).json({ message: 'Permission denied.' });
+    if (property.status !== 'archived') return response.status(409).json({ message: 'This property is not archived.' });
+    const restored = await properties.restore(request.params.id);
+    return restored ? response.json({ data: restored }) : response.status(409).json({ message: 'This property could not be restored.' });
   } catch (error) { next(error); }
 }
 

@@ -135,7 +135,7 @@ function showPropertyPhotoViewer(property) {
 
 function css() {
   const stylesheet = new URL('./style/myListing.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'mobile-portfolio-fit-2');
+  stylesheet.searchParams.set('v', 'portfolio-archive-tabs-1');
   return loadOwnerStylesheet('listings', stylesheet);
 }
 
@@ -173,6 +173,10 @@ export async function renderMyListing(root = document.querySelector('#app')) {
                 </select>
               </label>
               <button type="button" class="add-property">Add a New Property</button>
+            </div>
+            <div class="property-status-tabs" role="group" aria-label="Filter listings by archive status">
+              <button type="button" class="active" data-property-status="active" aria-pressed="true">Active listings</button>
+              <button type="button" data-property-status="archived" aria-pressed="false">Archived</button>
             </div>
 
             <div id="property-modal" class="property-modal" hidden>
@@ -350,6 +354,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
   const propertyFormStep3 = root.querySelector('#property-form-step-3');
   const propertySearchInput = root.querySelector('.property-search input');
   const propertyTypeFilter = root.querySelector('.property-filter select');
+  const propertyStatusTabs = root.querySelectorAll('[data-property-status]');
   const formStepIndicator = root.querySelector('#form-step-indicator');
   const propertyFormMessage = root.querySelector('#property-form-message');
   const mediaDropzone = root.querySelector('.media-dropzone');
@@ -904,6 +909,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
     const selectedType = normalizePropertyTypeValue(propertyTypeFilter?.value ?? '');
 
     return allPropertyRows.filter((item) => {
+      const isArchived = item.status === 'archived';
       const propertyType = normalizePropertyTypeValue(item.room_type || item.property_type || '');
       const searchableText = [
         item.title,
@@ -917,7 +923,8 @@ export async function renderMyListing(root = document.querySelector('#app')) {
 
       const matchesSearch = !searchValue || searchableText.includes(searchValue);
       const matchesType = !selectedType || propertyType === selectedType;
-      return matchesSearch && matchesType;
+      const matchesStatus = propertyStatus === 'archived' ? isArchived : !isArchived;
+      return matchesSearch && matchesType && matchesStatus;
     });
   };
 
@@ -941,11 +948,14 @@ export async function renderMyListing(root = document.querySelector('#app')) {
   const openPropertyActionConfirm = (property, action) => {
     pendingPropertyAction = { property, action };
     const isDelete = action === 'delete';
-    propertyActionConfirmTitle.textContent = isDelete ? 'Delete Property' : 'Archive Property';
+    const isRestore = action === 'restore';
+    propertyActionConfirmTitle.textContent = isDelete ? 'Delete Property' : isRestore ? 'Restore Property' : 'Archive Property';
     propertyActionConfirmText.textContent = isDelete
       ? `Are you sure you want to delete ${property.title || 'this property'}?`
-      : `Are you sure you want to archive ${property.title || 'this property'}?`;
-    propertyActionConfirmActionBtn.textContent = isDelete ? 'Confirm Delete' : 'Confirm Archive';
+      : isRestore
+        ? `Restore ${property.title || 'this property'} to your active listings?`
+        : `Are you sure you want to archive ${property.title || 'this property'}?`;
+    propertyActionConfirmActionBtn.textContent = isDelete ? 'Confirm Delete' : isRestore ? 'Confirm Restore' : 'Confirm Archive';
     propertyActionConfirmActionBtn.dataset.action = action;
     propertyActionConfirm.hidden = false;
   };
@@ -984,17 +994,19 @@ export async function renderMyListing(root = document.querySelector('#app')) {
               <div class="property-more-wrap">
                 <button type="button" class="property-more-btn" data-property-id="${escape(String(item.id ?? ''))}" aria-label="More property actions">⋯</button>
                 <div class="property-menu" hidden>
-                  <button type="button" class="property-menu-action edit-property" data-property-id="${escape(String(item.id ?? ''))}">Edit</button>
+                  ${item.status !== 'archived' ? `<button type="button" class="property-menu-action edit-property" data-property-id="${escape(String(item.id ?? ''))}">Edit</button>` : ''}
                   <button type="button" class="property-menu-action view-property" data-property-id="${escape(String(item.id ?? ''))}">View</button>
-                  <button type="button" class="property-menu-action" data-property-id="${escape(String(item.id ?? ''))}" data-action="archive">Archive</button>
-                  <button type="button" class="property-menu-action danger" data-property-id="${escape(String(item.id ?? ''))}" data-action="delete">Delete</button>
+                  ${item.status === 'archived'
+                    ? `<button type="button" class="property-menu-action" data-property-id="${escape(String(item.id ?? ''))}" data-action="restore">Restore</button>`
+                    : `<button type="button" class="property-menu-action" data-property-id="${escape(String(item.id ?? ''))}" data-action="archive">Archive</button>
+                  <button type="button" class="property-menu-action danger" data-property-id="${escape(String(item.id ?? ''))}" data-action="delete">Delete</button>`}
                 </div>
               </div>
             </div>
           </td>
         </tr>`;
     });
-    portfolioBody.innerHTML = rows.join('') || '<tr><td colspan="7" class="empty-row">No listings yet for this account.</td></tr>';
+    portfolioBody.innerHTML = rows.join('') || `<tr><td colspan="7" class="empty-row">${propertyStatus === 'archived' ? 'No archived properties yet.' : 'No active listings yet.'}</td></tr>`;
     portfolioBody.querySelectorAll('.progress-track span').forEach((bar) => {
       bar.style.setProperty('--rate', `${bar.dataset.rate}%`);
     });
@@ -1114,14 +1126,29 @@ export async function renderMyListing(root = document.querySelector('#app')) {
       } else if (action === 'archive') {
         const response = await fetch(`${API}/properties/${propertyId}`, {
           method: 'PATCH',
-          headers: authHeaders(),
+          headers: { ...authHeaders(), 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'archived' })
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(body.message || 'Unable to archive property.');
+        }
+        if (body.data?.status !== 'archived') {
+          throw new Error('The server did not mark this property as archived. Please try again.');
+        }
+        showToast({ message: 'Property archived successfully.', type: 'success' });
+        setPropertyStatus('archived');
+      } else if (action === 'restore') {
+        const response = await fetch(`${API}/properties/${propertyId}/restore`, {
+          method: 'PATCH',
+          headers: authHeaders()
         });
         if (!response.ok) {
           const body = await response.json().catch(() => ({}));
-          throw new Error(body.message || 'Unable to archive property.');
+          throw new Error(body.message || 'Unable to restore property.');
         }
-        showToast({ message: 'Property archived successfully.', type: 'success' });
+        showToast({ message: 'Property restored successfully.', type: 'success' });
+        setPropertyStatus('active');
       }
 
       closePropertyActionConfirm();
@@ -1143,6 +1170,22 @@ export async function renderMyListing(root = document.querySelector('#app')) {
     activePage = 1;
     applyPropertyTableState();
   });
+
+  let propertyStatus = 'active';
+  const setPropertyStatus = (status) => {
+    propertyStatus = status;
+    activePage = 1;
+    propertyStatusTabs.forEach((tab) => {
+      const selected = tab.dataset.propertyStatus === status;
+      tab.classList.toggle('active', selected);
+      tab.setAttribute('aria-pressed', String(selected));
+    });
+    applyPropertyTableState();
+  };
+
+  propertyStatusTabs.forEach((button) => button.addEventListener('click', () => {
+    setPropertyStatus(button.dataset.propertyStatus);
+  }));
 
   document.addEventListener('click', (event) => {
     if (!event.target.closest('.property-more-btn') && !event.target.closest('.property-menu')) {

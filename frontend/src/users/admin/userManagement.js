@@ -1,6 +1,8 @@
 import { ensureAdminSidebarStyles, loadAdminStylesheet, renderAdminSidebar } from './sidebarAdmin.js';
 import { applyAdminPrivacy } from './privacy.js';
 import { resolveUserAvatarUrl } from './avatar.js';
+import { showToast } from '../../components/toast.js';
+import { confirmDialog } from '../../components/modal.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const headers = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
@@ -8,7 +10,7 @@ const esc = (value = '') => { const element = document.createElement('span'); el
 
 function css() {
   const stylesheet = new URL('./style/userManagement.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'mobile-users-profile-cards-4');
+  stylesheet.searchParams.set('v', 'archive-controls-1');
   return loadAdminStylesheet('users', stylesheet);
 }
 
@@ -26,7 +28,6 @@ export async function renderUserManagement(root = document.querySelector('#app')
               <h1>User management</h1>
               <p>Search and administer platform accounts.</p>
             </div>
-            <div class="users-header-meta"><span class="users-date"><i class="bi bi-calendar3" aria-hidden="true"></i> <time>${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</time></span><span class="users-updated"><span class="status-dot" aria-hidden="true"></span> Updated just now</span></div>
           </header>
           <section class="users-content">
             <label class="users-search"><span aria-hidden="true">⌕</span><input type="search" placeholder="Search name or email" /></label>
@@ -60,7 +61,7 @@ export async function renderUserManagement(root = document.querySelector('#app')
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.message || 'Unable to load users.');
       const users = Array.isArray(payload.data) ? payload.data : [];
-      total.textContent = `${users.length} total`;
+      total.textContent = `${payload.pagination?.total ?? users.length} total`;
       status.hidden = true;
       const currentUser = JSON.parse(localStorage.getItem('dormhive.user') ?? '{}');
       body.innerHTML = users.map((user) => {
@@ -71,11 +72,33 @@ export async function renderUserManagement(root = document.querySelector('#app')
         const isCurrentUser = Number(currentUser.id) === Number(user.id);
         const isAdminUser = String(user.role).toLowerCase() === 'admin';
         const disableAction = isCurrentUser || isAdminUser;
-        return `<tr><td data-label="User"><div class="user-table-cell"><img class="user-row-avatar" src="${esc(avatar)}" alt="${esc(name)} avatar" onerror="this.onerror=null;this.src='${esc(fallbackAvatar)}'" /><div><strong data-privacy-mask="name">${esc(name)}</strong><small data-privacy-mask="email">${esc(user.email)}</small></div></div></td><td data-label="Role">${esc(user.role)}</td><td data-label="Status"><span class="pill ${active ? 'active' : 'suspended'}"><i aria-hidden="true"></i>${esc(active ? 'Active' : 'Suspended')}</span></td><td data-label="Action"><button class="user-status-button" data-id="${esc(user.id)}" data-status="${active ? 'suspended' : 'active'}" ${disableAction ? 'disabled title="Admin accounts cannot be suspended from this panel."' : ''}>${disableAction ? 'Locked' : (active ? 'Suspend' : 'Activate')}</button></td></tr>`;
+        const canArchive = ['tenant', 'owner'].includes(String(user.role).toLowerCase());
+        return `<tr><td data-label="User"><div class="user-table-cell"><img class="user-row-avatar" src="${esc(avatar)}" alt="${esc(name)} avatar" onerror="this.onerror=null;this.src='${esc(fallbackAvatar)}'" /><div><strong data-privacy-mask="name">${esc(name)}</strong><small data-privacy-mask="email">${esc(user.email)}</small></div></div></td><td data-label="Role">${esc(user.role)}</td><td data-label="Status"><span class="pill ${active ? 'active' : 'suspended'}"><i aria-hidden="true"></i>${esc(active ? 'Active' : 'Suspended')}</span></td><td data-label="Action"><button class="user-status-button" data-id="${esc(user.id)}" data-status="${active ? 'suspended' : 'active'}" ${disableAction ? 'disabled title="Admin accounts cannot be suspended from this panel."' : ''}>${disableAction ? 'Locked' : (active ? 'Suspend' : 'Activate')}</button>${canArchive ? `<button class="user-status-button user-archive-button" data-archive-id="${esc(user.id)}" ${disableAction ? 'disabled title="You cannot archive your own account."' : ''}>Archive</button>` : ''}</td></tr>`;
       }).join('') || '<tr><td colspan="4" class="empty-row">No users found.</td></tr>';
       applyAdminPrivacy(root);
       body.querySelectorAll('.user-status-button').forEach((button) => button.addEventListener('click', async () => {
         if (button.disabled) return;
+        if (button.dataset.archiveId) {
+          const confirmed = await confirmDialog({
+            title: 'Archive account?',
+            message: 'This account will no longer be able to sign in. You can restore it later from the Archive page.',
+            confirmLabel: 'Archive account'
+          });
+          if (!confirmed) return;
+          button.disabled = true;
+          try {
+            const response = await fetch(`${API}/users/${button.dataset.archiveId}`, { method: 'DELETE', headers: headers() });
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(payload.message || 'Unable to archive account.');
+            showToast({ message: 'Account archived successfully.', type: 'success' });
+            await load();
+          } catch (error) {
+            status.textContent = error.message;
+            status.hidden = false;
+            button.disabled = false;
+          }
+          return;
+        }
         button.disabled = true;
         const response = await fetch(`${API}/users/${button.dataset.id}`, { method: 'PATCH', headers: headers(), body: JSON.stringify({ status: button.dataset.status }) });
         if (!response.ok) { const error = await response.json(); status.textContent = error.message || 'Unable to update user.'; status.hidden = false; }

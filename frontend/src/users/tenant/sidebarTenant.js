@@ -15,9 +15,9 @@ let tenantSidebarStylesPromise;
 
 export function loadTenantStylesheet(name, href) {
   let link = document.querySelector(`link[data-tenant-style="${name}"]`);
-  if (link?.sheet) return Promise.resolve();
   const existingPromise = tenantStylesheetPromises.get(name);
   if (existingPromise) return existingPromise;
+  if (link?.sheet) return Promise.resolve();
 
   if (!link) {
     link = document.createElement('link');

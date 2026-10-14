@@ -99,3 +99,112 @@
   font-weight: 700;
   cursor: pointer;
 }
+
+.ui-modal.ui-confirm-dialog {
+  width: min(92vw, 28rem);
+  border-radius: 1rem;
+  color: #17344f;
+}
+
+.ui-confirm-dialog .ui-modal__header {
+  justify-content: center;
+  padding: 1.35rem 1.5rem 0.75rem;
+  border: 0;
+}
+
+.ui-confirm-dialog .ui-modal__header h2 {
+  color: #17344f;
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.ui-confirm-dialog .ui-modal__header [aria-label="Close dialog"] {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.8rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  color: #667789;
+}
+
+.ui-confirm-dialog .ui-modal__header [aria-label="Close dialog"]:hover {
+  background: #f1f5f8;
+}
+
+.ui-confirm-dialog .ui-modal__body {
+  padding: 0.5rem 1.75rem 1.25rem;
+}
+
+.ui-confirm-dialog__content {
+  display: grid;
+  justify-items: center;
+  gap: 0.85rem;
+  text-align: center;
+}
+
+.ui-confirm-dialog__icon {
+  display: grid;
+  width: 3.25rem;
+  height: 3.25rem;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff3dc;
+  color: #c47b13;
+  font-size: 1.4rem;
+}
+
+.ui-confirm-dialog__content p {
+  max-width: 23rem;
+  margin: 0;
+  color: #5c6e7e;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.ui-confirm-dialog .ui-modal__footer {
+  flex-direction: row;
+  padding: 0 1.5rem 1.4rem;
+  border: 0;
+}
+
+.ui-confirm-dialog .ui-modal__footer button {
+  min-width: 7rem;
+  min-height: 2.75rem;
+  padding: 0.65rem 1rem;
+  border: 1px solid #d8e1e8;
+  border-radius: 0.65rem;
+  background: #fff;
+  box-shadow: none;
+  color: #43586b;
+  font: inherit;
+  font-weight: 700;
+}
+
+.ui-confirm-dialog .ui-modal__footer button:hover {
+  background: #f5f8fa;
+}
+
+.ui-confirm-dialog .ui-modal__footer .ui-confirm-dialog__confirm {
+  border-color: #bd514b;
+  background: #bd514b;
+  color: #fff;
+}
+
+.ui-confirm-dialog .ui-modal__footer .ui-confirm-dialog__confirm:hover {
+  background: #a9433e;
+}
+
+.ui-confirm-dialog .ui-modal__footer button:focus-visible,
+.ui-confirm-dialog .ui-modal__header button:focus-visible {
+  outline: 3px solid rgb(47 126 199 / 35%);
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .ui-confirm-dialog .ui-modal__footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

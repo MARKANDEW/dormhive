@@ -8,7 +8,7 @@ import {
   totalCount,
 } from '../../../frontend/src/users/admin/analyticsUtils.js';
 import { buildActivityFeed } from '../../../frontend/src/users/admin/analyticsUtils.js';
-import { guardUserStatusChange } from '../controllers/userController.js';
+import { guardUserArchive, guardUserStatusChange } from '../controllers/userController.js';
 
 test('buildDashboardMetrics totals are computed from aggregated analytics rows', () => {
   const metrics = buildDashboardMetrics({
@@ -101,4 +101,35 @@ test('admin self-suspension is blocked', () => {
 
   assert.equal(result.allowed, false);
   assert.match(result.message, /cannot.*suspend/i);
+});
+
+test('only tenant and owner accounts can be archived by an admin', () => {
+  const tenant = guardUserArchive({
+    actor: { id: 7, role: 'admin' },
+    target: { id: 8, role: 'tenant', status: 'active' }
+  });
+  const admin = guardUserArchive({
+    actor: { id: 7, role: 'admin' },
+    target: { id: 8, role: 'admin', status: 'active' }
+  });
+
+  assert.equal(tenant.allowed, true);
+  assert.equal(admin.allowed, false);
+  assert.match(admin.message, /tenant and owner/i);
+});
+
+test('account archive prevents self-archive and repeated archive actions', () => {
+  const selfArchive = guardUserArchive({
+    actor: { id: 7, role: 'admin' },
+    target: { id: 7, role: 'owner', status: 'active' }
+  });
+  const alreadyArchived = guardUserArchive({
+    actor: { id: 7, role: 'admin' },
+    target: { id: 8, role: 'tenant', status: 'archived' }
+  });
+
+  assert.equal(selfArchive.allowed, false);
+  assert.match(selfArchive.message, /own account/i);
+  assert.equal(alreadyArchived.allowed, false);
+  assert.equal(alreadyArchived.status, 409);
 });

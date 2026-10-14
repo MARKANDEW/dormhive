@@ -6,6 +6,7 @@ const glyphs = {
   listingModeration: '<i class="bi bi-clipboard-check-fill" aria-hidden="true"></i>',
   analytics: '<i class="bi bi-bar-chart-line" aria-hidden="true"></i>',
   supportTickets: '<i class="bi bi-headset" aria-hidden="true"></i>',
+  archive: '<i class="bi bi-archive-fill" aria-hidden="true"></i>',
   setting: '<i class="bi bi-gear-fill" aria-hidden="true"></i>'
 };
 
@@ -15,6 +16,7 @@ const sidebarLinks = [
   ['listingModeration', 'Moderation'],
   ['analytics', 'Analytics'],
   ['supportTickets', 'Support'],
+  ['archive', 'Archive'],
   ['setting', 'Settings']
 ];
 

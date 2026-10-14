@@ -53,7 +53,11 @@ async function checkAndFixDatabase() {
           phone VARCHAR(20),
           avatar_url VARCHAR(255),
           role ENUM('tenant', 'owner', 'admin') DEFAULT 'tenant',
-          status ENUM('active', 'suspended', 'pending') DEFAULT 'active',
+          status ENUM('active', 'suspended', 'pending', 'archived') DEFAULT 'active',
+          archived_status ENUM('active', 'suspended', 'pending') NULL,
+          archived_at DATETIME NULL,
+          last_login_at DATETIME NULL,
+          last_active_at DATETIME NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
@@ -77,7 +81,9 @@ async function checkAndFixDatabase() {
           amenities JSON,
           image_url VARCHAR(255),
           images JSON,
-          status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+          status ENUM('pending', 'approved', 'rejected', 'archived') DEFAULT 'pending',
+          archived_status ENUM('pending', 'approved', 'rejected') NULL,
+          archived_at DATETIME NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -202,6 +208,12 @@ async function checkAndFixDatabase() {
         await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(255)");
         console.log('✓ avatar_url column added to users table');
       }
+      await query("ALTER TABLE users MODIFY COLUMN status ENUM('active', 'suspended', 'pending', 'archived') DEFAULT 'active'");
+      await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS archived_status ENUM('active', 'suspended', 'pending') NULL");
+      await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS archived_at DATETIME NULL");
+      await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at DATETIME NULL");
+      await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_at DATETIME NULL");
+      await query("UPDATE users SET last_active_at = last_login_at WHERE last_login_at IS NOT NULL AND last_active_at IS NULL");
       
       // Check for missing columns
       const columns = await query('DESCRIBE properties');
@@ -235,6 +247,9 @@ async function checkAndFixDatabase() {
       } else {
         console.log('✓ All required columns exist\n');
       }
+      await query("ALTER TABLE properties MODIFY COLUMN status ENUM('pending', 'approved', 'rejected', 'archived') DEFAULT 'pending'");
+      await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS archived_status ENUM('pending', 'approved', 'rejected') NULL");
+      await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS archived_at DATETIME NULL");
 
       const bookingTableExists = (await query("SHOW TABLES LIKE 'bookings'"))[0] !== undefined;
       if (bookingTableExists) {
@@ -371,7 +386,7 @@ async function checkAndFixDatabase() {
       INDEX idx_media_message (message_id),
       INDEX idx_media_ticket_message (ticket_message_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
-    
+
     console.log('✨ Database setup complete! You can now:');
     console.log('   1. Run the backend: npm start');
     console.log('   2. Create a new property with an image');

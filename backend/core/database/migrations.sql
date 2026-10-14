@@ -12,7 +12,11 @@ CREATE TABLE IF NOT EXISTS users (
   phone VARCHAR(20),
   avatar_url VARCHAR(255),
   role ENUM('tenant', 'owner', 'admin') DEFAULT 'tenant',
-  status ENUM('active','suspended','pending') DEFAULT 'active',
+  status ENUM('active','suspended','pending','archived') DEFAULT 'active',
+  archived_status ENUM('active','suspended','pending') NULL,
+  archived_at DATETIME NULL,
+  last_login_at DATETIME NULL,
+  last_active_at DATETIME NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -62,7 +66,9 @@ CREATE TABLE IF NOT EXISTS properties (
   amenities JSON,
   image_url VARCHAR(255),
   images JSON,
-  status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+  status ENUM('pending', 'approved', 'rejected', 'archived') DEFAULT 'pending',
+  archived_status ENUM('pending', 'approved', 'rejected') NULL,
+  archived_at DATETIME NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -177,6 +183,15 @@ ALTER TABLE properties ADD COLUMN IF NOT EXISTS images JSON AFTER image_url;
 -- Add first_name and last_name to users for separate name storage
 ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name VARCHAR(100) AFTER name;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name VARCHAR(100) AFTER first_name;
+ALTER TABLE users MODIFY COLUMN status ENUM('active','suspended','pending','archived') DEFAULT 'active';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS archived_status ENUM('active','suspended','pending') NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS archived_at DATETIME NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at DATETIME NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_at DATETIME NULL;
+UPDATE users SET last_active_at = last_login_at WHERE last_login_at IS NOT NULL AND last_active_at IS NULL;
+ALTER TABLE properties MODIFY COLUMN status ENUM('pending', 'approved', 'rejected', 'archived') DEFAULT 'pending';
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS archived_status ENUM('pending', 'approved', 'rejected') NULL;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS archived_at DATETIME NULL;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS is_indefinite_move_out TINYINT(1) NOT NULL DEFAULT 0 AFTER move_out_date;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS viewing_schedule_tenant_submitted TINYINT(1) NOT NULL DEFAULT 0 AFTER viewing_time;
 

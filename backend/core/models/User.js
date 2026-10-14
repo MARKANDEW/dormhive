@@ -2,7 +2,7 @@ import { query } from '../config/database.js';
 import crypto from 'node:crypto';
 
 // Return a computed `name` while exposing first_name and last_name when available
-const publicFields = "id, COALESCE(NULLIF(TRIM(CONCAT_WS(' ', first_name, last_name)), ''), name) AS name, first_name, last_name, email, phone, avatar_url, role, status, created_at, updated_at";
+const publicFields = "id, COALESCE(NULLIF(TRIM(CONCAT_WS(' ', first_name, last_name)), ''), name) AS name, first_name, last_name, email, phone, avatar_url, role, status, archived_status, archived_at, last_login_at, last_active_at, created_at, updated_at";
 
 export async function findByEmail(email) {
   const rows = await query(`SELECT ${publicFields}, password_hash FROM users WHERE email = ? LIMIT 1`, [email]);
@@ -35,11 +35,13 @@ export async function create({ name, first_name, last_name, email, passwordHash,
   return findById(result.insertId);
 }
 
-export async function list({ page, limit, search }) {
+export async function list({ page, limit, search, archivedOnly = false }) {
   const offset = (page - 1) * limit;
   const term = `%${search}%`;
-  const rows = await query(`SELECT ${publicFields} FROM users WHERE name LIKE ? OR email LIKE ? ORDER BY created_at DESC LIMIT ? OFFSET ?`, [term, term, limit, offset]);
-  const total = await query('SELECT COUNT(*) AS count FROM users WHERE name LIKE ? OR email LIKE ?', [term, term]);
+  const archiveFilter = archivedOnly ? "status = 'archived'" : "status != 'archived'";
+  const searchFilter = '(name LIKE ? OR email LIKE ?)';
+  const rows = await query(`SELECT ${publicFields} FROM users WHERE ${archiveFilter} AND ${searchFilter} ORDER BY created_at DESC LIMIT ? OFFSET ?`, [term, term, limit, offset]);
+  const total = await query(`SELECT COUNT(*) AS count FROM users WHERE ${archiveFilter} AND ${searchFilter}`, [term, term]);
   return { rows, total: total[0].count };
 }
 
@@ -55,6 +57,11 @@ export async function update(id, { name, first_name, last_name, phone, avatar_ur
 
 export async function updatePassword(id, passwordHash) {
   await query('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, id]);
+  return findById(id);
+}
+
+export async function recordLogin(id) {
+  await query('UPDATE users SET last_login_at = NOW(), last_active_at = NOW() WHERE id = ?', [id]);
   return findById(id);
 }
 
@@ -146,5 +153,21 @@ export async function consumePasswordResetToken(token) {
 
 export async function remove(id) {
   const result = await query('DELETE FROM users WHERE id = ?', [id]);
+  return result.affectedRows;
+}
+
+export async function archive(id) {
+  const result = await query(
+    "UPDATE users SET last_active_at = COALESCE(last_login_at, last_active_at), archived_status = status, status = 'archived', archived_at = NOW() WHERE id = ? AND status != 'archived'",
+    [id]
+  );
+  return result.affectedRows;
+}
+
+export async function restore(id) {
+  const result = await query(
+    "UPDATE users SET status = COALESCE(archived_status, 'active'), archived_status = NULL, archived_at = NULL WHERE id = ? AND status = 'archived'",
+    [id]
+  );
   return result.affectedRows;
 }

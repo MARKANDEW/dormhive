@@ -7,10 +7,11 @@ export async function list({ page, limit, municipality, roomType, minPrice, maxP
   if (viewer?.role === 'admin') {
     // Administrators may view and moderate every property.
   } else if (viewer?.role === 'owner') {
-    filters.push("(p.status = 'approved' OR p.owner_id = ?)");
+    filters.push("((p.status = 'approved' AND u.status = 'active') OR p.owner_id = ?)");
     values.push(viewer.id);
   } else {
     filters.push("p.status = 'approved'");
+    filters.push("u.status = 'active'");
     filters.push('COALESCE((SELECT SUM(COALESCE(b.occupants, 1)) FROM bookings b WHERE b.property_id = p.id AND b.status = "approved"), 0) < COALESCE(p.max_occupants, p.available_slots, 0)');
   }
   if (municipality) { filters.push('p.municipality = ?'); values.push(municipality); }
@@ -20,13 +21,13 @@ export async function list({ page, limit, municipality, roomType, minPrice, maxP
   if (status) { filters.push('p.status = ?'); values.push(status); }
   const where = filters.join(' AND ') || '1 = 1';
   const offset = (page - 1) * limit;
-  const rows = await query(`SELECT p.*, COALESCE((SELECT SUM(COALESCE(b.occupants, 1)) FROM bookings b WHERE b.property_id = p.id AND b.status = 'approved'), 0) AS occupied_units, COALESCE(NULLIF(TRIM(CONCAT_WS(' ', u.first_name, u.last_name)), ''), NULLIF(TRIM(u.name), '')) AS owner_name, u.email AS owner_email, u.avatar_url AS owner_avatar_url FROM properties p JOIN users u ON u.id = p.owner_id WHERE ${where} ORDER BY p.created_at DESC LIMIT ? OFFSET ?`, [...values, limit, offset]);
-  const total = await query(`SELECT COUNT(*) AS count FROM properties p WHERE ${where}`, values);
+  const rows = await query(`SELECT p.*, COALESCE((SELECT SUM(COALESCE(b.occupants, 1)) FROM bookings b WHERE b.property_id = p.id AND b.status = 'approved'), 0) AS occupied_units, COALESCE(NULLIF(TRIM(CONCAT_WS(' ', u.first_name, u.last_name)), ''), NULLIF(TRIM(u.name), '')) AS owner_name, u.email AS owner_email, u.avatar_url AS owner_avatar_url, u.status AS owner_status FROM properties p JOIN users u ON u.id = p.owner_id WHERE ${where} ORDER BY p.created_at DESC LIMIT ? OFFSET ?`, [...values, limit, offset]);
+  const total = await query(`SELECT COUNT(*) AS count FROM properties p JOIN users u ON u.id = p.owner_id WHERE ${where}`, values);
   return { rows, total: total[0].count };
 }
 
 export async function findById(id) {
-  const rows = await query(`SELECT p.*, COALESCE((SELECT SUM(COALESCE(b.occupants, 1)) FROM bookings b WHERE b.property_id = p.id AND b.status = 'approved'), 0) AS occupied_units, COALESCE(NULLIF(TRIM(CONCAT_WS(' ', u.first_name, u.last_name)), ''), NULLIF(TRIM(u.name), '')) AS owner_name, u.email AS owner_email, u.avatar_url AS owner_avatar_url FROM properties p JOIN users u ON u.id = p.owner_id WHERE p.id = ? LIMIT 1`, [id]);
+  const rows = await query(`SELECT p.*, COALESCE((SELECT SUM(COALESCE(b.occupants, 1)) FROM bookings b WHERE b.property_id = p.id AND b.status = 'approved'), 0) AS occupied_units, COALESCE(NULLIF(TRIM(CONCAT_WS(' ', u.first_name, u.last_name)), ''), NULLIF(TRIM(u.name), '')) AS owner_name, u.email AS owner_email, u.avatar_url AS owner_avatar_url, u.status AS owner_status FROM properties p JOIN users u ON u.id = p.owner_id WHERE p.id = ? LIMIT 1`, [id]);
   return rows[0] ?? null;
 }
 
@@ -86,6 +87,22 @@ export async function syncAvailability(id) {
 export async function updateStatus(id, status) {
   await query('UPDATE properties SET status = ? WHERE id = ?', [status, id]);
   return findById(id);
+}
+
+export async function archive(id) {
+  const result = await query(
+    "UPDATE properties SET archived_status = status, status = 'archived', archived_at = NOW() WHERE id = ? AND status != 'archived'",
+    [id]
+  );
+  return result.affectedRows ? findById(id) : null;
+}
+
+export async function restore(id) {
+  const result = await query(
+    "UPDATE properties SET status = COALESCE(archived_status, 'pending'), archived_status = NULL, archived_at = NULL WHERE id = ? AND status = 'archived'",
+    [id]
+  );
+  return result.affectedRows ? findById(id) : null;
 }
 
 export async function remove(id) {

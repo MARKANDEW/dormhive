@@ -28,6 +28,16 @@ body {
   font-family: Inter, 'Poppins', sans-serif;
 }
 
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(26, 168, 122, 0.55);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(26, 168, 122, 0.18);
+}
+
 .admin-main {
   min-height: 100vh;
   background: var(--overview-page-bg);
@@ -103,52 +113,6 @@ body {
   color: var(--overview-muted);
   font-size: 1.16rem;
   line-height: 1.5;
-}
-
-.header-date-wrap {
-  display: grid;
-  gap: 8px;
-  justify-items: end;
-  margin-top: 8px;
-}
-
-.date-card {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 12px;
-  border: 1px solid #dce9ed;
-  border-radius: 10px;
-  background: #fff;
-  color: #31515c;
-  font: inherit;
-  font-size: 0.7rem;
-  font-weight: 800;
-}
-
-.date-card-arrow {
-  color: #6693b1;
-  font-size: 18px;
-  line-height: 1;
-}
-
-.date-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: #4e7f8d;
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.status-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #2fc29a;
-  box-shadow: 0 0 0 3px rgba(47, 194, 154, 0.15);
 }
 
 .stats-grid {
@@ -301,6 +265,14 @@ body {
   margin: 3px 0 0;
   color: var(--overview-muted);
   font-size: 12px;
+}
+
+.panel-header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .activity-panel .panel-header {
@@ -768,15 +740,6 @@ body {
     margin: 0;
   }
 
-  .header-date-wrap {
-    position: absolute;
-    top: 0;
-    right: 0;
-    gap: 4px;
-    justify-items: end;
-    margin-top: 0;
-  }
-
   .panel-header {
     display: flex;
     align-items: center;
@@ -790,6 +753,11 @@ body {
     margin: 0;
     padding: 6px 10px;
     font-size: 11px;
+  }
+
+  .panel-header-actions {
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
   .panel-title-wrap {

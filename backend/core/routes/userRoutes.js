@@ -8,6 +8,7 @@ const router = Router();
 router.use(authenticate);
 router.get('/', authorize('admin'), controller.list);
 router.route('/:id/avatar').patch(uploadUser.single('avatar'), controller.updateAvatar);
+router.patch('/:id/restore', authorize('admin'), controller.restore);
 router.get('/:id', controller.get);
 router.patch('/:id', controller.update);
 router.delete('/:id', authorize('admin'), controller.remove);

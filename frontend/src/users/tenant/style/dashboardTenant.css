@@ -697,6 +697,7 @@ legend {
 }
 .place {
   display: -webkit-box;
+  flex-shrink: 0;
   overflow: hidden;
   margin: 0;
   color: #16815e;

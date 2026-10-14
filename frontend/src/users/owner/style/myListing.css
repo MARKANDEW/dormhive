@@ -115,6 +115,29 @@ body {
   margin-bottom: 18px;
 }
 
+.property-status-tabs {
+  display: flex;
+  gap: 8px;
+  margin: -4px 0 16px;
+}
+
+.property-status-tabs button {
+  border: 1px solid #d8e2dd;
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: #fff;
+  color: #456057;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.property-status-tabs button.active {
+  border-color: #0d8c75;
+  background: #0d8c75;
+  color: #fff;
+}
+
 .portfolio-page .property-filter {
   display: grid;
   gap: 6px;

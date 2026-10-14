@@ -9,10 +9,20 @@
   --users-green-soft: #e6faf3;
   --users-red: #c86258;
   --users-red-soft: #fff0ee;
-  --users-gold: #d9a93d;
-  --users-gold-soft: #fff8df;
+  --users-gold: #1ea777;
+  --users-gold-soft: #e6faf3;
   --users-blue: #2f7ec7;
   --users-blue-soft: #eaf3ff;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(26, 168, 122, 0.55);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(26, 168, 122, 0.18);
 }
 
 .users-page {
@@ -56,50 +66,6 @@
   margin: 12px 0 0;
   color: var(--users-muted);
   font-size: 1.05rem;
-}
-
-.users-header-meta {
-  display: grid;
-  justify-items: end;
-  gap: 12px;
-  color: var(--users-muted);
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.users-date {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 12px;
-  border: 1px solid #dce9ed;
-  border-radius: 10px;
-  background: #fff;
-  color: #31515c;
-  font: inherit;
-  font-size: 0.7rem;
-  font-weight: 800;
-}
-
-.users-updated {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: #5f8790;
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.users-updated .status-dot {
-  display: inline-block;
-  width: 9px;
-  height: 9px;
-  flex: 0 0 9px;
-  border-radius: 50%;
-  background: #15b98a;
-  box-shadow: 0 0 0 3px rgba(47, 194, 154, 0.15);
 }
 
 .users-content {
@@ -207,12 +173,78 @@
   overflow-y: auto;
 }
 
+.archive-table-wrap {
+  overflow-x: hidden;
+}
+
 .users-card table {
   width: 100%;
   min-width: 840px;
   table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
+}
+
+.users-card table.archive-records-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.users-card table.archive-records-table th:nth-child(1),
+.users-card table.archive-records-table td:nth-child(1) {
+  width: 34%;
+}
+
+.users-card table.archive-records-table th:nth-child(2),
+.users-card table.archive-records-table td:nth-child(2) {
+  width: 12%;
+}
+
+.users-card table.archive-records-table th:nth-child(3),
+.users-card table.archive-records-table td:nth-child(3) {
+  width: 21%;
+}
+
+.users-card table.archive-records-table th:nth-child(4),
+.users-card table.archive-records-table td:nth-child(4) {
+  width: 17%;
+}
+
+.users-card table.archive-records-table th:nth-child(5),
+.users-card table.archive-records-table td:nth-child(5) {
+  width: 16%;
+}
+
+.archive-records-table th,
+.archive-records-table td {
+  overflow-wrap: anywhere;
+}
+
+.archive-records-table th {
+  white-space: normal;
+}
+
+.archive-records-table th:first-child,
+.archive-records-table td:first-child {
+  text-align: left;
+}
+
+.archive-records-table th:not(:first-child),
+.archive-records-table td:not(:first-child) {
+  text-align: center;
+}
+
+.archive-records-table td:first-child strong,
+.archive-records-table td:first-child small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.archive-records-table .archive-restore-button {
+  width: auto;
+  max-width: 100%;
+  margin: 0 auto;
 }
 
 .users-card th:nth-child(1),
@@ -367,6 +399,27 @@
   transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
+.archive-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.archive-tabs .user-status-button {
+  width: auto;
+  margin: 0;
+}
+
+.archive-tabs .user-status-button.active {
+  background: var(--users-blue);
+  color: #fff;
+}
+
+.user-archive-button {
+  background: var(--users-red-soft);
+  color: var(--users-red);
+}
+
 .user-status-button:hover {
   transform: translateY(-1px);
 }
@@ -390,15 +443,6 @@
   .users-header {
     position: relative;
     display: block;
-  }
-
-  .users-header-meta {
-    position: absolute;
-    top: 0;
-    right: 0;
-    gap: 4px;
-    justify-items: end;
-    margin-top: 0;
   }
 
   .users-kicker-row {

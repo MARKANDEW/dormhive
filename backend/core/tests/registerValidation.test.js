@@ -64,6 +64,15 @@ test('suspended login requires a valid password before returning the suspension 
   });
 });
 
+test('archived login requires a valid password before returning the archive notice', () => {
+  const archivedUser = { status: 'archived' };
+  assert.deepEqual(loginRejection(archivedUser, false), { status: 401, message: 'Invalid email or password.' });
+  assert.deepEqual(loginRejection(archivedUser, true), {
+    status: 403,
+    message: 'This account has been archived and can’t sign in. Contact DormHive support if you think this is a mistake.'
+  });
+});
+
 test('active users continue through login and unknown statuses remain denied', () => {
   assert.equal(loginRejection({ status: 'active' }, true), null);
   assert.deepEqual(loginRejection({ status: 'pending' }, true), { status: 401, message: 'Invalid email or password.' });

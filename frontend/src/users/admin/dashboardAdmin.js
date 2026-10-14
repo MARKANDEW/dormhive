@@ -1,6 +1,6 @@
 import { ensureAdminSidebarStyles, loadAdminStylesheet, renderAdminSidebar } from './sidebarAdmin.js';
 import { buildActivityFeed, buildDashboardMetrics } from './analytics.js';
-import { createModal, openModal } from '../../components/modal.js';
+import { confirmDialog, createModal, openModal } from '../../components/modal.js';
 import { showToast } from '../../components/toast.js';
 import { applyAdminPrivacy } from './privacy.js';
 import { resolveUserAvatarUrl } from './avatar.js';
@@ -111,7 +111,7 @@ function renderUserCard(user) {
       </div>
       <div class="user-actions">
         <button type="button" data-action="profile" data-user-id="${user.id ?? ''}">View Profile</button>
-        <button type="button" data-action="delete" data-user-id="${user.id ?? ''}">Delete</button>
+        ${['tenant', 'owner'].includes(String(user.role).toLowerCase()) ? `<button type="button" data-action="archive" data-user-id="${user.id ?? ''}">Archive</button>` : ''}
       </div>
     </article>
   `;
@@ -196,17 +196,21 @@ function showUserProfileModal(user) {
   openModal(modal);
 }
 
-async function deleteUser(root, user) {
+async function archiveUser(root, user) {
   const userLabel = user.name || user.email || 'this user';
-  const confirmed = window.confirm(`Delete ${userLabel}? This action cannot be undone.`);
+  const confirmed = await confirmDialog({
+    title: 'Archive account?',
+    message: `${userLabel} will no longer be able to access their account. You can restore it later from the Archive page.`,
+    confirmLabel: 'Archive account'
+  });
   if (!confirmed) return;
 
   try {
     await apiRequest(`/users/${encodeURIComponent(user.id)}`, { method: 'DELETE' });
-    showToast({ message: `${userLabel} was deleted.`, type: 'success' });
+    showToast({ message: `${userLabel} was archived.`, type: 'success' });
     await refreshDashboardData(root);
   } catch (error) {
-    showToast({ message: error.message || 'Could not delete user.', type: 'error' });
+    showToast({ message: error.message || 'Could not archive user.', type: 'error' });
   }
 }
 
@@ -221,9 +225,26 @@ function bindUserActions(root, users = []) {
 
     button.addEventListener('click', () => {
       if (action === 'profile') showUserProfileModal(user);
-      if (action === 'delete') deleteUser(root, user);
+      if (action === 'archive') archiveUser(root, user);
     });
   });
+}
+
+async function loadDashboardUsers() {
+  const limit = 100;
+  const firstPage = await apiRequest(`/users?limit=${limit}&page=1`);
+  const users = Array.isArray(firstPage.data) ? [...firstPage.data] : [];
+  const total = Number(firstPage.pagination?.total);
+  const pageCount = Number.isFinite(total) && total >= 0
+    ? Math.ceil(total / limit)
+    : (users.length === limit ? 2 : 1);
+
+  for (let page = 2; page <= pageCount; page += 1) {
+    const response = await apiRequest(`/users?limit=${limit}&page=${page}`);
+    if (Array.isArray(response.data)) users.push(...response.data);
+  }
+
+  return users;
 }
 
 async function refreshDashboardData(root) {
@@ -233,7 +254,7 @@ async function refreshDashboardData(root) {
       apiRequest('/analytics/users'),
       apiRequest('/analytics/properties'),
       apiRequest('/analytics/bookings'),
-      apiRequest('/users?limit=6')
+      loadDashboardUsers()
     ]);
 
     const metrics = buildDashboardMetrics({
@@ -247,7 +268,7 @@ async function refreshDashboardData(root) {
     root.querySelector('[data-metric="pending"]').textContent = metrics.pendingModeration;
     root.querySelector('[data-metric="bookings"]').textContent = metrics.totalBookings;
 
-    const userData = Array.isArray(users.data) ? users.data.slice(0, 4) : [];
+    const userData = users;
     root.querySelector('.user-grid').innerHTML = userData.length
       ? userData.map(renderUserCard).join('')
       : '<p class="dashboard-empty-state">No users found.</p>';
@@ -289,10 +310,6 @@ export async function renderDashboardAdmin(root = document.querySelector('#app')
               <span class="overview-pill">Overview</span>
               <h1>Platform Overview</h1>
               <p>Quick insights into your platform activity and recent user actions.</p>
-            </div>
-            <div class="header-date-wrap">
-              <div class="date-card"><i class="bi bi-calendar3" aria-hidden="true"></i> ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
-              <div class="date-status"><span class="status-dot"></span> Updated just now</div>
             </div>
           </header>
 
@@ -351,7 +368,10 @@ export async function renderDashboardAdmin(root = document.querySelector('#app')
                   <p>Recently registered or active platform users.</p>
                 </div>
               </div>
-              <button type="button" class="panel-button">View all users</button>
+              <div class="panel-header-actions">
+                <button type="button" class="panel-button" data-dashboard-action="users">View all users</button>
+                <button type="button" class="panel-button" data-dashboard-action="archive">View archive</button>
+              </div>
             </header>
             <div class="user-grid"></div>
           </section>
@@ -383,8 +403,12 @@ export async function renderDashboardAdmin(root = document.querySelector('#app')
     overviewKicker.append(mobileMenu, overviewPill);
   }
 
-  root.querySelector('.users-panel .panel-button')?.addEventListener('click', () => {
-    window.location.hash = '#/admin/userManagement';
+  root.querySelectorAll('.users-panel [data-dashboard-action]').forEach((button) => {
+    button.addEventListener('click', () => {
+      window.location.hash = button.dataset.dashboardAction === 'archive'
+        ? '#/admin/archive'
+        : '#/admin/userManagement';
+    });
   });
 
   refreshDashboardData(root);

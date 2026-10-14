@@ -11,6 +11,7 @@ import {
   getPasswordResetOtpChallenge,
   incrementPasswordResetOtpAttempt,
   markPasswordResetOtpVerified,
+  recordLogin,
   updatePassword
 } from '../models/User.js';
 
@@ -104,6 +105,7 @@ export async function oauthCallback(request, response) {
       user = await create({ name: profile.name ?? `${firstName} ${lastName}`.trim(), first_name: firstName, last_name: lastName, email: String(profile.email).toLowerCase(), passwordHash: await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12), phone: null, role: state.role });
     }
     if (user.status !== 'active') throw new Error('This account is not active.');
+    user = await recordLogin(user.id);
     return response.redirect(frontendCallback({ mode: state.mode, accessToken: tokenFor(user) }));
   } catch (error) {
     return response.redirect(frontendCallback({ mode, error: error.message || 'OAuth sign-in failed.' }));
@@ -154,6 +156,12 @@ export async function register(request, response, next) {
 
 export function loginRejection(user, passwordMatches) {
   if (!user || !passwordMatches) return { status: 401, message: 'Invalid email or password.' };
+  if (user.status === 'archived') {
+    return {
+      status: 403,
+      message: 'This account has been archived and can’t sign in. Contact DormHive support if you think this is a mistake.'
+    };
+  }
   if (user.status === 'suspended') {
     return { status: 403, message: 'Your account has been suspended. Please contact the administrator for assistance.' };
   }
@@ -163,10 +171,11 @@ export function loginRejection(user, passwordMatches) {
 
 export async function login(request, response, next) {
   try {
-    const user = await findByEmail(String(request.body.email ?? '').toLowerCase());
+    let user = await findByEmail(String(request.body.email ?? '').toLowerCase());
     const passwordMatches = user ? await bcrypt.compare(request.body.password ?? '', user.password_hash) : false;
     const rejection = loginRejection(user, passwordMatches);
     if (rejection) return response.status(rejection.status).json({ message: rejection.message });
+    user = await recordLogin(user.id);
     delete user.password_hash;
     response.json({ user, accessToken: tokenFor(user) });
   } catch (error) { next(error); }

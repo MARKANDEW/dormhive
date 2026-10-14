@@ -32,11 +32,29 @@ export function guardUserStatusChange({ actor, target, nextStatus }) {
   return { allowed: true, message: '' };
 }
 
+export function guardUserArchive({ actor, target }) {
+  if (actor?.id && target?.id && Number(actor.id) === Number(target.id)) {
+    return { allowed: false, status: 422, message: 'You cannot archive your own account.' };
+  }
+  if (!['tenant', 'owner'].includes(target?.role)) {
+    return { allowed: false, status: 422, message: 'Only tenant and owner accounts can be archived.' };
+  }
+  if (target.status === 'archived') {
+    return { allowed: false, status: 409, message: 'This account is already archived.' };
+  }
+  return { allowed: true, status: 200, message: '' };
+}
+
 export async function list(request, response, next) {
   try {
     const page = Math.max(1, Number(request.query.page) || 1);
     const limit = Math.min(100, Math.max(1, Number(request.query.limit) || 20));
-    const result = await users.list({ page, limit, search: String(request.query.search ?? '') });
+    const result = await users.list({
+      page,
+      limit,
+      search: String(request.query.search ?? ''),
+      archivedOnly: request.query.archived === 'true'
+    });
     response.json({ data: result.rows, pagination: { page, limit, total: result.total } });
   } catch (error) { next(error); }
 }
@@ -60,6 +78,9 @@ export async function update(request, response, next) {
 
     const targetUser = await users.findById(request.params.id);
     if (!targetUser) return response.status(404).json({ message: 'User not found.' });
+    if (request.body.status === 'archived') {
+      return response.status(422).json({ message: 'Use the archive action to archive this account.' });
+    }
 
     const guard = guardUserStatusChange({
       actor: request.user,
@@ -128,8 +149,26 @@ export async function updateAvatar(request, response, next) {
 
 export async function remove(request, response, next) {
   try {
-    if (request.user.id === Number(request.params.id)) return response.status(422).json({ message: 'You cannot delete your own account.' });
-    const removed = await users.remove(request.params.id);
-    return removed ? response.status(204).end() : response.status(404).json({ message: 'User not found.' });
+    const target = await users.findById(request.params.id);
+    if (!target) return response.status(404).json({ message: 'User not found.' });
+    const guard = guardUserArchive({ actor: request.user, target });
+    if (!guard.allowed) return response.status(guard.status).json({ message: guard.message });
+    const archived = await users.archive(request.params.id);
+    if (!archived) return response.status(409).json({ message: 'This account is already archived.' });
+    return response.json({ data: await users.findById(request.params.id) });
+  } catch (error) { next(error); }
+}
+
+export async function restore(request, response, next) {
+  try {
+    const target = await users.findById(request.params.id);
+    if (!target) return response.status(404).json({ message: 'User not found.' });
+    if (!['tenant', 'owner'].includes(target.role)) {
+      return response.status(422).json({ message: 'Only tenant and owner accounts can be restored.' });
+    }
+    if (target.status !== 'archived') return response.status(409).json({ message: 'This account is not archived.' });
+    const restored = await users.restore(request.params.id);
+    if (!restored) return response.status(409).json({ message: 'This account could not be restored.' });
+    return response.json({ data: await users.findById(request.params.id) });
   } catch (error) { next(error); }
 }

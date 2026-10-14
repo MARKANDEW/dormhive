@@ -32,7 +32,6 @@ export async function renderListingModeration(root = document.querySelector('#ap
               <h1>Listing Moderation: ${initialLabel}</h1>
               <p>Manage and review property listings submitted by users.</p>
             </div>
-            <div class="moderation-header-meta"><span class="date-control"><i class="bi bi-calendar3" aria-hidden="true"></i> <time>${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</time></span><span class="updated-indicator"><span class="status-dot" aria-hidden="true"></span> Updated just now</span></div>
           </header>
 
           <section class="moderation-content">
