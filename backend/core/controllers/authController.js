@@ -139,7 +139,7 @@ export async function register(request, response, next) {
     if (!/^\S+@\S+\.\S+$/.test(email) || password.length < 8 || (normalizedPhone && !isValidPhone(normalizedPhone))) {
       return response.status(422).json({ message: 'Provide a valid email, a valid phone number if supplied, and a password of at least 8 characters.' });
     }
-    if (await findByEmail(email.toLowerCase())) return response.status(409).json({ message: 'Email is already registered.' });
+    if (await findByEmail(email.toLowerCase())) return response.status(409).json({ message: 'This email already has an account. Please log in instead.' });
     const computedName = name ?? ([first_name, last_name].filter(Boolean).join(' ').trim() || null);
     const user = await create({
       name: computedName,

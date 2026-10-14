@@ -272,7 +272,7 @@ form {
   padding: 0;
   border: 0;
   background: transparent;
-  color: #666;
+  color: var(--dormhive-primary);
   font-size: 20px;
   cursor: pointer;
 }
@@ -347,6 +347,11 @@ form {
   font-size: 16px;
   color: #fff;
   font-weight: 600;
+}
+
+.container :focus-visible {
+  outline: 2px solid var(--dormhive-primary);
+  outline-offset: 2px;
 }
 
 .social-divider {

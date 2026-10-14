@@ -128,7 +128,8 @@ export async function renderLogin(root = document.querySelector('#app')) {
   const loginBtn = root.querySelector('.login-btn');
   const form = root.querySelector('.form-box.login form');
   const registerForm = root.querySelector('.form-box.register form');
-  const message = root.querySelector('.auth-message');
+  const loginMessage = root.querySelector('.form-box.login .auth-message');
+  const registerMessage = root.querySelector('.form-box.register .auth-message');
   const loginSubmitButton = root.querySelector('.form-box.login .auth-submit');
   const registerSubmitButton = root.querySelector('.form-box.register .auth-submit');
   const phoneInput = root.querySelector('#phone_r');
@@ -317,10 +318,10 @@ export async function renderLogin(root = document.querySelector('#app')) {
     const valid = isValidPhoneValue(digits);
     phoneInput.setCustomValidity(valid ? '' : 'Phone number must be exactly 10 digits.');
     if (showError && !valid) {
-      showMessage(message, 'Phone number must be exactly 10 digits.');
-    } else if (showError && message && !message.hidden && message.textContent === 'Phone number must be exactly 10 digits.') {
-      message.hidden = true;
-      message.textContent = '';
+      showMessage(registerMessage, 'Phone number must be exactly 10 digits.');
+    } else if (showError && registerMessage && !registerMessage.hidden && registerMessage.textContent === 'Phone number must be exactly 10 digits.') {
+      registerMessage.hidden = true;
+      registerMessage.textContent = '';
     }
     return valid;
   };
@@ -340,7 +341,7 @@ export async function renderLogin(root = document.querySelector('#app')) {
     if (!form.reportValidity()) return;
     loginSubmitButton.disabled = true;
     loginSubmitButton.textContent = 'Signing in…';
-    if (message) message.hidden = true;
+    if (loginMessage) loginMessage.hidden = true;
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.fromEntries(new FormData(form))) });
       const body = await readApiResponse(response);
@@ -349,7 +350,7 @@ export async function renderLogin(root = document.querySelector('#app')) {
       localStorage.setItem('dormhive.user', JSON.stringify(body.user));
       redirectForRole(body.user.role);
     } catch (error) {
-      showMessage(message, error instanceof TypeError ? 'Unable to reach the sign-in service. Please check that the backend is running.' : error.message);
+      showMessage(loginMessage, error instanceof TypeError ? 'Unable to reach the sign-in service. Please check that the backend is running.' : error.message);
       loginSubmitButton.disabled = false;
       loginSubmitButton.textContent = 'Login';
     }
@@ -364,7 +365,7 @@ export async function renderLogin(root = document.querySelector('#app')) {
       const confirmPassword = String(formData.confirmPassword ?? '');
 
       if (password !== confirmPassword) {
-        showMessage(message, 'Passwords do not match.');
+        showMessage(registerMessage, 'Passwords do not match.');
         return;
       }
 
@@ -378,7 +379,7 @@ export async function renderLogin(root = document.querySelector('#app')) {
       payload.phone = toServerPhoneValue(payload.phone);
       registerSubmitButton.disabled = true;
       registerSubmitButton.textContent = 'Creating account…';
-      if (message) message.hidden = true;
+      if (registerMessage) registerMessage.hidden = true;
       try {
         const response = await fetch(`${API_BASE_URL}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         const body = await readApiResponse(response);
@@ -386,7 +387,7 @@ export async function renderLogin(root = document.querySelector('#app')) {
         showToast({ message: 'Account created successfully!', type: 'success' });
         navigate('/login', true);
       } catch (error) {
-        showMessage(message, error.message);
+        showMessage(registerMessage, error.message);
         registerSubmitButton.disabled = false;
         registerSubmitButton.textContent = 'Register';
       }
