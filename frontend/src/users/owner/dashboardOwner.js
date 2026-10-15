@@ -56,7 +56,7 @@ function clearTenantRouteStyles() {
 
 function css() {
   const stylesheet = new URL('./style/dashboardOwner.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'owner-dashboard-mobile-black-1');
+  stylesheet.searchParams.set('v', 'owner-map-location-search-3');
   return loadOwnerStylesheet('dashboard', stylesheet);
 }
 async function get(path) { const response = await fetch(`${API}${path}`, { headers: auth() }); const body = await readApiResponse(response); if (!response.ok) throw new Error(getApiErrorMessage(body, 'Unable to load this information.')); return body; }
@@ -129,7 +129,7 @@ async function showFullMapModal(properties = []) {
       <p id="map-status"></p>
     </div>
   `;
-  const modal = createModal({ title: 'Full Map & Heatmap', content: mapHtml, closeLabel: 'Close' });
+  const modal = createModal({ title: 'Full Map & Heatmap', content: mapHtml, closeLabel: 'Close', closeOnBackdrop: false });
   
   // Store map reference for cleanup
   let mapInstance = null;
@@ -153,14 +153,7 @@ async function showFullMapModal(properties = []) {
     }, 100);
   };
   
-  // Listen for both close event and transition end
   modal.addEventListener('close', cleanupMap);
-  modal.addEventListener('mousedown', (e) => {
-    // If clicking backdrop (on the dialog itself), also cleanup
-    if (e.target === modal) {
-      setTimeout(cleanupMap, 300);
-    }
-  });
   
   openModal(modal);
   
@@ -396,7 +389,18 @@ export async function renderDashboardOwner(root = document.querySelector('#app')
           </section>
           <section class="overview-grid">
             <article class="panel map-panel">
-              <div class="panel-title-row"><h2>Map Overview</h2><button class="panel-button">View Full Map & Heatmap</button></div>
+              <div class="panel-title-row">
+                <div class="map-panel-heading">
+                  <h2>Map Overview</h2>
+                  <div class="map-location-search">
+                    <button type="button" class="map-location-search-toggle" aria-label="Open location search" aria-expanded="false" title="Search locations"><i class="bi bi-search" aria-hidden="true"></i></button>
+                    <form class="map-location-search-form" aria-hidden="true">
+                      <input type="search" class="map-location-search-input" placeholder="Search a location" aria-label="Search a location" tabindex="-1">
+                    </form>
+                  </div>
+                </div>
+                <button class="panel-button">View Full Map & Heatmap</button>
+              </div>
               <div class="map-frame-wrap"><div id="tenant-map" class="leaflet-map" style="height:20rem;border-radius:0.5rem"></div></div>
             </article>
             <aside class="panel action-panel">
@@ -491,6 +495,59 @@ export async function renderDashboardOwner(root = document.querySelector('#app')
   
   // Store report and map data for later use
   let reportData = { properties: [], bookings: [], metrics: { occupancy: 0 } };
+  let ownerMap = null;
+  let searchMarker = null;
+
+  const locationSearch = root.querySelector('.map-location-search');
+  const locationSearchToggle = root.querySelector('.map-location-search-toggle');
+  const locationSearchForm = root.querySelector('.map-location-search-form');
+  const locationSearchInput = root.querySelector('.map-location-search-input');
+
+  locationSearchToggle.disabled = true;
+  locationSearchToggle.addEventListener('click', () => {
+    const isOpen = locationSearch.classList.toggle('is-open');
+    locationSearchToggle.setAttribute('aria-expanded', String(isOpen));
+    locationSearchToggle.setAttribute('aria-label', isOpen ? 'Close location search' : 'Open location search');
+    locationSearchForm.setAttribute('aria-hidden', String(!isOpen));
+    locationSearchInput.tabIndex = isOpen ? 0 : -1;
+    if (isOpen) locationSearchInput.focus();
+  });
+
+  locationSearchForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const query = locationSearchInput.value.trim();
+    if (!query) {
+      locationSearchInput.focus();
+      return;
+    }
+    if (!ownerMap) {
+      showToast({ message: 'Map is still loading. Try again shortly.', type: 'error' });
+      return;
+    }
+
+    locationSearchInput.disabled = true;
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`);
+      if (!response.ok) throw new Error('Location search is unavailable.');
+      const results = await response.json();
+      const result = results[0];
+      if (!result) {
+        showToast({ message: 'No matching location found.', type: 'error' });
+        return;
+      }
+
+      const coordinates = [Number(result.lat), Number(result.lon)];
+      if (!coordinates.every(Number.isFinite)) throw new Error('The location result is invalid.');
+      if (searchMarker) ownerMap.removeLayer(searchMarker);
+      searchMarker = window.L.marker(coordinates).addTo(ownerMap);
+      searchMarker.bindPopup(escape(result.display_name || query)).openPopup();
+      ownerMap.setView(coordinates, 15);
+    } catch (error) {
+      showToast({ message: error.message || 'Could not search this location.', type: 'error' });
+    } finally {
+      locationSearchInput.disabled = false;
+    }
+  });
   
   // Add event listener for View Full Map & Heatmap button
   root.querySelector('.panel-button').addEventListener('click', async () => {
@@ -512,7 +569,7 @@ export async function renderDashboardOwner(root = document.querySelector('#app')
   root.querySelector('.action-button.secondary').addEventListener('click', () => {
     try {
       const reportHtml = generatePerformanceReportHtml(reportData.properties, reportData.bookings, reportData.metrics);
-      const modal = createModal({ title: 'Performance Report', content: reportHtml, closeLabel: 'Close' });
+      const modal = createModal({ title: 'Performance Report', content: reportHtml, closeLabel: 'Close', closeOnBackdrop: false });
       openModal(modal);
     } catch (error) {
       showToast({ message: 'Could not generate performance report.', type: 'error' });
@@ -628,6 +685,8 @@ export async function renderDashboardOwner(root = document.querySelector('#app')
           
           // Initialize map directly
           const map = window.L.map(mapContainer).setView([14.5995, 120.9842], 12);
+          ownerMap = map;
+          locationSearchToggle.disabled = false;
           
           // Add tile layer
           window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
