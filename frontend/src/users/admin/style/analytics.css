@@ -117,7 +117,7 @@ body {
 .kpi-card {
   min-height: 90px;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
   padding: 14px;
   position: relative;

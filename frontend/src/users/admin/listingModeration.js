@@ -1,15 +1,25 @@
 import { ensureAdminSidebarStyles, loadAdminStylesheet, renderAdminSidebar } from './sidebarAdmin.js';
 import { applyAdminPrivacy } from './privacy.js';
+import { createModal, openModal as openUiModal, successDialog } from '../../components/modal.js';
 import { showToast } from '../../components/toast.js';
 import { withMediaAccessToken } from '../../services/mediaAccess.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const headers = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
 const esc = (value = '') => { const e = document.createElement('span'); e.textContent = value; return e.innerHTML; };
+const formatRoomType = (value = '') => ({
+  bedspace: 'Bedspace',
+  private_room: 'Solo Room',
+  'private room': 'Solo Room',
+  'solo room': 'Solo Room',
+  entire_unit: 'Studio Unit',
+  'entire unit': 'Studio Unit',
+  'studio unit': 'Studio Unit'
+}[String(value ?? '').trim().toLowerCase()] ?? 'Unknown');
 
 function css() {
   const stylesheet = new URL('./style/listingModeration.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'moderation-approved-status-badge-7');
+  stylesheet.searchParams.set('v', 'moderation-reject-responsive-1');
   return loadAdminStylesheet('moderation', stylesheet);
 }
 
@@ -323,7 +333,7 @@ export async function renderListingModeration(root = document.querySelector('#ap
     detailOwner.textContent = `Owner: ${row.owner_name || row.owner_id || 'Unknown owner'}`;
     detailStatus.textContent = String(row.status || 'pending').replaceAll('_', ' ');
     detailExtra.innerHTML = `
-      <p data-label="Type" data-privacy-mask="detail">${esc(String(row.room_type || 'Unknown').replaceAll('_', ' '))}</p>
+      <p data-label="Type" data-privacy-mask="detail">${formatRoomType(row.room_type)}</p>
       <p data-label="Rent" data-privacy-mask="stat">${esc(formatCurrency(row.monthly_rent))}</p>
       <p data-label="Submitted">${esc(formatDate(row.created_at))}</p>`;
     applyAdminPrivacy(root);
@@ -363,7 +373,7 @@ export async function renderListingModeration(root = document.querySelector('#ap
         <td data-label="Thumbnail"><div class="thumbnail" ${getThumbStyles(row)}></div></td>
         <td data-label="Property" data-privacy-mask="detail">${esc(row.title || 'Untitled property')}</td>
         <td data-label="Owner" data-privacy-mask="name">${esc(row.owner_name || 'Unknown owner')}</td>
-        <td data-label="Type" data-privacy-mask="detail">${esc(String(row.room_type || 'Unknown').replaceAll('_', ' '))}</td>
+        <td data-label="Type" data-privacy-mask="detail">${formatRoomType(row.room_type)}</td>
         <td data-label="Rent" data-privacy-mask="stat">${esc(formatCurrency(row.monthly_rent))}</td>
         <td data-label="Submitted">${esc(formatDate(row.created_at))}</td>
         <td class="action-icons"><button type="button" aria-label="View details">🔎</button></td>
@@ -424,7 +434,7 @@ export async function renderListingModeration(root = document.querySelector('#ap
   };
 
   const updatePropertyStatus = async (status, reason = '') => {
-    if (!selected) return;
+    if (!selected) return false;
     try {
       approveButton.disabled = rejectButton.disabled = true;
       const response = await fetch(`${API}/properties/${selected.id}/status`, {
@@ -472,14 +482,74 @@ export async function renderListingModeration(root = document.querySelector('#ap
         approvalSuccessModal.hidden = false;
         document.body.classList.add('approval-success-modal-open');
         approvalSuccessOkButton.focus();
-      } else {
-        showToast({ message: `Listing ${status} successfully.`, type: 'success' });
       }
       approveButton.disabled = rejectButton.disabled = false;
+      return true;
     } catch (error) {
       statusLabel.textContent = error.message;
       approveButton.disabled = rejectButton.disabled = false;
+      return false;
     }
+  };
+
+  const openRejectDialog = async () => {
+    if (!selected) return;
+    const rejectDialog = createModal({
+      title: 'Listing Rejection',
+      content: `<form class="moderation-reject-form">
+        <fieldset class="moderation-reject-reasons">
+          <legend>Reason(s) for Rejection <span>(Optional)</span></legend>
+          <div class="moderation-reject-options">
+            <label class="moderation-reject-option"><input type="checkbox" name="rejectionReason" value="Incomplete listing details"><i class="bi bi-file-earmark-text" aria-hidden="true"></i><span>Incomplete listing details</span></label>
+            <label class="moderation-reject-option"><input type="checkbox" name="rejectionReason" value="Poor image quality or visibility"><i class="bi bi-camera" aria-hidden="true"></i><span>Poor image quality or visibility</span></label>
+            <label class="moderation-reject-option"><input type="checkbox" name="rejectionReason" value="Incorrect category placement"><i class="bi bi-diagram-3" aria-hidden="true"></i><span>Incorrect category placement</span></label>
+            <label class="moderation-reject-option"><input type="checkbox" name="rejectionReason" value="Prohibited item or content"><i class="bi bi-slash-circle" aria-hidden="true"></i><span>Prohibited item or content</span></label>
+            <label class="moderation-reject-option"><input type="checkbox" name="rejectionReason" value="Unclear availability or pricing"><i class="bi bi-calendar2-check" aria-hidden="true"></i><span>Unclear availability or pricing</span></label>
+            <label class="moderation-reject-option"><input type="checkbox" name="rejectionReason" value="Listing information conflict"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i><span>Listing information conflict</span></label>
+          </div>
+        </fieldset>
+        <div class="moderation-reject-specifics">
+          <label for="moderation-rejection-reason">Additional Specifics <span>(Optional)</span></label>
+          <div class="moderation-reject-textarea-wrap">
+            <textarea id="moderation-rejection-reason" rows="4" maxlength="500" placeholder="Enter detailed feedback for the owner (max 500 characters)..."></textarea>
+            <span class="moderation-reject-counter"><span>0</span>/500</span>
+          </div>
+        </div>
+        <p class="moderation-reject-error" role="status"></p>
+      </form>`,
+      closeLabel: '',
+      footerMarkup: '<button type="button" class="moderation-reject-cancel">Cancel</button><button type="button" class="moderation-reject-confirm">Reject Listing</button>',
+      closeOnBackdrop: false
+    });
+    rejectDialog.classList.add('moderation-reject-modal');
+
+    const reasonInput = rejectDialog.querySelector('#moderation-rejection-reason');
+    const reasonCounter = rejectDialog.querySelector('.moderation-reject-counter span');
+    const errorMessage = rejectDialog.querySelector('.moderation-reject-error');
+    const confirmButton = rejectDialog.querySelector('.moderation-reject-confirm');
+    rejectDialog.querySelector('.moderation-reject-cancel').addEventListener('click', () => rejectDialog.close());
+    reasonInput.addEventListener('input', () => {
+      reasonCounter.textContent = String(reasonInput.value.length);
+    });
+    confirmButton.addEventListener('click', async () => {
+      confirmButton.disabled = true;
+      errorMessage.textContent = '';
+      const selectedReasons = [...rejectDialog.querySelectorAll('input[name="rejectionReason"]:checked')].map((input) => input.value);
+      const reason = [
+        selectedReasons.length ? `Reason(s): ${selectedReasons.join('; ')}` : '',
+        reasonInput.value.trim() ? `Additional specifics: ${reasonInput.value.trim()}` : ''
+      ].filter(Boolean).join('\n');
+      const rejected = await updatePropertyStatus('rejected', reason);
+      if (rejected) {
+        rejectDialog.close();
+        await successDialog('Listing rejected successfully.');
+      } else {
+        errorMessage.textContent = statusLabel.textContent || 'Unable to reject this listing.';
+        confirmButton.disabled = false;
+      }
+    });
+    await openUiModal(rejectDialog);
+    reasonInput.focus();
   };
 
   const openModal = () => {
@@ -490,7 +560,7 @@ export async function renderListingModeration(root = document.querySelector('#ap
     modalAddress.textContent = `Address: ${formatMeta(selected) || 'Unavailable'}`;
     modalLocation.textContent = `Location: ${[selected.municipality, selected.barangay].filter(Boolean).join(', ') || 'Unavailable'}`;
     modalOwner.textContent = `Owner: ${selected.owner_name || selected.owner_id || 'Unknown owner'}`;
-    modalType.textContent = `Type: ${String(selected.room_type || 'Unknown').replaceAll('_', ' ')}`;
+    modalType.textContent = `Type: ${formatRoomType(selected.room_type)}`;
     modalRent.textContent = `Rent: ${formatCurrency(selected.monthly_rent)}`;
     modalSubmitted.textContent = `Submitted: ${formatDate(selected.created_at)}`;
     modalOccupants.textContent = selected.max_occupants ? `Max occupants: ${esc(String(selected.max_occupants))}` : '';
@@ -557,11 +627,7 @@ export async function renderListingModeration(root = document.querySelector('#ap
     button.addEventListener('click', () => setActiveTab(button.dataset.status));
   });
   approveButton?.addEventListener('click', () => updatePropertyStatus('approved'));
-  rejectButton?.addEventListener('click', () => {
-    const reason = window.prompt('Enter a rejection reason for the owner (optional):');
-    if (reason === null) return;
-    updatePropertyStatus('rejected', reason.trim());
-  });
+  rejectButton?.addEventListener('click', openRejectDialog);
   viewButton?.addEventListener('click', openModal);
   ownerContactButton?.addEventListener('click', async () => {
     if (!selected) return;

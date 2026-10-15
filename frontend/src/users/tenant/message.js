@@ -155,6 +155,7 @@ const openPropertyDetails = (property) => {
   const amenities = Array.isArray(property.amenities)
     ? property.amenities.join(', ')
     : String(property.amenities ?? '').replace(/[\[\]"']/g, '').replace(/,/g, ', ');
+  const amenitiesLabel = amenities.replace(/_/g, ' ');
   const modal = createModal({ title: 'Property Details', content: '', closeLabel: 'Close', closeOnBackdrop: false });
   modal.classList.add('tenant-message-modal');
   modal.classList.add('tenant-property-details-modal');
@@ -182,7 +183,7 @@ const openPropertyDetails = (property) => {
           <p><span class="message-property-fact-icon"><i class="bi bi-gender-ambiguous" aria-hidden="true"></i></span><span class="message-property-fact-copy"><small>Gender Preference</small><strong>${escape(property.gender_preference || 'Not specified')}</strong></span></p>
           <p><span class="message-property-fact-icon"><i class="bi bi-person-fill" aria-hidden="true"></i></span><span class="message-property-fact-copy"><small>Owner</small><strong>${escape(property.owner_name || 'Not specified')}</strong></span></p>
         </div>
-        <p class="message-property-amenities"><span class="message-property-fact-icon"><i class="bi bi-stars" aria-hidden="true"></i></span><span class="message-property-fact-copy"><small>Amenities</small><strong>${escape(amenities || 'None listed')}</strong></span></p>
+        <p class="message-property-amenities"><span class="message-property-fact-icon"><i class="bi bi-stars" aria-hidden="true"></i></span><span class="message-property-fact-copy"><small>Amenities</small><strong>${escape(amenitiesLabel || 'None listed')}</strong></span></p>
         <div class="message-property-description"><span class="message-property-fact-icon"><i class="bi bi-card-text" aria-hidden="true"></i></span><div><small>Description</small><p>${escape(property.description || 'No description provided.')}</p></div></div>
       </div>
     </div>

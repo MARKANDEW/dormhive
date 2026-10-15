@@ -469,7 +469,7 @@ function listingCard(item, index) {
         <div class="listing-actions">
           <button class="focus" data-id="${item.id}">View map</button>
           <button type="button" class="action-btn view-details" data-id="${item.id}">View Details</button>
-          <a href="#/tenant/message?propertyId=${item.id}" class="action-btn secondary">Chat</a>
+          <a href="#/tenant/message?propertyId=${encodeURIComponent(item.id)}" class="action-btn secondary" target="_blank" rel="noopener noreferrer">Chat</a>
         </div>
       </div>
     </article>
@@ -1086,9 +1086,10 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
       if (indefiniteMoveOut.checked) moveOut.value = '';
     });
     modal.querySelector('.dashboard-chat-owner').addEventListener('click', () => {
-      if (modal.open) modal.close();
-      modal.remove();
-      location.hash = `#/tenant/message?propertyId=${encodeURIComponent(property.id)}`;
+      const chatUrl = new URL(window.location.href);
+      chatUrl.hash = `/tenant/message?propertyId=${encodeURIComponent(property.id)}`;
+      const chatWindow = window.open(chatUrl.href, '_blank', 'noopener,noreferrer');
+      if (chatWindow) chatWindow.opener = null;
     });
     form.addEventListener('submit', async (event) => {
       event.preventDefault();

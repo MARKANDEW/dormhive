@@ -29,48 +29,72 @@ export function buildDashboardMetrics({ users = [], properties = [], bookings = 
   };
 }
 
-export function buildActivityFeed(users = [], properties = [], bookings = []) {
+export function buildActivityFeed(users = [], properties = [], bookings = [], notifications = []) {
   const activities = [];
 
   properties.forEach((property) => {
-    const status = property.status || 'pending';
-    if (['pending', 'approved', 'rejected'].includes(status)) {
-      activities.push({
-        title: status === 'pending' ? 'Property submitted' : `Property ${status}`,
-        time: relativeTime(property.updated_at ?? property.created_at),
-        detail: `[${property.title || 'Property'}]`,
-        timestamp: Date.parse(property.updated_at ?? property.created_at ?? new Date().toISOString())
-      });
-    }
+    const status = String(property.status || 'pending').toLowerCase();
+    if (!['pending', 'approved', 'rejected', 'archived'].includes(status)) return;
+    const timestamp = Date.parse(property.updated_at ?? property.created_at);
+    activities.push({
+      icon: status === 'approved' ? 'shield' : status === 'pending' ? 'sync' : 'alert',
+      title: status === 'pending' ? 'Property submitted' : `Property ${status}`,
+      time: relativeTime(timestamp),
+      detail: `[${property.title || 'Property'}]`,
+      timestamp
+    });
   });
 
   bookings.forEach((booking) => {
-    if (['approved', 'rejected'].includes(booking.status)) {
-      activities.push({
-        title: `Booking ${booking.status}`,
-        time: relativeTime(booking.updated_at ?? booking.created_at),
-        detail: `[${booking.tenant_name || 'Tenant'}]`,
-        timestamp: Date.parse(booking.updated_at ?? booking.created_at ?? new Date().toISOString())
-      });
-    }
+    const status = String(booking.status || 'pending').toLowerCase();
+    if (!['pending', 'approved', 'rejected', 'cancelled'].includes(status)) return;
+    const timestamp = Date.parse(booking.updated_at ?? booking.created_at);
+    activities.push({
+      icon: status === 'approved' ? 'user' : status === 'pending' ? 'sync' : 'alert',
+      title: status === 'pending' ? 'Booking requested' : `Booking ${status}`,
+      time: relativeTime(timestamp),
+      detail: `[${booking.tenant_name || 'Tenant'}]`,
+      timestamp
+    });
   });
 
   users.forEach((user) => {
+    const status = String(user.status || 'active').toLowerCase();
+    if (!['active', 'suspended', 'archived'].includes(status)) return;
+    const createdTimestamp = Date.parse(user.created_at);
+    const updatedTimestamp = Date.parse(user.updated_at ?? user.created_at);
+    const hasProfileUpdate = Number.isFinite(updatedTimestamp)
+      && (!Number.isFinite(createdTimestamp) || updatedTimestamp > createdTimestamp + 1000);
+    const timestamp = status === 'active' && !hasProfileUpdate ? createdTimestamp : updatedTimestamp;
     activities.push({
-      title: user.updated_at && user.updated_at !== user.created_at ? 'User profile updated' : 'New user registered',
-      time: relativeTime(user.updated_at ?? user.created_at),
-      detail: `[${user.name || user.email}]`,
-      timestamp: Date.parse(user.updated_at ?? user.created_at ?? new Date().toISOString()),
+      icon: status === 'active' ? (hasProfileUpdate ? 'sync' : 'user') : 'alert',
+      title: status === 'suspended' ? 'User suspended' : status === 'archived' ? 'User archived' : hasProfileUpdate ? 'User profile updated' : 'New user registered',
+      time: relativeTime(timestamp),
+      detail: `[${user.name || user.email || 'User'}]`,
+      timestamp,
       user
     });
   });
 
+  notifications.forEach((notification) => {
+    const timestamp = Date.parse(notification.created_at);
+    activities.push({
+      icon: 'sync',
+      title: notification.title || 'Notification sent',
+      time: relativeTime(timestamp),
+      detail: `[${notification.message || notification.recipient_name || 'Platform update'}]`,
+      timestamp
+    });
+  });
+
   return activities
-    .sort((first, second) => Number(second.timestamp ?? 0) - Number(first.timestamp ?? 0));
+    .filter((activity) => Number.isFinite(activity.timestamp))
+    .sort((first, second) => second.timestamp - first.timestamp);
 }
 
 function relativeTime(value) {
-  const minutes = Math.max(0, Math.round((Date.now() - Date.parse(value)) / 60000));
+  if (!Number.isFinite(value)) return 'unknown';
+  const minutes = Math.max(0, Math.round((Date.now() - value) / 60000));
   if (minutes < 60) return `${minutes} min${minutes === 1 ? '' : 's'} ago`;
   const hours = Math.round(minutes / 60);
   if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;

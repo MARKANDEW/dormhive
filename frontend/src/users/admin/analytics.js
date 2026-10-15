@@ -1,8 +1,16 @@
 import { ensureAdminSidebarStyles, loadAdminStylesheet, renderAdminSidebar } from './sidebarAdmin.js';
 import { applyAdminPrivacy } from './privacy.js';
+import { buildActivityFeed } from './analyticsUtils.js';
+
+export { buildActivityFeed };
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const auth = () => ({ Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
+const escapeHtml = (value = '') => {
+  const element = document.createElement('span');
+  element.textContent = String(value ?? '');
+  return element.innerHTML;
+};
 
 export function totalCount(rows = []) {
   return rows.reduce((sum, item) => sum + (Number(item?.count) || 0), 0);
@@ -61,66 +69,6 @@ export function buildAnalyticsCsv({ metrics, users = [], properties = [], bookin
     ['Rejected Bookings', countByStatus(bookings, 'rejected')]
   ];
   return rows.map((row) => row.map((value) => `"${String(value ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
-}
-
-export function formatTimeAgo(timestamp) {
-  if (!timestamp) return 'unknown';
-  const now = new Date();
-  const date = new Date(timestamp);
-  const seconds = Math.floor((now - date) / 1000);
-  if (seconds < 60) return 'just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} min${minutes > 1 ? 's' : ''} ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-  const days = Math.floor(hours / 24);
-  return `${days} day${days > 1 ? 's' : ''} ago`;
-}
-
-export function buildActivityFeed(users = [], properties = [], bookings = []) {
-  const activities = [];
-  properties.forEach((prop) => {
-    const status = prop.status || 'pending';
-    if (['pending', 'approved', 'rejected'].includes(status)) {
-      activities.push({
-        icon: status === 'rejected' ? 'alert' : status === 'pending' ? 'sync' : 'shield',
-        title: status === 'pending' ? 'Property submitted' : `Property ${status}`,
-        detail: `[${prop.title || 'Property'}]`,
-        time: formatTimeAgo(prop.updated_at || prop.created_at),
-        timestamp: new Date(prop.updated_at || prop.created_at).getTime()
-      });
-    }
-  });
-  bookings.forEach((booking) => {
-    if (booking.status === 'approved' || booking.status === 'rejected') {
-      activities.push({
-        icon: booking.status === 'rejected' ? 'alert' : 'user',
-        title: `Booking ${booking.status}`,
-        detail: `[${booking.tenant_name || 'Tenant'}]`,
-        time: formatTimeAgo(booking.updated_at),
-        timestamp: new Date(booking.updated_at || booking.created_at).getTime()
-      });
-    }
-  });
-  users.forEach((user) => {
-    if (user.status === 'active' || user.status === 'suspended') {
-      const createdTimestamp = new Date(user.created_at).getTime();
-      const updatedTimestamp = new Date(user.updated_at || user.created_at).getTime();
-      const hasProfileUpdate = Number.isFinite(updatedTimestamp)
-        && (!Number.isFinite(createdTimestamp) || updatedTimestamp > createdTimestamp + 1000);
-      const activityTimestamp = hasProfileUpdate ? updatedTimestamp : createdTimestamp;
-      activities.push({
-        icon: user.status === 'suspended' ? 'alert' : hasProfileUpdate ? 'sync' : 'user',
-        title: user.status === 'suspended'
-          ? 'User suspended'
-          : hasProfileUpdate ? 'User profile updated' : 'New user registered',
-        detail: `[${user.name || user.email}]`,
-        time: formatTimeAgo(activityTimestamp),
-        timestamp: activityTimestamp
-      });
-    }
-  });
-  return activities.sort((a, b) => b.timestamp - a.timestamp).slice(0, 10);
 }
 
 function css() {
@@ -205,8 +153,8 @@ export async function renderAnalytics(root = document.querySelector('#app')) {
     root.querySelector('[data-booking="pending"]').textContent = pending;
     root.querySelector('.booking-empty strong').textContent = metrics.totalBookings ? 'Booking status breakdown' : 'No booking requests yet';
     root.querySelector('.mini-legend').innerHTML = `<span><i class="green"></i>Approved ${approved}</span><span><i class="orange"></i>Pending ${pending}</span><span><i class="red"></i>Rejected ${rejected}</span>`;
-    const activity = buildActivityFeed(bodies[0].activity ?? [], bodies[2].activity ?? [], bodies[1].activity ?? []);
-    root.querySelector('.recent-list').innerHTML = activity.length ? activity.slice(0, 4).map((item) => `<div class="recent-row"><i class="recent-icon ${item.icon}">${icon(item.icon === 'alert' ? 'bi-shield-exclamation' : item.icon === 'shield' ? 'bi-shield-check' : item.icon === 'user' ? 'bi-person-plus' : 'bi-arrow-repeat')}</i><div><strong>${item.title}</strong><p>${item.detail.replace(/^\[|\]$/g, '')}</p></div><time>${item.time}</time></div>`).join('') : '<div class="zero-state">No recent activity yet.</div>';
+    const activity = buildActivityFeed(bodies[0].activity ?? [], bodies[2].activity ?? [], bodies[1].activity ?? [], bodies[0].notifications ?? []);
+    root.querySelector('.recent-list').innerHTML = activity.length ? activity.slice(0, 4).map((item) => `<div class="recent-row"><i class="recent-icon ${item.icon}">${icon(item.icon === 'alert' ? 'bi-shield-exclamation' : item.icon === 'shield' ? 'bi-shield-check' : item.icon === 'user' ? 'bi-person-plus' : 'bi-arrow-repeat')}</i><div><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.detail.replace(/^\[|\]$/g, ''))}</p></div><time>${escapeHtml(item.time)}</time></div>`).join('') : '<div class="zero-state">No recent activity yet.</div>';
     root.querySelector('.status')?.remove();
     applyAdminPrivacy(root);
   } catch (error) {

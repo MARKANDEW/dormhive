@@ -70,7 +70,7 @@ body {
 }
 .support-summary-card {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
   min-height: 94px;
   padding: 14px 16px;

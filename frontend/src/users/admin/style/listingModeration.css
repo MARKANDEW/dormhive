@@ -213,6 +213,163 @@
   font-weight: 700;
 }
 
+.ui-modal.moderation-reject-modal {
+  width: min(92vw, 58rem);
+  color: var(--mod-ink);
+}
+
+.moderation-reject-modal .ui-modal__header {
+  border-color: var(--mod-line);
+}
+
+.moderation-reject-form {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  gap: 20px;
+  overflow-x: hidden;
+}
+
+.moderation-reject-reasons {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.moderation-reject-reasons legend,
+.moderation-reject-specifics > label {
+  margin-bottom: 12px;
+  color: var(--mod-ink);
+  font-size: 1rem;
+  font-weight: 750;
+}
+
+.moderation-reject-reasons legend span,
+.moderation-reject-specifics > label span {
+  color: var(--mod-muted);
+  font-weight: 500;
+}
+
+.moderation-reject-options {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 24px;
+}
+
+.moderation-reject-option {
+  display: grid;
+  grid-template-columns: 18px 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  width: 100%;
+  color: var(--mod-ink);
+  font-size: 0.92rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.moderation-reject-option i {
+  color: #536f85;
+  font-size: 1.15rem;
+  text-align: center;
+}
+
+.moderation-reject-option span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.moderation-reject-option input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #bd514b;
+}
+
+.moderation-reject-specifics > label {
+  display: block;
+}
+
+.moderation-reject-textarea-wrap {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.moderation-reject-form textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  min-height: 8rem;
+  padding: 12px 14px 30px;
+  border: 1px solid var(--mod-line);
+  border-radius: 10px;
+  color: var(--mod-ink);
+  font: inherit;
+  resize: vertical;
+}
+
+.moderation-reject-counter {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  color: var(--mod-muted);
+  font-size: 0.78rem;
+  pointer-events: none;
+}
+
+.moderation-reject-form textarea:focus-visible {
+  border-color: var(--mod-blue);
+  outline: 2px solid rgb(33 103 165 / 18%);
+}
+
+.moderation-reject-error {
+  min-height: 1.25rem;
+  margin: 0;
+  color: #bd514b;
+  font-size: 0.82rem;
+}
+
+.moderation-reject-modal .ui-modal__footer > button[data-modal-close]:last-child {
+  display: none;
+}
+
+.moderation-reject-modal .ui-modal__footer .moderation-reject-cancel {
+  border: 1px solid var(--mod-line);
+  background: #f1f4f6;
+  color: #465b6b;
+}
+
+.moderation-reject-modal .ui-modal__footer .moderation-reject-cancel:hover {
+  background: #e5eaee;
+}
+
+.moderation-reject-modal .ui-modal__footer .moderation-reject-confirm {
+  background: #bd514b;
+}
+
+.moderation-reject-modal .ui-modal__footer .moderation-reject-confirm:hover:not(:disabled) {
+  background: #a9433e;
+}
+
+.moderation-reject-modal .ui-modal__footer button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+@media (max-width: 760px) {
+  .moderation-reject-options {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+}
+
 .moderation-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;

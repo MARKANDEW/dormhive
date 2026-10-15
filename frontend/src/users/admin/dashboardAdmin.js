@@ -277,7 +277,8 @@ async function refreshDashboardData(root) {
     const liveActivity = buildActivityFeed(
       Array.isArray(u.activity) ? u.activity : [],
       Array.isArray(p.activity) ? p.activity : [],
-      Array.isArray(b.activity) ? b.activity : []
+      Array.isArray(b.activity) ? b.activity : [],
+      Array.isArray(u.notifications) ? u.notifications : []
     );
 
     root.querySelector('.activity-list').innerHTML = liveActivity.length

@@ -92,6 +92,25 @@ test('new pending properties appear in the recent activity feed', () => {
   assert.ok(activities.some((activity) => activity.title === 'Property approved' && activity.detail.includes('Sunset Apartment')));
 });
 
+test('recent activity merges notifications and every booking status newest first', () => {
+  const now = Date.now();
+  const activities = buildActivityFeed(
+    [{ name: 'New Tenant', status: 'active', created_at: new Date(now - 6000).toISOString(), updated_at: new Date(now - 6000).toISOString() }],
+    [{ title: 'Dorm Room', status: 'archived', updated_at: new Date(now - 4000).toISOString() }],
+    [
+      { tenant_name: 'Pending Tenant', status: 'pending', created_at: new Date(now - 3000).toISOString() },
+      { tenant_name: 'Cancelled Tenant', status: 'cancelled', updated_at: new Date(now - 2000).toISOString() }
+    ],
+    [{ title: 'Booking update', message: 'Viewing schedule changed', created_at: new Date(now - 1000).toISOString() }]
+  );
+
+  assert.equal(activities[0].title, 'Booking update');
+  assert.ok(activities.some((activity) => activity.title === 'New user registered'));
+  assert.ok(activities.some((activity) => activity.title === 'Property archived'));
+  assert.ok(activities.some((activity) => activity.title === 'Booking requested'));
+  assert.ok(activities.some((activity) => activity.title === 'Booking cancelled'));
+});
+
 test('admin self-suspension is blocked', () => {
   const result = guardUserStatusChange({
     actor: { id: 7, role: 'admin' },

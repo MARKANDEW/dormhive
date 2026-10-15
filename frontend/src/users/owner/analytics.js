@@ -7,7 +7,7 @@ const escapeHtml = (value = '') => { const element = document.createElement('spa
 
 function css() {
   const stylesheet = new URL('./style/analytics.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'mobile-menu-heading-scroll-1');
+  stylesheet.searchParams.set('v', 'owner-analytics-donut-side-by-side-1');
   return loadOwnerStylesheet('analytics', stylesheet);
 }
 
@@ -105,9 +105,22 @@ export async function renderAnalytics(root = document.querySelector('#app')) {
     const activity = [
       ...approved.map((booking) => ({ icon: '✓', type: 'approved', text: `Booking approved for ${booking.property_title || 'your property'}.`, date: booking.updated_at || booking.created_at })),
       ...rejected.map((booking) => ({ icon: '!', type: 'declined', text: `Booking request declined for ${booking.property_title || 'your property'}.`, date: booking.updated_at || booking.created_at })),
-      ...listings.filter((property) => property.status === 'approved').map((property) => ({ icon: '⌂', type: 'published', text: `Listing approved: ${property.title || 'Untitled property'}.`, date: property.updated_at || property.created_at })),
+      ...listings.filter((property) => ['approved', 'rejected', 'pending', 'archived'].includes(property.status)).map((property) => {
+        const status = property.status;
+        const activityByStatus = {
+          approved: { icon: '⌂', type: 'published', label: 'approved' },
+          rejected: { icon: '!', type: 'declined', label: 'rejected' },
+          pending: { icon: '•', type: 'inquiry', label: 'submitted for review' },
+          archived: { icon: '!', type: 'declined', label: 'archived' }
+        }[status];
+        return {
+          ...activityByStatus,
+          text: `Listing ${activityByStatus.label}: ${property.title || 'Untitled property'}.`,
+          date: property.updated_at || property.created_at
+        };
+      }),
       ...pending.map((booking) => ({ icon: '•', type: 'inquiry', text: `New booking request for ${booking.property_title || 'your property'}.`, date: booking.created_at }))
-    ].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)).slice(0, 4);
+    ].sort((a, b) => Date.parse(b.date || 0) - Date.parse(a.date || 0)).slice(0, 4);
     root.querySelector('.activity-list').innerHTML = activity.map((item) => `<div class="activity-row"><i class="activity-icon ${item.type}">${item.icon}</i><span>${escapeHtml(item.text)}</span><time>${item.date ? new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently'}</time></div>`).join('') || '<div class="listing-empty">No recent activity.</div>';
 
     root.querySelector('.status').hidden = true;

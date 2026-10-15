@@ -789,7 +789,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
 
   // Leaflet map interaction is handled internally by the map library.
 
-  const ITEMS_PER_PAGE = 3;
+  const ITEMS_PER_PAGE = 10;
 
   const getPagedProperties = (items = []) => {
     const totalPages = Math.max(1, Math.ceil(items.length / ITEMS_PER_PAGE));
@@ -1263,7 +1263,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
     // Populate the form with existing property data
     const form = propertyForm;
     form.elements.title.value = propertyData.title || '';
-    form.elements.roomType.value = propertyData.room_type || '';
+    form.elements.roomType.value = normalizePropertyTypeValue(propertyData.room_type || propertyData.property_type || '');
     form.elements.monthlyRent.value = formatMonthlyRent(propertyData.monthly_rent || '');
     form.elements.maxOccupants.value = propertyData.max_occupants || '';
     form.elements.availableSlots.value = propertyData.available_slots || '';
