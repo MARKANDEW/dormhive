@@ -1,6 +1,6 @@
 import { ensureAdminSidebarStyles, loadAdminStylesheet, renderAdminSidebar } from './sidebarAdmin.js';
 import { buildActivityFeed, buildDashboardMetrics } from './analytics.js';
-import { confirmDialog, createModal, openModal } from '../../components/modal.js';
+import { confirmDialog, createModal, openModal, successDialog } from '../../components/modal.js';
 import { showToast } from '../../components/toast.js';
 import { applyAdminPrivacy } from './privacy.js';
 import { resolveUserAvatarUrl } from './avatar.js';
@@ -207,7 +207,7 @@ async function archiveUser(root, user) {
 
   try {
     await apiRequest(`/users/${encodeURIComponent(user.id)}`, { method: 'DELETE' });
-    showToast({ message: `${userLabel} was archived.`, type: 'success' });
+    await successDialog(`${userLabel} was archived.`);
     await refreshDashboardData(root);
   } catch (error) {
     showToast({ message: error.message || 'Could not archive user.', type: 'error' });

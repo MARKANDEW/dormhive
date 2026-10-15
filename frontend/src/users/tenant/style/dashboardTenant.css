@@ -142,6 +142,36 @@ input {
   background: #ccefe1;
   color: #127351;
 }
+.tenant-schedule-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0 0;
+  padding: 12px 16px;
+  border: 1px solid #b9e4d3;
+  border-radius: 10px;
+  background: #effaf5;
+  color: #205b49;
+}
+.tenant-schedule-notice[hidden] {
+  display: none !important;
+}
+.tenant-schedule-notice-icon {
+  display: grid;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 50%;
+  background: #d7f2e5;
+  color: #13805d;
+}
+.tenant-schedule-notice p {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
 .intro {
   display: flex;
   justify-content: space-between;
@@ -602,13 +632,17 @@ legend {
   flex: 0 0 220px;
   width: 220px;
   min-width: 220px;
-  height: 390px;
+  height: 420px;
   overflow: hidden;
   border: 1px solid #e3eae7;
   border-radius: 10px;
   background: #fff;
   box-shadow: none;
   scroll-snap-align: start;
+}
+.dh-dashboard .listing,
+.dh-dashboard .listing * {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
 }
 .featured .section-title {
   margin-bottom: 10px;
@@ -768,6 +802,7 @@ legend {
 .listing-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  flex-shrink: 0;
   gap: 7px;
   margin-top: auto;
 }
@@ -1197,7 +1232,7 @@ legend {
     flex: 0 0 min(42vw, 320px);
     width: min(42vw, 320px);
     min-width: 0;
-    height: 224px;
+    height: 280px;
     min-height: 0;
     border-color: #e1ebe7;
     border-radius: 12px;

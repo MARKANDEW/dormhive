@@ -291,6 +291,36 @@ textarea:focus-visible {
   white-space: nowrap;
 }
 
+.role-sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.role-sort-button:hover,
+.role-sort-button:focus-visible {
+  color: var(--users-ink);
+}
+
+.role-sort-button:focus-visible {
+  outline: 2px solid #168d79;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.role-sort-indicator {
+  font-size: 13px;
+  line-height: 1;
+}
+
 .users-card th:first-child {
   border-radius: 10px 0 0 10px;
 }

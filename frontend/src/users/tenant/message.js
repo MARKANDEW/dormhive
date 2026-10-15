@@ -155,7 +155,7 @@ const openPropertyDetails = (property) => {
   const amenities = Array.isArray(property.amenities)
     ? property.amenities.join(', ')
     : String(property.amenities ?? '').replace(/[\[\]"']/g, '').replace(/,/g, ', ');
-  const modal = createModal({ title: 'Property Details', content: '', closeLabel: 'Close' });
+  const modal = createModal({ title: 'Property Details', content: '', closeLabel: 'Close', closeOnBackdrop: false });
   modal.classList.add('tenant-message-modal');
   modal.classList.add('tenant-property-details-modal');
   modal.querySelector('.ui-modal__header h2').innerHTML = '<span class="message-property-header-icon"><i class="bi bi-house-door-fill" aria-hidden="true"></i></span>Property Details';

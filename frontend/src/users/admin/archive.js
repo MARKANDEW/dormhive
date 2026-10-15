@@ -1,5 +1,6 @@
 import { ensureAdminSidebarStyles, loadAdminStylesheet, renderAdminSidebar } from './sidebarAdmin.js';
 import { applyAdminPrivacy } from './privacy.js';
+import { successDialog } from '../../components/modal.js';
 import { showToast } from '../../components/toast.js';
 
 const API = (window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1').replace(/\/$/, '');
@@ -130,10 +131,11 @@ export async function renderArchive(root = document.querySelector('#app')) {
           try {
             const endpoint = kind === 'accounts' ? 'users' : 'properties';
             await request(`/${endpoint}/${encodeURIComponent(button.dataset.recordId)}/restore`, { method: 'PATCH' });
-            showToast({
-              message: kind === 'accounts' ? 'Account restored successfully.' : 'Property restored successfully.',
-              type: 'success'
-            });
+            if (kind === 'accounts') {
+              await successDialog('Account restored successfully.');
+            } else {
+              showToast({ message: 'Property restored successfully.', type: 'success' });
+            }
             await load();
           } catch (error) {
             button.disabled = false;

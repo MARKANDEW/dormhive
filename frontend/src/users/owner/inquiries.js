@@ -24,7 +24,7 @@ const renderAvatarMarkup = () => '';
 
 function css() {
   const stylesheet = new URL('./style/inquiries.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'mobile-inquiry-empty-actions-4');
+  stylesheet.searchParams.set('v', 'mobile-inquiry-aligned-grid-5');
   return loadOwnerStylesheet('inquiries', stylesheet);
 }
 
@@ -84,7 +84,6 @@ export async function renderInquiries(root = document.querySelector('#app')) {
                   <button class="pill active" data-status="all" type="button">All</button>
                   <button class="pill" data-status="new" type="button">New</button>
                   <button class="pill" data-status="pending" type="button">Pending</button>
-                  <button class="pill" data-status="replied" type="button">Replied</button>
                 </div>
 
                 <label class="property-filter">
@@ -103,7 +102,6 @@ export async function renderInquiries(root = document.querySelector('#app')) {
                   <div class="cell date-header">Date</div>
                   <div class="cell status-header">Status</div>
                   <div class="cell message-header">Latest Message</div>
-                  <div class="cell action-header">Actions</div>
                 </div>
                 <div id="inquiries-rows" class="inquiry-list" aria-live="polite"></div>
 
@@ -112,7 +110,7 @@ export async function renderInquiries(root = document.querySelector('#app')) {
                 </div>
               </section>
 
-              <aside class="detail-shell">
+              <aside class="detail-shell" hidden>
                 <div id="tenant-detail-panel" class="tenant-detail-panel">
                   <div class="detail-placeholder">Select a tenant row to view inquiry details.</div>
                 </div>
@@ -193,6 +191,8 @@ export async function renderInquiries(root = document.querySelector('#app')) {
   };
 
   const tbody = root.querySelector('#inquiries-rows');
+  const inquiriesLayout = root.querySelector('.inquiries-layout');
+  const detailShell = root.querySelector('.detail-shell');
   const searchInput = root.querySelector('#inquiry-search');
   const propertyFilter = root.querySelector('#property-filter');
   const detailPanel = root.querySelector('#tenant-detail-panel');
@@ -278,17 +278,15 @@ export async function renderInquiries(root = document.querySelector('#app')) {
   };
 
   const renderDetailPanel = () => {
-    if (!detailPanel) return;
+    if (!detailPanel || !detailShell || !inquiriesLayout) return;
     if (!state.selected) {
-      detailPanel.innerHTML = `
-        <div class="empty-detail-state">
-          <div class="empty-state-icon">✉</div>
-          <h3>No inquiries yet</h3>
-          <p>When tenants inquire about your properties, they will appear here.</p>
-        </div>`;
+      detailShell.hidden = true;
+      inquiriesLayout.classList.remove('has-selection');
       return;
     }
 
+    detailShell.hidden = false;
+    inquiriesLayout.classList.add('has-selection');
     const booking = state.selected;
     const info = statusInfo(booking.status);
     const latestMessage = booking.message || 'No message provided.';
@@ -419,7 +417,7 @@ export async function renderInquiries(root = document.querySelector('#app')) {
       const selectedClass = state.selected?.id === booking.id ? 'selected' : '';
       const tenantName = booking.tenant_name || 'Unknown tenant';
       const dateValue = formatDate(booking.move_in_date || booking.created_at);
-      const messageText = booking.message || 'No message provided.';
+      const messageText = booking.message || '';
 
       return `
         <div class="inquiry-row ${selectedClass}" data-booking-id="${booking.id}">
@@ -439,8 +437,8 @@ export async function renderInquiries(root = document.querySelector('#app')) {
           <div class="cell status-cell">
             <span class="badge ${info.className}">${esc(info.label)}</span>
           </div>
-          <div class="cell message-cell">${esc(messageText)}</div>
-          <div class="cell action-cell">
+          <div class="cell message-cell">
+            ${messageText ? `<span class="message-text">${esc(messageText)}</span>` : ''}
             <button type="button" class="reply-action" data-booking-id="${booking.id}" aria-label="Reply" title="Reply">
               <i class="bi bi-send" aria-hidden="true"></i>
             </button>
@@ -524,7 +522,7 @@ export async function renderInquiries(root = document.querySelector('#app')) {
 
       const acceptedBookingId = state.selected.id;
       state.bookings = state.bookings.filter((booking) => booking.id !== acceptedBookingId);
-      state.selected = state.bookings[0] ?? null;
+      state.selected = null;
       renderRows();
       renderDetailPanel();
       await updateListingCountsInSidebar();
@@ -673,7 +671,7 @@ export async function renderInquiries(root = document.querySelector('#app')) {
       renderRows();
       renderDetailPanel();
       const selectedBooking = state.selected && state.bookings.find((booking) => booking.id === state.selected.id);
-      state.selected = selectedBooking || state.bookings[0] || null;
+      state.selected = selectedBooking || null;
       renderRows();
       renderDetailPanel();
       await updateListingCountsInSidebar();
@@ -733,7 +731,7 @@ export async function renderInquiries(root = document.querySelector('#app')) {
     if (archiveConfirmActionBtn.dataset.action === 'delete') {
       state.bookings = state.bookings.filter((b) => b.id !== pendingArchiveBooking.id);
       if (state.selected?.id === pendingArchiveBooking.id) {
-        state.selected = state.bookings[0] ?? null;
+        state.selected = null;
       }
       renderRows();
       renderDetailPanel();

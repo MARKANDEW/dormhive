@@ -1,7 +1,7 @@
 import { query } from '../config/database.js';
 
 export function buildBookingListSql(role = 'owner') {
-  const fields = "b.*, p.title AS property_title, p.monthly_rent, p.owner_id, COALESCE(CONCAT_WS(' ', u.first_name, u.last_name), u.name) AS tenant_name, u.avatar_url AS tenant_avatar_url";
+  const fields = "b.*, p.title AS property_title, p.monthly_rent, p.owner_id, p.image_url, p.images, COALESCE(CONCAT_WS(' ', u.first_name, u.last_name), u.name) AS tenant_name, u.avatar_url AS tenant_avatar_url";
 
   if (role === 'admin') {
     return `SELECT ${fields} FROM bookings b JOIN properties p ON p.id = b.property_id JOIN users u ON u.id = b.tenant_id ORDER BY b.created_at DESC`;
@@ -21,7 +21,7 @@ export async function create(tenantId, { propertyId, moveInDate, moveOutDate, is
 }
 
 export async function findById(id) {
-  const rows = await query('SELECT b.*, p.title AS property_title, p.monthly_rent, p.owner_id FROM bookings b JOIN properties p ON p.id = b.property_id WHERE b.id = ? LIMIT 1', [id]);
+  const rows = await query('SELECT b.*, p.title AS property_title, p.monthly_rent, p.owner_id, p.image_url, p.images FROM bookings b JOIN properties p ON p.id = b.property_id WHERE b.id = ? LIMIT 1', [id]);
   return rows[0] ?? null;
 }
 

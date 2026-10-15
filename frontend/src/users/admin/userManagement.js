@@ -10,7 +10,7 @@ const esc = (value = '') => { const element = document.createElement('span'); el
 
 function css() {
   const stylesheet = new URL('./style/userManagement.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'archive-controls-1');
+  stylesheet.searchParams.set('v', 'role-sort-1');
   return loadAdminStylesheet('users', stylesheet);
 }
 
@@ -34,7 +34,7 @@ export async function renderUserManagement(root = document.querySelector('#app')
             <p class="status" role="status">Loading users...</p>
             <section class="users-card">
               <div class="users-card-heading"><div class="users-card-title"><span class="users-card-icon" aria-hidden="true"><i class="bi bi-person"></i></span><div><h2>Platform Users</h2><p>Manage and view all registered users.</p></div></div><span class="users-total" data-total>0 total</span></div>
-              <div class="table-wrap"><table><thead><tr><th>User</th><th>Role</th><th>Status</th><th>Action</th></tr></thead><tbody></tbody></table></div>
+              <div class="table-wrap"><table><thead><tr><th>User</th><th class="role-sort-header" aria-sort="none"><button type="button" class="role-sort-button" aria-label="Sort users by role">Role <span class="role-sort-indicator" aria-hidden="true">↕</span></button></th><th>Status</th><th>Action</th></tr></thead><tbody></tbody></table></div>
             </section>
           </section>
         </main>
@@ -54,13 +54,25 @@ export async function renderUserManagement(root = document.querySelector('#app')
   const body = root.querySelector('tbody');
   const status = root.querySelector('.status');
   const total = root.querySelector('[data-total]');
+  const roleSortHeader = root.querySelector('.role-sort-header');
+  const roleSortButton = root.querySelector('.role-sort-button');
+  const roleSortIndicator = root.querySelector('.role-sort-indicator');
+  let roleSortDirection = 0;
 
   const load = async () => {
     try {
       const response = await fetch(`${API}/users?limit=100&search=${encodeURIComponent(input.value)}`, { headers: headers() });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.message || 'Unable to load users.');
-      const users = Array.isArray(payload.data) ? payload.data : [];
+      const users = Array.isArray(payload.data) ? [...payload.data] : [];
+      if (roleSortDirection) {
+        const roleOrder = { tenant: 0, owner: 1, admin: 2 };
+        users.sort((left, right) => {
+          const leftRank = roleOrder[String(left.role).toLowerCase()] ?? 3;
+          const rightRank = roleOrder[String(right.role).toLowerCase()] ?? 3;
+          return (leftRank - rightRank) * roleSortDirection;
+        });
+      }
       total.textContent = `${payload.pagination?.total ?? users.length} total`;
       status.hidden = true;
       const currentUser = JSON.parse(localStorage.getItem('dormhive.user') ?? '{}');
@@ -109,6 +121,14 @@ export async function renderUserManagement(root = document.querySelector('#app')
       status.hidden = false;
     }
   };
+
+  roleSortButton.addEventListener('click', () => {
+    roleSortDirection = roleSortDirection === 1 ? -1 : 1;
+    roleSortHeader.setAttribute('aria-sort', roleSortDirection === 1 ? 'ascending' : 'descending');
+    roleSortIndicator.textContent = roleSortDirection === 1 ? '↑' : '↓';
+    roleSortButton.setAttribute('aria-label', `Sort users by role ${roleSortDirection === 1 ? 'ascending' : 'descending'}`);
+    load();
+  });
 
   input.addEventListener('input', () => { clearTimeout(input.timer); input.timer = setTimeout(load, 250); });
   load();

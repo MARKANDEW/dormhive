@@ -4,11 +4,22 @@ import { canTenantEditViewingSchedule, isValidViewingSchedule, resolveViewingSch
 
 test('viewing schedules accept valid independent date and time values', () => {
   assert.equal(isValidViewingSchedule('2026-10-01', '10:00'), true);
-  assert.equal(isValidViewingSchedule('2026-12-31', '23:59'), true);
+  assert.equal(isValidViewingSchedule('2026-10-01', '08:00'), true);
+  assert.equal(isValidViewingSchedule('2026-10-01', '11:00'), true);
+  assert.equal(isValidViewingSchedule('2026-10-01', '12:00'), true);
+  assert.equal(isValidViewingSchedule('2026-10-01', '16:00'), true);
+  assert.equal(isValidViewingSchedule('2026-10-01', '17:00'), true);
+  assert.equal(isValidViewingSchedule('2026-12-31', '19:00'), true);
 });
 
 test('viewing schedules reject malformed or impossible date and time values', () => {
   assert.equal(isValidViewingSchedule('2026-02-30', '10:00'), false);
+  assert.equal(isValidViewingSchedule('2026-10-01', '07:59'), false);
+  assert.equal(isValidViewingSchedule('2026-10-01', '11:01'), false);
+  assert.equal(isValidViewingSchedule('2026-10-01', '11:59'), false);
+  assert.equal(isValidViewingSchedule('2026-10-01', '16:01'), false);
+  assert.equal(isValidViewingSchedule('2026-10-01', '16:59'), false);
+  assert.equal(isValidViewingSchedule('2026-10-01', '19:01'), false);
   assert.equal(isValidViewingSchedule('2026-10-01', '24:00'), false);
   assert.equal(isValidViewingSchedule('10/01/2026', '10:00'), false);
   assert.equal(isValidViewingSchedule('2026-10-01', '10:00 AM'), false);

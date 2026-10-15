@@ -3,7 +3,7 @@ function style() {
 	if (stylesheetPromise) return stylesheetPromise;
 	let link = document.querySelector('[data-component-style="modal"]');
 	const href = new URL('./style/modal.css', import.meta.url);
-	href.searchParams.set('v', 'centered-confirm-1');
+	href.searchParams.set('v', 'centered-confirm-2');
 	if (!link) {
 		link = document.createElement('link');
 		link.rel = 'stylesheet';
@@ -22,7 +22,7 @@ function style() {
 	return stylesheetPromise;
 }
 
-export function createModal({ title = '', content = '', closeLabel = 'Close', footerMarkup = '' } = {}) {
+export function createModal({ title = '', content = '', closeLabel = 'Close', footerMarkup = '', closeOnBackdrop = true } = {}) {
 	style();
 	document.querySelectorAll('.ui-modal').forEach((existing) => existing.remove());
 	const dialog = document.createElement('dialog');
@@ -42,9 +42,11 @@ export function createModal({ title = '', content = '', closeLabel = 'Close', fo
 		remove();
 	};
 	dialog.querySelectorAll('[data-modal-close]').forEach((button) => button.addEventListener('click', close));
-	dialog.addEventListener('click', (event) => {
-		if (event.target === dialog) close();
-	});
+	if (closeOnBackdrop) {
+		dialog.addEventListener('click', (event) => {
+			if (event.target === dialog) close();
+		});
+	}
 	dialog.addEventListener('close', remove, { once: true });
 	window.addEventListener('hashchange', close);
 	document.body.append(dialog);
@@ -88,6 +90,25 @@ export async function confirmDialog({ title, message, confirmLabel = 'Confirm', 
 	await openModal(modal);
 	modal.querySelector('[data-modal-close]:not([aria-label])')?.focus();
 	return result;
+}
+
+export async function successDialog(message) {
+	const content = document.createElement('div');
+	content.className = 'ui-success-dialog__content';
+	const icon = document.createElement('span');
+	icon.className = 'ui-success-dialog__icon';
+	icon.setAttribute('aria-hidden', 'true');
+	icon.textContent = '✓';
+	const description = document.createElement('p');
+	description.textContent = message;
+	content.append(icon, description);
+
+	const modal = createModal({ title: 'Success!', content, closeLabel: 'OK', closeOnBackdrop: false });
+	modal.classList.add('ui-success-dialog');
+	const closed = new Promise((resolve) => modal.addEventListener('close', resolve, { once: true }));
+	await openModal(modal);
+	modal.querySelector('.ui-modal__footer [data-modal-close]')?.focus();
+	await closed;
 }
 
 function escapeHtml(value) {

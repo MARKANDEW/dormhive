@@ -9,7 +9,7 @@ const esc = (value = '') => { const e = document.createElement('span'); e.textCo
 
 function css() {
   const stylesheet = new URL('./style/listingModeration.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'moderation-approved-status-badge-6');
+  stylesheet.searchParams.set('v', 'moderation-approved-status-badge-7');
   return loadAdminStylesheet('moderation', stylesheet);
 }
 
@@ -135,6 +135,15 @@ export async function renderListingModeration(root = document.querySelector('#ap
               </div>
             </div>
           </div>
+          <div id="approval-success-modal" class="approval-success-modal" hidden>
+            <div class="approval-success-overlay"></div>
+            <div class="approval-success-card" role="dialog" aria-modal="true" aria-labelledby="approval-success-title">
+              <div class="approval-success-icon" aria-hidden="true"><span>✓</span></div>
+              <h2 id="approval-success-title">Success!</h2>
+              <p>Listing approved successfully.</p>
+              <button type="button" class="approval-success-ok">OK</button>
+            </div>
+          </div>
         </main>
       </div>
     </div>`;
@@ -165,6 +174,8 @@ export async function renderListingModeration(root = document.querySelector('#ap
   const listingCardSubtitle = root.querySelector('#listing-card-subtitle');
   const listingTotal = root.querySelector('#listing-total');
   const modal = root.querySelector('#listing-view-modal');
+  const approvalSuccessModal = root.querySelector('#approval-success-modal');
+  const approvalSuccessOkButton = root.querySelector('.approval-success-ok');
   const modalClose = root.querySelector('.modal-close');
   const modalTitle = root.querySelector('#modal-title');
   const modalStatusText = root.querySelector('#modal-status');
@@ -179,6 +190,11 @@ export async function renderListingModeration(root = document.querySelector('#ap
   const modalGender = root.querySelector('#modal-gender');
   const modalDescription = root.querySelector('#modal-description');
   const modalAmenities = root.querySelector('#modal-amenities');
+
+  approvalSuccessOkButton?.addEventListener('click', () => {
+    approvalSuccessModal.hidden = true;
+    document.body.classList.remove('approval-success-modal-open');
+  });
 
   const statusLabels = {
     pending: 'Pending Approvals',
@@ -369,6 +385,7 @@ export async function renderListingModeration(root = document.querySelector('#ap
         if (row) {
           syncDetails(row);
           syncRowSelection();
+          root.querySelector('.detail-body')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       });
     });
@@ -451,7 +468,13 @@ export async function renderListingModeration(root = document.querySelector('#ap
 
       renderRows();
       statusLabel.textContent = `Listing ${status} successfully.`;
-      showToast({ message: `Listing ${status} successfully.`, type: 'success' });
+      if (status === 'approved') {
+        approvalSuccessModal.hidden = false;
+        document.body.classList.add('approval-success-modal-open');
+        approvalSuccessOkButton.focus();
+      } else {
+        showToast({ message: `Listing ${status} successfully.`, type: 'success' });
+      }
       approveButton.disabled = rejectButton.disabled = false;
     } catch (error) {
       statusLabel.textContent = error.message;

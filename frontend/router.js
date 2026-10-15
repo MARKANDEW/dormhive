@@ -10,6 +10,7 @@ const routes = [
   ['/owner/dashboardOwner', 'owner', './src/users/owner/dashboardOwner.js', 'renderDashboardOwner'], ['/owner/myListing', 'owner', './src/users/owner/myListing.js', 'renderMyListing'], ['/owner/inquiries', 'owner', './src/users/owner/inquiries.js', 'renderInquiries'], ['/owner/activeTenant', 'owner', './src/users/owner/activeTenant.js', 'renderActiveTenant'], ['/owner/analytics', 'owner', './src/users/owner/analytics.js', 'renderAnalytics'], ['/owner/message', 'owner', './src/users/owner/message.js', 'renderMessage'], ['/owner/support', 'owner', './src/users/owner/support.js', 'renderSupport'], ['/owner/setting', 'owner', './src/users/owner/setting.js', 'renderSetting'],
   ['/admin/dashboardAdmin', 'admin', './src/users/admin/dashboardAdmin.js', 'renderDashboardAdmin'], ['/admin/userManagement', 'admin', './src/users/admin/userManagement.js', 'renderUserManagement'], ['/admin/listingModeration', 'admin', './src/users/admin/listingModeration.js', 'renderListingModeration'], ['/admin/analytics', 'admin', './src/users/admin/analytics.js', 'renderAnalytics'], ['/admin/supportTickets', 'admin', './src/users/admin/supportTickets.js', 'renderSupportTickets'], ['/admin/archive', 'admin', './src/users/admin/archive.js', 'renderArchive'], ['/admin/setting', 'admin', './src/users/admin/setting.js', 'renderSetting'],
 ];
+const authStyledRoutes = new Set(['/login', '/register', '/terms', '/privacy', '/forgot-password', '/reset-password']);
 const ownerStylesByPath = {
   '/owner/dashboardOwner': ['dashboard'],
   '/owner/myListing': ['listings'],
@@ -31,6 +32,10 @@ function syncOwnerStyles(path) {
     if (!activeStyles.has(link.dataset.ownerStyle)) link.remove();
   });
 }
+function syncAuthStyles(path) {
+  if (authStyledRoutes.has(path)) return;
+  document.querySelectorAll('link[data-dormhive-auth], link[data-dormhive-legal], link[data-password-reset-style]').forEach((link) => link.remove());
+}
 function resetAdminScroll() {
   window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   const adminMain = ROOT().querySelector('.admin-main');
@@ -45,6 +50,7 @@ export async function renderRoute() {
   if (!user && !publicRoutes.includes(path)) return navigate('/login', true);
   if (user && publicRoutes.includes(path) && path !== '/' && !['/terms', '/privacy'].includes(path)) return navigate(redirectForRole(user.role), true);
   syncOwnerStyles(path);
+  syncAuthStyles(path);
   if (path.startsWith('/admin/')) resetAdminScroll();
   window.DORMHIVE_ROUTE_SEARCH = search;
   const authRouteSkeletonDisabled = ['/login', '/register', '/terms', '/privacy', '/forgot-password', '/reset-password', '/oauth/callback'].includes(path);

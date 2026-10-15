@@ -1,7 +1,7 @@
 import { ensureTenantSidebarStyles, loadTenantStylesheet, renderTenantSidebar } from './sidebarTenant.js';
 import { getUserAvatarUrl } from './setting.js';
 import { createModal, openModal } from '../../components/modal.js';
-import { attachViewingTimeSuggestions, parseViewingTime, viewingTimeFields } from './viewingTime.js';
+import { parseViewingTime, viewingTimeFields } from './viewingTime.js';
 import { api as apiClient } from '../../services/api.js';
 import { markNotificationRead } from '../../services/notificationSystem.js';
 import { withMediaAccessToken } from '../../services/mediaAccess.js';
@@ -95,9 +95,6 @@ const openBookingPhotoViewer = (photos, alt) => {
     renderPhoto();
   });
   closeButton.addEventListener('click', () => viewer.close());
-  viewer.addEventListener('click', (event) => {
-    if (event.target === viewer) viewer.close();
-  });
   viewer.addEventListener('keydown', (event) => {
     if (event.key === 'ArrowRight' && photos.length > 1) nextButton.click();
     if (event.key === 'ArrowLeft' && photos.length > 1) previousButton.click();
@@ -142,7 +139,9 @@ const propertyAmenities = (value) => {
 };
 
 function style() {
-  return loadTenantStylesheet('booking', new URL('./style/booking.css', import.meta.url));
+  const stylesheet = new URL('./style/booking.css', import.meta.url);
+  stylesheet.searchParams.set('v', 'viewing-time-groups-1');
+  return loadTenantStylesheet('booking', stylesheet);
 }
 
 export async function renderBooking(root = document.querySelector('#app')) {
@@ -443,16 +442,15 @@ export async function renderBooking(root = document.querySelector('#app')) {
             closeLabel: 'Cancel',
             footerMarkup: '<button type="button" class="btn btn--primary" data-save-viewing-schedule>Save Schedule</button>'
           });
-          attachViewingTimeSuggestions(modal, 'tenant-viewing-time');
           const dateInput = modal.querySelector('#tenant-viewing-date');
-          const timeInputs = ['hour', 'minute', 'period'].map((part) => modal.querySelector(`#tenant-viewing-time-${part}`));
+          const timeInput = modal.querySelector('#tenant-viewing-time');
           const scheduleStatus = modal.querySelector('[role="status"]');
           const saveButton = modal.querySelector('[data-save-viewing-schedule]');
           dateInput.min = new Date().toISOString().split('T')[0];
           saveButton.addEventListener('click', async () => {
-            const viewingTime = parseViewingTime(...timeInputs.map((input) => input.value));
+            const viewingTime = parseViewingTime(timeInput.value);
             if (!dateInput.value || !viewingTime) {
-              scheduleStatus.textContent = 'Enter an hour, minute, and AM/PM for the viewing time.';
+              scheduleStatus.textContent = 'Select a viewing time between 8 AM and 7 PM.';
               return;
             }
             saveButton.disabled = true;

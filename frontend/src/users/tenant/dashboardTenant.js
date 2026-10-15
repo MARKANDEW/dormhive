@@ -1,11 +1,10 @@
 import { renderMapPanelShell, initLeafletMap, updateLeafletMarkers } from '../../components/mapPanel.js';
 import { ensureTenantSidebarStyles, loadTenantStylesheet, renderTenantSidebar } from './sidebarTenant.js';
 import { getUserAvatarUrl, refreshTenantUserSession } from './setting.js';
-import { createModal, openModal } from '../../components/modal.js';
-import { showToast } from '../../components/toast.js';
+import { createModal, openModal, successDialog } from '../../components/modal.js';
 import { api as apiClient, getApiErrorMessage, readApiResponse } from '../../services/api.js';
 import { markNotificationRead } from '../../services/notificationSystem.js';
-import { attachViewingTimeSuggestions, parseViewingTime, viewingTimeFields } from './viewingTime.js';
+import { parseViewingTime, viewingTimeFields } from './viewingTime.js';
 import { withMediaAccessToken } from '../../services/mediaAccess.js';
 import { buildInitialsAvatarSvg, getAvatarInitials } from '../../services/avatar.js';
 
@@ -77,11 +76,17 @@ const glyph = { grid: '&#9638;', calendar: '&#9783;', gear: '&#9881;', menu: '&#
 const icon = (name) => `<span class="icon">${glyph[name] ?? ''}</span>`;
 const heartIcon = (filled = false) => `<span class="icon">${filled ? glyph.heartFilled : glyph.heart}</span>`;
 const formatNotificationDate = (value) => new Date(value ?? Date.now()).toLocaleDateString([], { month: 'short', day: 'numeric' });
+const formatScheduleDate = (value) => {
+  const date = new Date(`${String(value).slice(0, 10)}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' });
+};
 
 function loadStyle() {
   const stylePromises = [];
 
-  stylePromises.push(loadTenantStylesheet('dashboard', new URL('./style/dashboardTenant.css', import.meta.url)));
+  const dashboardStylesheet = new URL('./style/dashboardTenant.css', import.meta.url);
+  dashboardStylesheet.searchParams.set('v', 'tenant-approved-schedule-notice-1');
+  stylePromises.push(loadTenantStylesheet('dashboard', dashboardStylesheet));
 
   if (!document.querySelector('[data-tenant-style="notifications"]')) {
     const style = document.createElement('style');
@@ -400,14 +405,7 @@ function loadPropertyDetailsStyle() {
     .dashboard-request-fields { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .75rem; align-items: start; }
     .dashboard-request-fields label { display: grid; gap: .35rem; min-width: 0; color: #526b63; font-size: .73rem; font-weight: 700; }
     .dashboard-request-fields input:not([type="checkbox"]), .dashboard-request-fields select { width: 100%; min-width: 0; height: 42px; padding: 0 .65rem; border: 1px solid #d4e0db; border-radius: .45rem; background: #fff; color: #183a33; font: inherit; font-size: .82rem; }
-    .viewing-time-inputs { display: flex; align-items: center; gap: .4rem; min-width: 0; }
-    .viewing-time-part { position: relative; flex: 1 1 0; min-width: 0; }
-    .dashboard-request-fields .viewing-time-inputs input { width: 100%; min-width: 0; height: 42px; padding: 0 .35rem; border: 1px solid transparent; border-radius: .45rem; background: #f1f2f2; color: #183a33; font: inherit; text-align: center; }
-    .dashboard-request-fields .viewing-time-inputs input:focus-visible { position: relative; z-index: 1; outline: 2px solid #1aa87a; outline-offset: 1px; background-color: #fff; }
-    .viewing-time-suggestions { position: absolute; z-index: 20; top: calc(100% + .25rem); left: 0; display: grid; width: 100%; max-height: 12rem; overflow-y: auto; padding: .25rem; border: 1px solid #d4e0db; border-radius: .45rem; background: #fff; box-shadow: 0 .5rem 1.25rem rgb(24 58 51 / 16%); }
-    .viewing-time-suggestions[hidden] { display: none; }
-    .viewing-time-suggestion { width: 100%; padding: .35rem .5rem; border: 0; border-radius: .25rem; background: #fff; color: #183a33; font: inherit; text-align: left; cursor: pointer; }
-    .viewing-time-suggestion:hover, .viewing-time-suggestion:focus-visible { outline: none; background: #eaf5f0; }
+    .dashboard-request-fields .viewing-time-select { min-width: 0; }
     .dashboard-request-fields input:focus-visible, .dashboard-request-fields select:focus-visible { outline: 2px solid #1aa87a; outline-offset: 2px; }
     .dashboard-request-fields .dashboard-indefinite-move-out { display: flex; align-items: flex-start; gap: .4rem; margin-top: .15rem; color: #61756e; font-size: .68rem; font-weight: 500; line-height: 1.3; }
     .dashboard-request-fields .dashboard-indefinite-move-out input[type="checkbox"] { flex: 0 0 15px; width: 15px; height: 15px; margin: .05rem 0 0; padding: 0; accent-color: #13856a; }
@@ -706,6 +704,11 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
           </div>
         </header>
 
+        <div id="tenant-schedule-notice" class="tenant-schedule-notice" role="status" hidden>
+          <span class="tenant-schedule-notice-icon" aria-hidden="true"><i class="bi bi-calendar-check-fill"></i></span>
+          <p id="tenant-schedule-notice-message"></p>
+        </div>
+
         <section class="intro">
           <div>
             <small>FIND YOUR NEXT HOME</small>
@@ -888,6 +891,8 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
   const mapStatus = root.querySelector('#map-status');
   const mapPanel = root.querySelector('#shared-map');
   const mapFrame = root.querySelector('#tenant-map');
+  const scheduleNotice = root.querySelector('#tenant-schedule-notice');
+  const scheduleNoticeMessage = root.querySelector('#tenant-schedule-notice-message');
   const mapInitialization = initLeafletMap(root.querySelector('.map'), []).catch((error) => {
     console.warn('Unable to initialize tenant map:', error);
     return null;
@@ -920,6 +925,34 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
     rangeNote.textContent = `PHP 3,000 to PHP ${Number(range.value || MAX_LISTING_PRICE).toLocaleString('en-PH')}+`;
   };
 
+  const renderScheduleNotice = (bookings = []) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const upcoming = bookings.flatMap((booking) => {
+      if (String(booking.status).toLowerCase() !== 'approved') return [];
+      const viewingDate = String(booking.viewing_date ?? '').slice(0, 10);
+      const moveInDate = String(booking.move_in_date ?? '').slice(0, 10);
+      const event = [
+        ...(viewingDate >= todayKey ? [{ date: viewingDate, type: 'viewing' }] : []),
+        ...(moveInDate >= todayKey ? [{ date: moveInDate, type: 'move-in' }] : [])
+      ].sort((first, second) => first.date.localeCompare(second.date))[0];
+      return event ? [{ ...event, property: booking.property_title || 'your selected property' }] : [];
+    }).sort((first, second) => first.date.localeCompare(second.date));
+
+    const nextSchedule = upcoming[0];
+    if (!nextSchedule) {
+      scheduleNotice.hidden = true;
+      return;
+    }
+    const date = formatScheduleDate(nextSchedule.date);
+    const message = nextSchedule.type === 'viewing'
+      ? `You are now scheduled for a viewing at ${nextSchedule.property} on ${date}.`
+      : `You are now scheduled to move in at ${nextSchedule.property} on ${date}.`;
+    scheduleNoticeMessage.textContent = message;
+    scheduleNotice.hidden = false;
+  };
+
   const handleUserRefresh = async () => {
     const latestUser = await refreshTenantUserSession();
     syncTenantProfileUi(root, latestUser);
@@ -950,7 +983,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
       console.warn('Unable to refresh property details:', error);
     }
 
-    const modal = createModal({ title: property.title || 'Property Details', content: '', closeLabel: 'Close' });
+    const modal = createModal({ title: property.title || 'Property Details', content: '', closeLabel: 'Close', closeOnBackdrop: false });
     modal.classList.add('tenant-property-detail-modal');
     modal.querySelector('.ui-modal__body').innerHTML = propertyDetailsMarkup(property);
     const gallery = modal.querySelector('.property-detail-gallery');
@@ -1037,7 +1070,6 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
       gallery.addEventListener('pointercancel', () => { swipeStartX = null; });
     }
     const form = modal.querySelector('.dashboard-request-form');
-    attachViewingTimeSuggestions(form, 'property-viewing-time');
     const status = modal.querySelector('.dashboard-request-status');
     const moveIn = form.querySelector('[name="moveInDate"]');
     const moveOut = form.querySelector('[name="moveOutDate"]');
@@ -1072,10 +1104,10 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
       }
       const formData = new FormData(form);
       const viewingDate = String(formData.get('viewingDate') ?? '').trim();
-      const timeInputs = ['hour', 'minute', 'period'].map((part) => form.querySelector(`#property-viewing-time-${part}`));
-      const viewingTime = parseViewingTime(...timeInputs.map((input) => input.value));
+      const timeInput = form.querySelector('#property-viewing-time');
+      const viewingTime = parseViewingTime(timeInput.value);
       if (viewingTime === null) {
-        status.textContent = 'Enter an hour, minute, and AM/PM for the viewing time.';
+        status.textContent = 'Select a viewing time between 8 AM and 7 PM.';
         return;
       }
       if (Boolean(viewingDate) !== Boolean(viewingTime)) {
@@ -1093,7 +1125,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
         const body = await readApiResponse(response);
         if (!response.ok) throw new Error(getApiErrorMessage(body, 'Unable to submit booking request.'));
         modal.close();
-        showToast({ message: 'Booking request sent successfully.', type: 'success' });
+        await successDialog('Booking request sent successfully.');
       } catch (error) {
         status.textContent = error.message;
         submitButton.disabled = false;
@@ -1379,9 +1411,16 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
     renderSkeletonState();
     try {
       // Only load approved properties for tenants (Featured Listings and map markers)
-      const response = await api('/properties?limit=100&status=approved');
+      const [response, bookingsResponse] = await Promise.all([
+        api('/properties?limit=100&status=approved'),
+        api('/bookings').catch((error) => {
+          console.warn('Unable to load approved booking schedules:', error);
+          return { data: [] };
+        })
+      ]);
       state.all = Array.isArray(response.data) ? response.data.filter((item) => isPropertyVisibleToTenant(item)) : [];
       state.visible = state.all;
+      renderScheduleNotice(Array.isArray(bookingsResponse.data) ? bookingsResponse.data : []);
       await mapInitialization;
       syncMapLocation(state.all);
       renderCards();

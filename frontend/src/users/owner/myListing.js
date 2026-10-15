@@ -64,6 +64,13 @@ const getPropertyInquiryCount = (propertyId, bookings = []) => bookings.filter((
   return String(propertyId) === bookingPropertyId && !['rejected', 'cancelled', 'archived'].includes(status);
 }).length;
 const escape = (value = '') => { const n = document.createElement('span'); n.textContent = value; return n.innerHTML; };
+const formatMonthlyRent = (value = '') => {
+  const raw = String(value ?? '').replace(/,/g, '');
+  const decimalIndex = raw.indexOf('.');
+  const whole = (decimalIndex < 0 ? raw : raw.slice(0, decimalIndex)).replace(/\D/g, '');
+  const fraction = decimalIndex < 0 ? '' : `.${raw.slice(decimalIndex + 1).replace(/\D/g, '').slice(0, 2)}`;
+  return `${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}${fraction}`;
+};
 const AMENITY_LABELS = {
   wifi: 'Wi-Fi',
   laundry: 'Laundry',
@@ -224,7 +231,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
                         <option value="private_room">Solo Room</option>
                         <option value="entire_unit">Studio Unit</option>
                       </select></label>
-                      <label>Monthly price (₱)<input name="monthlyRent" type="number" min="1" required></label>
+                      <label>Monthly price (₱)<input name="monthlyRent" type="text" inputmode="decimal" autocomplete="off" required></label>
                       <label>Maximum occupancy<input name="maxOccupants" type="number" min="1" required></label>
                       <label>Available slots<input name="availableSlots" type="number" min="1" required></label>
                       <label>Gender preference<select name="genderPreference" required>
@@ -305,6 +312,17 @@ export async function renderMyListing(root = document.querySelector('#app')) {
               </div>
             </div>
 
+            <div id="listing-success-modal" class="listing-success-modal" hidden>
+              <div class="listing-success-overlay"></div>
+              <div class="listing-success-card" role="dialog" aria-modal="true" aria-labelledby="listing-success-title">
+                <div class="listing-success-icon" aria-hidden="true"><span>✓</span></div>
+                <h2 id="listing-success-title">Success!</h2>
+                <p class="listing-success-message"></p>
+                <p class="listing-success-submessage">Your listing is now pending admin approval.</p>
+                <button type="button" class="listing-success-ok">OK</button>
+              </div>
+            </div>
+
             <section class="portfolio-table-shell">
               <div class="table-wrap">
                 <table class="portfolio-table">
@@ -316,6 +334,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
                       <th>Current Rent (PHP)</th>
                       <th>Occupancy Rate</th>
                       <th>Active Inquiries</th>
+                      <th>Status</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -348,6 +367,10 @@ export async function renderMyListing(root = document.querySelector('#app')) {
   const portfolioBody = root.querySelector('#portfolio-body');
   const addPropertyButton = root.querySelector('.add-property');
   const propertyModal = root.querySelector('#property-modal');
+  const listingSuccessModal = root.querySelector('#listing-success-modal');
+  const listingSuccessMessage = root.querySelector('.listing-success-message');
+  const listingSuccessSubmessage = root.querySelector('.listing-success-submessage');
+  const listingSuccessOkButton = root.querySelector('.listing-success-ok');
   const propertyForm = root.querySelector('#property-form');
   const propertyFormStep1 = root.querySelector('#property-form-step-1');
   const propertyFormStep2 = root.querySelector('#property-form-step-2');
@@ -386,6 +409,16 @@ export async function renderMyListing(root = document.querySelector('#app')) {
   let workflowPrice = 0;
   let currentFormStep = 1;
   let selectedPhotos = [];
+  let photoSelectionChanged = false;
+  const monthlyRentInput = propertyForm.elements.monthlyRent;
+
+  monthlyRentInput.addEventListener('input', () => {
+    const rawValue = monthlyRentInput.value;
+    const cursor = monthlyRentInput.selectionStart ?? rawValue.length;
+    monthlyRentInput.value = formatMonthlyRent(rawValue);
+    const nextCursor = formatMonthlyRent(rawValue.slice(0, cursor)).length;
+    monthlyRentInput.setSelectionRange(nextCursor, nextCursor);
+  });
 
   const setFormMessage = (message, type = 'error') => {
     propertyFormMessage.hidden = false;
@@ -433,6 +466,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
       if (selectedPhotos.some((item) => !item.existing && item.file.name === file.name && item.file.size === file.size)) return;
       const photo = { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, file, previewUrl: URL.createObjectURL(file), progress: 0, error: '', uploading: false, uploadedUrl: '' };
       selectedPhotos.push(photo);
+      photoSelectionChanged = true;
       photo.uploadPromise = uploadPhoto(photo);
     });
     syncInputFiles();
@@ -443,6 +477,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
   const resetPhotos = () => {
     selectedPhotos.filter((photo) => !photo.existing).forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
     selectedPhotos = [];
+    photoSelectionChanged = false;
     if (imageInput) imageInput.value = '';
     renderUploadFiles();
   };
@@ -487,6 +522,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
     const button = event.target.closest('.media-file-remove');
     if (!button) return;
     const photo = selectedPhotos.find((item) => item.id === button.dataset.photoId);
+    if (photo) photoSelectionChanged = true;
     if (photo && !photo.existing) URL.revokeObjectURL(photo.previewUrl);
     selectedPhotos = selectedPhotos.filter((item) => item.id !== button.dataset.photoId);
     syncInputFiles();
@@ -520,7 +556,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
     if (step === 1) {
       const title = propertyForm.elements.title.value.trim();
       const roomType = propertyForm.elements.roomType.value;
-      const monthlyRent = propertyForm.elements.monthlyRent.value;
+      const monthlyRent = Number(propertyForm.elements.monthlyRent.value.replace(/,/g, ''));
       const maxOccupants = propertyForm.elements.maxOccupants.value;
       const availableSlots = propertyForm.elements.availableSlots.value;
       const genderPreference = propertyForm.elements.genderPreference.value;
@@ -533,7 +569,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
         setFormMessage('Please select a property type.');
         return false;
       }
-      if (!monthlyRent || Number(monthlyRent) < 1) {
+      if (!Number.isFinite(monthlyRent) || monthlyRent < 1) {
         setFormMessage('Please enter a valid monthly price.');
         return false;
       }
@@ -727,8 +763,10 @@ export async function renderMyListing(root = document.querySelector('#app')) {
     showFormStep(1);
   });
   closeButtons.forEach((button) => button.addEventListener('click', closeModal));
-  propertyModal?.addEventListener('click', (event) => {
-    if (event.target === propertyModal) closeModal();
+  listingSuccessOkButton?.addEventListener('click', () => {
+    listingSuccessModal.hidden = true;
+    document.body.classList.remove('listing-success-modal-open');
+    load();
   });
 
   stepNextButtons.forEach((button) => {
@@ -836,6 +874,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
     event.preventDefault();
     if (!validateStep(3)) return;
     const formData = new FormData(propertyForm);
+    formData.set('monthlyRent', String(formData.get('monthlyRent') ?? '').replace(/,/g, ''));
     const editingPropertyId = propertyForm.dataset.editingPropertyId;
     const isEditing = !!editingPropertyId;
     
@@ -852,8 +891,10 @@ export async function renderMyListing(root = document.querySelector('#app')) {
         return;
       }
       const photoUrls = selectedPhotos.map((photo) => photo.uploadedUrl).filter(Boolean);
-      formData.append('imageUrl', photoUrls[0] ?? '');
-      formData.append('images', JSON.stringify(photoUrls));
+      if (photoUrls.length || photoSelectionChanged) {
+        formData.append('imageUrl', photoUrls[0] ?? '');
+        formData.append('images', JSON.stringify(photoUrls));
+      }
       const finalResponse = await fetch(url, { method, headers: authHeaders(), body: formData });
       let responseBody = {};
       try { responseBody = await finalResponse.json(); } catch {}
@@ -863,15 +904,14 @@ export async function renderMyListing(root = document.querySelector('#app')) {
           body: responseBody
         });
       }
-      const successMessage = isEditing 
-        ? 'Property updated successfully. Changes are now pending admin approval.' 
-        : 'Property created successfully. Listing is now pending admin approval.';
-      setFormMessage(successMessage, 'success');
-      showToast({ message: successMessage, type: 'success' });
-      setTimeout(() => {
-        closeModal();
-        load();
-      }, 600);
+      listingSuccessMessage.textContent = isEditing ? 'Property updated successfully!' : 'Property created successfully!';
+      listingSuccessSubmessage.textContent = isEditing
+        ? 'Changes are now pending admin approval.'
+        : 'Your listing is now pending admin approval.';
+      closeModal();
+      listingSuccessModal.hidden = false;
+      document.body.classList.add('listing-success-modal-open');
+      listingSuccessOkButton.focus();
     } catch (error) {
       if (error.status === 401) {
         clearSession();
@@ -970,6 +1010,8 @@ export async function renderMyListing(root = document.querySelector('#app')) {
       propertyCache.set(String(item.id), item);
       const titleText = escape(item.title || 'Untitled Property');
       const propertyTypeLabel = normalizePropertyTypeLabel(item.room_type || item.property_type || '');
+      const statusKey = String(item.approval_status || item.status || 'pending').toLowerCase().replace(/[^a-z0-9_-]/g, '');
+      const statusLabel = statusKey.replaceAll('_', ' ').replace(/\b\w/g, (character) => character.toUpperCase());
       return `
         <tr>
           <td>${image ? `<img class="property-thumb" data-property-id="${escape(String(item.id ?? ''))}" src="${escape(image)}" alt="${escape(item.title || 'Property photo')}" />` : '<div class="thumb-placeholder"></div>'}</td>
@@ -986,6 +1028,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
             </div>
           </td>
           <td data-label="Active Inquiries"><span class="inquiry-count"><i class="bi bi-chat-dots" aria-hidden="true"></i>${inquiryCount} ${inquiryCount === 1 ? 'inquiry' : 'inquiries'}</span></td>
+          <td data-label="Status"><span class="property-approval-status is-${statusKey}">${escape(statusLabel)}</span></td>
           <td>
             <div class="property-row-actions">
               <div class="property-inline-actions">
@@ -1006,7 +1049,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
           </td>
         </tr>`;
     });
-    portfolioBody.innerHTML = rows.join('') || `<tr><td colspan="7" class="empty-row">${propertyStatus === 'archived' ? 'No archived properties yet.' : 'No active listings yet.'}</td></tr>`;
+    portfolioBody.innerHTML = rows.join('') || `<tr><td colspan="8" class="empty-row">${propertyStatus === 'archived' ? 'No archived properties yet.' : 'No active listings yet.'}</td></tr>`;
     portfolioBody.querySelectorAll('.progress-track span').forEach((bar) => {
       bar.style.setProperty('--rate', `${bar.dataset.rate}%`);
     });
@@ -1221,7 +1264,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
     const form = propertyForm;
     form.elements.title.value = propertyData.title || '';
     form.elements.roomType.value = propertyData.room_type || '';
-    form.elements.monthlyRent.value = propertyData.monthly_rent || '';
+    form.elements.monthlyRent.value = formatMonthlyRent(propertyData.monthly_rent || '');
     form.elements.maxOccupants.value = propertyData.max_occupants || '';
     form.elements.availableSlots.value = propertyData.available_slots || '';
     form.elements.genderPreference.value = propertyData.gender_preference || '';

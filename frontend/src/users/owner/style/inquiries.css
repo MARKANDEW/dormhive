@@ -190,11 +190,15 @@ textarea {
 
 .inquiries-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-items: start;
   margin-top: 4px;
   width: 100%;
+}
+
+.inquiries-layout.has-selection {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
 }
 
 .list-shell,
@@ -219,14 +223,20 @@ textarea {
 .inquiry-table-header,
 .inquiry-row {
   display: grid;
-  grid-template-columns: minmax(140px, 1.1fr) minmax(110px, 0.8fr) minmax(
-      90px,
-      0.7fr
-    ) minmax(90px, 0.6fr) minmax(150px, 1.1fr) minmax(95px, 0.7fr);
+  grid-template-columns: var(--inquiry-columns);
   align-items: center;
   gap: 8px;
   width: 100%;
   min-width: 0;
+}
+
+.inquiries-layout {
+  --inquiry-columns:
+    minmax(140px, 1.1fr)
+    minmax(110px, 0.8fr)
+    minmax(90px, 0.7fr)
+    minmax(90px, 0.6fr)
+    minmax(150px, 1.1fr);
 }
 
 .inquiry-table-header {
@@ -298,11 +308,19 @@ textarea {
 }
 
 .message-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
   color: #4b5854;
-  white-space: nowrap;
+  font-size: 0.94rem;
+}
+
+.message-text {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 0.94rem;
+  white-space: nowrap;
 }
 
 .status-cell {
@@ -321,15 +339,9 @@ textarea {
   font-weight: 700;
   cursor: pointer;
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  transform: translateX(-35px);
-}
-
-.action-cell {
-  display: flex;
-  justify-content: center;
-  padding-right: 2px;
 }
 
 .detail-shell {
@@ -942,6 +954,10 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .inquiries-layout.has-selection {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .inquiries-toolbar {
     grid-template-columns: 1fr;
   }
@@ -964,10 +980,6 @@ textarea {
     grid-template-columns: 1fr;
     gap: 10px;
     padding: 16px;
-  }
-
-  .action-cell {
-    justify-content: flex-start;
   }
 
   .list-footer {
@@ -1201,7 +1213,12 @@ textarea {
 
   .inquiry-table-header,
   .inquiry-row {
-    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 0.82fr) minmax(0, 0.78fr) 42px;
+    --inquiry-columns:
+      minmax(0, 1.1fr)
+      minmax(0, 1fr)
+      minmax(0, 0.82fr)
+      minmax(0, 0.78fr)
+      42px;
     gap: 4px;
     padding-right: 8px;
     padding-left: 8px;
@@ -1248,7 +1265,7 @@ textarea {
   }
 
   .message-header,
-  .message-cell {
+  .message-text {
     display: none;
   }
 
@@ -1256,7 +1273,7 @@ textarea {
   .property-cell,
   .date-cell,
   .status-cell,
-  .action-cell {
+  .message-cell {
     min-width: 0;
     font-size: 0.62rem;
     line-height: 1.2;
@@ -1302,7 +1319,7 @@ textarea {
     height: 5px;
   }
 
-  .action-cell {
+  .message-cell {
     justify-content: center;
     padding: 0;
   }

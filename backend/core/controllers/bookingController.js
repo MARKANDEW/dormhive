@@ -90,6 +90,12 @@ export async function updateStatus(request, response, next) {
 export function isValidViewingSchedule(viewingDate, viewingTime) {
   if (typeof viewingDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(viewingDate)) return false;
   if (typeof viewingTime !== 'string' || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(viewingTime)) return false;
+  const [hour, minute] = viewingTime.split(':').map(Number);
+  const timeInMinutes = hour * 60 + minute;
+  const isWithinViewingHours = (timeInMinutes >= 8 * 60 && timeInMinutes <= 11 * 60)
+    || (timeInMinutes >= 12 * 60 && timeInMinutes <= 16 * 60)
+    || (timeInMinutes >= 17 * 60 && timeInMinutes <= 19 * 60);
+  if (!isWithinViewingHours) return false;
   const parsedDate = new Date(`${viewingDate}T00:00:00.000Z`);
   return !Number.isNaN(parsedDate.getTime()) && parsedDate.toISOString().slice(0, 10) === viewingDate;
 }

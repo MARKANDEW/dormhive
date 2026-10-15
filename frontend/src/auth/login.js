@@ -38,7 +38,7 @@ function showMessage(element, message) {
 }
 
 function loginErrorMessage(response, body) {
-  if (response.status === 429) return 'Too many sign-in attempts. Please wait a few minutes and try again.';
+  if (response.status === 429) return 'Too many requests. Please wait a few minutes and try again.';
   if (!body && response.status >= 500) return 'The sign-in service is temporarily unavailable. Please try again.';
   if (!body) return `Unable to sign in (request failed with status ${response.status}).`;
   return getApiErrorMessage(body, 'Unable to sign in.');
@@ -99,8 +99,7 @@ export async function renderLogin(root = document.querySelector('#app')) {
 
       <div class="toggle-box">
         <div class="toggle-panel toggle-left">
-          <p class="welcome-kicker">WELCOME TO DORMHIVE</p>
-          <h1><span>Hello,</span><span>Welcome!</span></h1>
+          <h1><span>Welcome to</span><span>Dormhive</span></h1>
           <p>Your next chapter starts here.<br>Sign in to access your account and<br>manage your stay with ease.</p>
           <button class="btn register-btn">Register</button>
           <div class="welcome-footer" aria-label="DormHive values">
@@ -109,7 +108,6 @@ export async function renderLogin(root = document.querySelector('#app')) {
           </div>
         </div>
         <div class="toggle-panel toggle-right">
-          <p class="welcome-kicker">WELCOME TO DORMHIVE</p>
           <span class="welcome-divider-line" aria-hidden="true"></span>
           <h1><span>Join Our</span><span>Community!</span></h1>
           <p>Create your account and be part<br>of a safe, simple, and convenient<br>way to manage your dorm life.</p>

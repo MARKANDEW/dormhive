@@ -202,6 +202,86 @@
   outline-offset: 2px;
 }
 
+.ui-modal.ui-success-dialog {
+  width: min(92vw, 22rem);
+  border-radius: 1rem;
+  color: #263331;
+}
+
+.ui-success-dialog .ui-modal__header {
+  justify-content: center;
+  padding: 1.35rem 1.5rem 0.25rem;
+  border: 0;
+}
+
+.ui-success-dialog .ui-modal__header h2 {
+  color: #263331;
+  font-size: 1.7rem;
+  text-align: center;
+}
+
+.ui-success-dialog .ui-modal__header [data-modal-close] {
+  display: none;
+}
+
+.ui-success-dialog .ui-modal__body {
+  padding: 0.75rem 1.5rem 1rem;
+}
+
+.ui-success-dialog__content {
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+  text-align: center;
+}
+
+.ui-success-dialog__icon {
+  display: grid;
+  width: 4.25rem;
+  height: 4.25rem;
+  place-items: center;
+  border-radius: 50%;
+  background: #159382;
+  box-shadow: 0 0.75rem 1.875rem rgb(11 104 97 / 22%);
+  color: #fff;
+  font-size: 2.25rem;
+  font-weight: 800;
+}
+
+.ui-success-dialog__content p {
+  max-width: 24rem;
+  margin: 0;
+  color: #465b57;
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.ui-success-dialog .ui-modal__footer {
+  padding: 0 1.5rem 1.4rem;
+  border: 0;
+}
+
+.ui-success-dialog .ui-modal__footer button {
+  width: 100%;
+  min-height: 2.85rem;
+  border-radius: 0.65rem;
+  background: #0f6f67;
+  font: inherit;
+  font-weight: 800;
+  box-shadow: 0 0.75rem 1.25rem rgb(15 111 103 / 18%);
+}
+
+.ui-success-dialog .ui-modal__footer button:hover {
+  background: #0b5f59;
+}
+
+.ui-success-dialog .ui-modal__footer button:focus-visible {
+  outline: 3px solid rgb(21 147 130 / 35%);
+  outline-offset: 2px;
+}
+
 @media (max-width: 480px) {
   .ui-confirm-dialog .ui-modal__footer {
     flex-direction: column;

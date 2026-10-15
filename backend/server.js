@@ -45,6 +45,7 @@ app.use(cors({
 app.use('/api', rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 300,
+  skip: (request) => process.env.NODE_ENV !== 'production' && isLocalDevOrigin(request.get('origin') ?? ''),
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   handler: (_request, response) => response.status(429).json({ message: 'Too many requests. Please try again later.' })
