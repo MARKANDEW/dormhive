@@ -535,7 +535,7 @@ async function showNearbyListingsModal(properties = []) {
       <p id="nearby-map-status"></p>
     </div>
   `;
-  const modal = createModal({ title: 'Nearby Verified Listings', content: mapHtml, closeLabel: 'Close' });
+  const modal = createModal({ title: 'Nearby Verified Listings', content: mapHtml, closeLabel: 'Close', closeOnBackdrop: false });
   
   // Store map reference for cleanup
   let mapInstance = null;
@@ -559,13 +559,8 @@ async function showNearbyListingsModal(properties = []) {
     }, 100);
   };
   
-  // Listen for close event and backdrop clicks
+  // Clean up the map when the dialog is closed with its close controls.
   modal.addEventListener('close', cleanupMap);
-  modal.addEventListener('mousedown', (e) => {
-    if (e.target === modal) {
-      setTimeout(cleanupMap, 300);
-    }
-  });
   
   openModal(modal);
   
