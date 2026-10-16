@@ -66,7 +66,7 @@ function ensureSkeletonStyles() {
     }
 
     .dh-route-skeleton__admin-logo-mark {
-      display: grid;
+      display: none;
       width: 44px;
       height: 44px;
       flex: 0 0 44px;
@@ -105,6 +105,7 @@ function ensureSkeletonStyles() {
     }
 
     .dh-route-skeleton__owner-logo {
+      display: none;
       width: 42px;
       height: 42px;
       border-radius: 12px;

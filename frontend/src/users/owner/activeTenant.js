@@ -263,8 +263,4 @@ export async function renderActiveTenant(root = document.querySelector('#app')) 
 
   searchInput?.addEventListener('input', (event) => renderRows(event.target.value));
 
-  root.querySelector('.logout')?.addEventListener('click', () => {
-    localStorage.clear();
-    location.assign('#/login');
-  });
 }

@@ -656,11 +656,6 @@ export async function renderMessage(root = document.querySelector('#app')) {
     }
   });
 
-  root.querySelector('.logout')?.addEventListener('click', () => {
-    localStorage.clear();
-    location.assign('#/login');
-  });
-
   root.querySelectorAll('.filter-button').forEach((button) => {
     button.addEventListener('click', () => {
       const nextFilter = button.dataset.filter ?? 'all';

@@ -433,8 +433,6 @@ export async function renderDashboardOwner(root = document.querySelector('#app')
   const listingGrid = root.querySelector('.listings-card-grid');
   root.querySelector('.menu').addEventListener('click', () => shell.classList.toggle('nav-open'));
   root.querySelector('[data-route="#/owner/myListing"]').addEventListener('click', () => location.hash = '#/owner/myListing');
-  root.querySelector('.logout').addEventListener('click', () => { localStorage.clear(); location.assign('#/login'); });
-
   const notificationMenu = root.querySelector('.notification-menu');
   const notificationTrigger = root.querySelector('.notification-trigger');
   const notificationBadge = root.querySelector('.notification-badge');

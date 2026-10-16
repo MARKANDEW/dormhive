@@ -129,8 +129,4 @@ export async function renderAnalytics(root = document.querySelector('#app')) {
     root.querySelector('.status').textContent = e.message;
   });
 
-  root.querySelector('.logout')?.addEventListener('click', () => {
-    localStorage.clear();
-    location.assign('#/login');
-  });
 }

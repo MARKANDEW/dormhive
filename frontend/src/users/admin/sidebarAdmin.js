@@ -123,9 +123,4 @@ document.addEventListener('click', (event) => {
     return;
   }
 
-  const logoutButton = event.target.closest('.logout');
-  if (logoutButton) {
-    localStorage.clear();
-    location.assign('#/login');
-  }
 });

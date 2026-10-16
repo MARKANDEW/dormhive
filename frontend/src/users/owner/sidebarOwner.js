@@ -239,9 +239,4 @@ document.addEventListener('click', (event) => {
     shell?.querySelector('.owner-mobile-menu')?.setAttribute('aria-expanded', 'false');
   }
 
-  const logoutButton = event.target.closest('.logout');
-  if (logoutButton) {
-    localStorage.clear();
-    location.assign('#/login');
-  }
 });

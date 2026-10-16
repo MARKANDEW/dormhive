@@ -549,11 +549,5 @@ export async function renderBooking(root = document.querySelector('#app')) {
     }
   };
 
-  root.querySelector('.logout')?.addEventListener('click', () => {
-    localStorage.clear();
-    location.assign('#/login');
-  });
-
-
   load();
 }
