@@ -124,10 +124,16 @@ function renderActivityItem(item) {
     user: 'activity-icon success',
     sync: 'activity-icon neutral'
   };
+  const iconNames = {
+    shield: 'bi-shield-check',
+    alert: 'bi-shield-exclamation',
+    user: 'bi-person-plus',
+    sync: 'bi-arrow-repeat'
+  };
 
   return `
     <div class="activity-row">
-      <span class="${iconClasses[item.icon] ?? 'activity-icon neutral'}" aria-hidden="true"></span>
+      <span class="${iconClasses[item.icon] ?? 'activity-icon neutral'}" aria-hidden="true"><i class="bi ${iconNames[item.icon] ?? 'bi-arrow-repeat'}"></i></span>
       <div class="activity-main">
         <span class="activity-text">${esc(item.title)} ${esc(item.detail ?? '')}</span>
       </div>
@@ -380,7 +386,7 @@ export async function renderDashboardAdmin(root = document.querySelector('#app')
           <section class="panel activity-panel">
             <header class="panel-header">
               <div class="panel-title-wrap">
-                <span class="panel-icon activity-panel-icon">${statIcon('moderation')}</span>
+                <span class="panel-icon activity-panel-icon"><i class="bi bi-activity" aria-hidden="true"></i></span>
                 <div>
                   <h2>Recent Activity Feed</h2>
                   <p>Latest actions and changes in the platform.</p>

@@ -1,7 +1,6 @@
 import { ensureAdminSidebarStyles, loadAdminStylesheet, renderAdminSidebar } from './sidebarAdmin.js';
 import { applyAdminPrivacy } from './privacy.js';
 import { successDialog } from '../../components/modal.js';
-import { showToast } from '../../components/toast.js';
 
 const API = (window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1').replace(/\/$/, '');
 const headers = () => ({ Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
@@ -134,7 +133,7 @@ export async function renderArchive(root = document.querySelector('#app')) {
             if (kind === 'accounts') {
               await successDialog('Account restored successfully.');
             } else {
-              showToast({ message: 'Property restored successfully.', type: 'success' });
+              await successDialog('Property restored successfully.');
             }
             await load();
           } catch (error) {
