@@ -105,7 +105,16 @@ export async function successDialog(message) {
 
 	const modal = createModal({ title: 'Success!', content, closeLabel: 'OK', closeOnBackdrop: false });
 	modal.classList.add('ui-success-dialog');
-	const closed = new Promise((resolve) => modal.addEventListener('close', resolve, { once: true }));
+	const closed = new Promise((resolve) => {
+		const finish = () => {
+			window.removeEventListener('hashchange', finish);
+			resolve();
+		};
+		modal.addEventListener('close', finish, { once: true });
+		modal.addEventListener('cancel', finish, { once: true });
+		modal.querySelector('.ui-modal__footer [data-modal-close]')?.addEventListener('click', finish, { once: true });
+		window.addEventListener('hashchange', finish, { once: true });
+	});
 	await openModal(modal);
 	modal.querySelector('.ui-modal__footer [data-modal-close]')?.focus();
 	await closed;
