@@ -508,7 +508,15 @@ export async function renderDashboardOwner(root = document.querySelector('#app')
     locationSearchToggle.setAttribute('aria-label', isOpen ? 'Close location search' : 'Open location search');
     locationSearchForm.setAttribute('aria-hidden', String(!isOpen));
     locationSearchInput.tabIndex = isOpen ? 0 : -1;
-    if (isOpen) locationSearchInput.focus();
+    if (isOpen) {
+      const focusExpandedInput = (transitionEvent) => {
+        if (transitionEvent.target !== locationSearchForm || transitionEvent.propertyName !== 'width') return;
+        locationSearchForm.removeEventListener('transitionend', focusExpandedInput);
+        if (locationSearch.classList.contains('is-open')) locationSearchInput.focus({ preventScroll: true });
+      };
+      locationSearchForm.addEventListener('transitionend', focusExpandedInput);
+      locationSearchInput.focus({ preventScroll: true });
+    }
   });
 
   locationSearchForm.addEventListener('submit', async (event) => {
