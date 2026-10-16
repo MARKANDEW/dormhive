@@ -1,4 +1,5 @@
 ﻿import { showToast } from '../../components/toast.js';
+import { successDialog } from '../../components/modal.js';
 import { ensureOwnerSidebarStyles, loadOwnerStylesheet, renderOwnerSidebar, updateListingCountsInSidebar } from './sidebarOwner.js';
 import { withMediaAccessToken } from '../../services/mediaAccess.js';
 
@@ -1179,7 +1180,6 @@ export async function renderMyListing(root = document.querySelector('#app')) {
         if (body.data?.status !== 'archived') {
           throw new Error('The server did not mark this property as archived. Please try again.');
         }
-        showToast({ message: 'Property archived successfully.', type: 'success' });
         setPropertyStatus('archived');
       } else if (action === 'restore') {
         const response = await fetch(`${API}/properties/${propertyId}/restore`, {
@@ -1190,11 +1190,13 @@ export async function renderMyListing(root = document.querySelector('#app')) {
           const body = await response.json().catch(() => ({}));
           throw new Error(body.message || 'Unable to restore property.');
         }
-        showToast({ message: 'Property restored successfully.', type: 'success' });
         setPropertyStatus('active');
       }
 
       closePropertyActionConfirm();
+      if (action === 'archive' || action === 'restore') {
+        await successDialog(action === 'archive' ? 'Property archived successfully.' : 'Property restored successfully.');
+      }
       await load();
       await updateListingCountsInSidebar();
     } catch (error) {
