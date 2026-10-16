@@ -498,10 +498,14 @@ form {
 .toggle-panel.toggle-right {
   right: -50%;
   transition-delay: 0.6s;
+  transition: right 0.6s ease-in-out 0.6s, visibility 0s;
+  visibility: hidden;
 }
 .container.active .toggle-panel.toggle-right {
   right: 0;
   transition-delay: 1.2s;
+  transition: right 0.6s ease-in-out 1.2s, visibility 0s;
+  visibility: visible;
 }
 
 .toggle-panel.toggle-left {
