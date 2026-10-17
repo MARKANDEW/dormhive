@@ -15,14 +15,7 @@
   color: #fff;
   border-radius: 0.5rem;
   box-shadow: 0 8px 20px #0003;
-}
-.ui-toast button {
-  margin-left: auto;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font-size: 1.2rem;
-  cursor: pointer;
+  pointer-events: auto;
 }
 .ui-toast--error {
   background: #b91c1c;

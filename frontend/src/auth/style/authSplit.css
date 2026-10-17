@@ -191,24 +191,88 @@ form {
   font-weight: 500;
 }
 
-.phone-input-box {
-  position: relative;
+.phone-field {
+  margin: 12px 0;
 }
 
-.phone-prefix {
-  position: absolute;
-  left: 18px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #333;
+.phone-input-box {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  height: 48px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #eee;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.phone-input-box:focus-within {
+  border-color: var(--dormhive-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--dormhive-primary) 18%, transparent);
+}
+
+.phone-country {
+  display: flex;
+  flex: 0 0 112px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border-right: 1px solid #d4d9e3;
+  color: #252f40;
   font-size: 16px;
   font-weight: 500;
-  pointer-events: none;
-  z-index: 2;
+}
+
+.phone-flag {
+  position: relative;
+  display: inline-block;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 20px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: linear-gradient(to bottom, #0038a8 0 50%, #ce1126 50% 100%);
+  box-shadow: 0 0 0 1px rgb(20 35 55 / 12%);
+}
+
+.phone-flag::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 16px;
+  background: #fff;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+  content: '';
+}
+
+.phone-flag::after {
+  position: absolute;
+  top: 8px;
+  left: 4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #fcd116;
+  box-shadow: 0 -5px 0 -1px #fcd116, 0 5px 0 -1px #fcd116, 5px 0 0 -1px #fcd116;
+  content: '';
 }
 
 .phone-input-box input {
-  padding-left: 72px;
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #252f40;
+  font-size: 16px;
+}
+
+.phone-input-box input::placeholder {
+  color: #8992a3;
+  opacity: 1;
 }
 
 .phone-input-box input::-webkit-clear-button {

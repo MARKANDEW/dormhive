@@ -70,9 +70,14 @@ export async function renderRegister(root = document.querySelector('#app')) {
               <div class="input-box"><input id="last_name" name="last_name" type="text" placeholder="Last name" required maxlength="120"></div>
             </div>
             <div class="input-box"><input id="email_r" name="email" type="email" placeholder="Email address" required></div>
-            <div class="input-box phone-input-box">
-              <span class="phone-prefix" aria-hidden="true">+63</span>
-              <input id="phone_r" name="phone" type="tel" inputmode="numeric" placeholder="9xxxxxxxxxx" required maxlength="10" autocomplete="tel">
+            <div class="input-box phone-field">
+              <div class="phone-input-box" aria-label="Philippines phone number">
+                <span class="phone-country" aria-label="Philippines, country code +63">
+                  <span class="phone-flag" aria-hidden="true"></span>
+                  <span class="phone-prefix">+63</span>
+                </span>
+                <input id="phone_r" name="phone" type="tel" inputmode="numeric" placeholder="9XX XXX XXXX" required maxlength="12" autocomplete="tel">
+              </div>
             </div>
             <div class="input-box"><select id="role" name="role" required><option value="tenant">I want to</option><option value="tenant">Find a rental</option><option value="owner">List a property</option></select></div>
             <div class="input-box"><input id="password_r" name="password" type="password" placeholder="Password" required minlength="8"><button class="password-toggle" type="button" aria-label="Show password" aria-pressed="false"><i class='bx bx-show' aria-hidden="true"></i></button></div>
@@ -139,10 +144,13 @@ export async function renderRegister(root = document.querySelector('#app')) {
 
   const getPhoneDigits = (value = '') => String(value).replace(/\D/g, '').slice(0, 10);
 
-  const normalizePhoneValue = (value = '') => {
+  const formatPhoneValue = (value = '') => {
     const digits = getPhoneDigits(value);
-    return digits;
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 3)} ${digits.slice(3)}`;
+    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
   };
+  const normalizePhoneValue = formatPhoneValue;
 
   const toServerPhoneValue = (value = '') => {
     const digits = getPhoneDigits(value);
@@ -156,7 +164,8 @@ export async function renderRegister(root = document.querySelector('#app')) {
 
   const validatePhoneField = (showError = true) => {
     const digits = getPhoneDigits(phoneInput.value);
-    phoneInput.value = digits;
+    const formatted = formatPhoneValue(digits);
+    if (phoneInput.value !== formatted) phoneInput.value = formatted;
     const valid = isValidPhoneValue(digits);
     phoneInput.setCustomValidity(valid ? '' : 'Phone number must be exactly 10 digits.');
     if (showError && !valid) {
@@ -169,7 +178,20 @@ export async function renderRegister(root = document.querySelector('#app')) {
   };
 
   phoneInput.addEventListener('input', () => {
+    const cursor = phoneInput.selectionStart ?? phoneInput.value.length;
+    const digitsBeforeCursor = getPhoneDigits(phoneInput.value.slice(0, cursor)).length;
+    const digits = getPhoneDigits(phoneInput.value);
     phoneInput.value = normalizePhoneValue(phoneInput.value);
+    let nextCursor = 0;
+    let digitsSeen = 0;
+    while (nextCursor < phoneInput.value.length && digitsSeen < digitsBeforeCursor) {
+      if (/\d/.test(phoneInput.value[nextCursor])) digitsSeen += 1;
+      nextCursor += 1;
+    }
+    if ((digitsBeforeCursor === 3 || digitsBeforeCursor === 6) && digits.length > digitsBeforeCursor) {
+      nextCursor += 1;
+    }
+    phoneInput.setSelectionRange(nextCursor, nextCursor);
     validatePhoneField(false);
   });
 
