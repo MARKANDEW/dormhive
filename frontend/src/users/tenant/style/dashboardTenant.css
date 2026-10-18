@@ -214,6 +214,9 @@ input {
   min-width: 0;
   max-width: 100%;
 }
+.dh-dashboard .leaflet-container a.leaflet-popup-close-button {
+  display: none;
+}
 .map-stack {
   min-width: 0;
 }

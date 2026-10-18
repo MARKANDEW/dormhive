@@ -131,18 +131,6 @@
   min-width: 0;
   padding-top: 0.1rem;
 }
-.map-property-ribbon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.28rem 0.62rem;
-  border-radius: 999px;
-  background: #f6e3b1;
-  color: #8d6120;
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-}
 .map-property-body h3 {
   margin: 0.45rem 0 0.25rem;
   color: #1d4d5b;

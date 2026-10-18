@@ -85,7 +85,7 @@ function loadStyle() {
   const stylePromises = [];
 
   const dashboardStylesheet = new URL('./style/dashboardTenant.css', import.meta.url);
-  dashboardStylesheet.searchParams.set('v', 'tenant-approved-schedule-notice-1');
+  dashboardStylesheet.searchParams.set('v', 'tenant-approved-schedule-notice-3');
   stylePromises.push(loadTenantStylesheet('dashboard', dashboardStylesheet));
 
   if (!document.querySelector('[data-tenant-style="notifications"]')) {

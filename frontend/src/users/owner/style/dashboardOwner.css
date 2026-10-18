@@ -811,6 +811,145 @@ a {
   text-align: center;
 }
 
+.owner-shell--dashboard .leaflet-popup-content-wrapper {
+  position: relative;
+  overflow: visible;
+  padding: 0;
+  border: 0;
+  border-radius: 22px;
+  background: transparent;
+  box-shadow: 0 22px 40px rgba(15, 23, 42, 0.14);
+}
+
+.owner-shell--dashboard .leaflet-popup-content-wrapper .leaflet-popup-content {
+  position: relative;
+  margin: 0;
+  min-width: 0;
+  width: auto !important;
+}
+
+.owner-shell--dashboard .leaflet-container a.leaflet-popup-close-button {
+  display: none;
+}
+
+.owner-shell--dashboard .map-property-popup {
+  display: block;
+  width: min(400px, calc(100vw - 1.25rem));
+}
+
+.owner-shell--dashboard .map-property-card {
+  position: relative;
+  display: flex;
+  gap: 0.7rem;
+  padding: 0.7rem;
+  border: 1px solid rgba(18, 82, 121, 0.08);
+  border-radius: 20px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.owner-shell--dashboard .map-property-image {
+  position: relative;
+  width: 130px;
+  min-width: 130px;
+  height: 140px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #edf5f1;
+}
+
+.owner-shell--dashboard .map-property-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.owner-shell--dashboard .map-property-image-badge {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  height: 22px;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  background: rgba(17, 28, 24, 0.72);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.owner-shell--dashboard .map-property-body {
+  flex: 1;
+  min-width: 0;
+  padding-top: 0.2rem;
+}
+
+.owner-shell--dashboard .map-property-body h3 {
+  margin: 0.6rem 0 0.4rem;
+  color: #1a3c4e;
+  font-size: clamp(1.15rem, 2vw, 2rem);
+  line-height: 1.08;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.owner-shell--dashboard .map-property-location {
+  display: flex;
+  align-items: center;
+  gap: 0.38rem;
+  color: #3d5d72;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.owner-shell--dashboard .map-property-price {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  color: #1b5a86;
+  font-size: clamp(1.55rem, 2vw, 2.2rem);
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.owner-shell--dashboard .map-property-price span {
+  color: #5b7581;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.owner-shell--dashboard .map-property-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.owner-shell--dashboard .map-property-actions button {
+  height: 38px;
+  border: 2px solid #1b7bc9;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #0f6fbb;
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 6px 12px rgba(29, 108, 187, 0.08);
+}
+
+.owner-shell--dashboard .map-property-actions .map-property-directions {
+  background: linear-gradient(180deg, #2e78c7 0%, #1e6db9 100%);
+  border-color: #2e78c7;
+  color: #fff;
+  box-shadow: 0 10px 18px rgba(16, 92, 165, 0.2);
+}
+
 .map-frame-wrap {
   margin-top: 0.9rem;
 

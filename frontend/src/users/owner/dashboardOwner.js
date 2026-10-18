@@ -18,6 +18,50 @@ const resolveAvatarUrl = (value = '') => {
   if (/^https?:\/\//i.test(url)) return url;
   return withMediaAccessToken(`${apiBase}${url.startsWith('/') ? '' : '/'}${url}`);
 };
+function ownerPropertyPhotoUrls(property = {}) {
+  let images = property.images;
+  if (typeof images === 'string') {
+    try { images = JSON.parse(images); } catch { images = [images]; }
+  }
+  return [...new Set([
+    property.image_url,
+    property.cover_image,
+    property.thumbnail,
+    ...(Array.isArray(images) ? images : []),
+    ...(Array.isArray(property.gallery) ? property.gallery : [])
+  ].map((image) => typeof image === 'string' ? image : image?.url || image?.image_url || '')
+    .map((image) => String(image || '').trim())
+    .filter(Boolean)
+    .map(withMediaAccessToken))];
+}
+function buildOwnerPropertyPopup(property = {}) {
+  const title = String(property.title || property.property_title || property.name || 'Property');
+  const locationText = [property.barangay, property.city, property.municipality, property.province].filter(Boolean).join(', ') || 'Metro Manila';
+  const photoSources = ownerPropertyPhotoUrls(property);
+  const primaryImage = photoSources[0] || 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500"><rect width="800" height="500" fill="#edf4f1"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#48676a" font-family="Arial,sans-serif" font-size="28">No image</text></svg>');
+  const totalPhotos = Math.max(photoSources.length, 1);
+  const rent = Number(property.monthly_rent ?? property.rent ?? 0);
+
+  return `
+    <div class="map-property-popup">
+      <div class="map-property-card">
+        <div class="map-property-image">
+          <img class="map-property-photo" data-property-id="${escape(String(property.id ?? ''))}" src="${escape(primaryImage)}" alt="${escape(title)}" ${photoSources.length ? 'tabindex="0" role="button" aria-label="View property photos"' : ''} />
+          <span class="map-property-image-badge">1/${Math.min(totalPhotos, 5)}</span>
+        </div>
+        <div class="map-property-body">
+          <h3>${escape(title)}</h3>
+          <div class="map-property-location"><span>📍</span> ${escape(locationText)}</div>
+          <div class="map-property-price">${escape(`₱${Number(rent || 0).toLocaleString('en-PH')}`)} <span>/ month</span></div>
+          <div class="map-property-actions">
+            <button type="button" class="map-property-details" data-property-id="${escape(String(property.id ?? ''))}">View Details</button>
+            <button type="button" class="map-property-directions" data-property-id="${escape(String(property.id ?? ''))}">Get Directions</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
 const statusClass = {
   new: 'status-new',
   'new-inquiry': 'status-new',
@@ -56,7 +100,7 @@ function clearTenantRouteStyles() {
 
 function css() {
   const stylesheet = new URL('./style/dashboardOwner.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'owner-map-location-search-3');
+  stylesheet.searchParams.set('v', 'owner-map-location-search-7');
   return loadOwnerStylesheet('dashboard', stylesheet);
 }
 async function get(path) { const response = await fetch(`${API}${path}`, { headers: auth() }); const body = await readApiResponse(response); if (!response.ok) throw new Error(getApiErrorMessage(body, 'Unable to load this information.')); return body; }
@@ -109,6 +153,109 @@ function showOwnerPhotoViewer(images, title) {
   document.body.append(viewer);
   renderPhoto();
   viewer.showModal();
+}
+
+async function showOwnerPropertyDetails(property) {
+  if (document.querySelector('.property-details-modal')) return;
+
+  const stylesheet = new URL('./style/myListing.css', import.meta.url);
+  stylesheet.searchParams.set('v', 'portfolio-archive-tabs-1');
+  await loadOwnerStylesheet('property-details', stylesheet);
+
+  const galleryImages = ownerPropertyPhotoUrls(property);
+  const placeholder = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 300"><rect width="500" height="300" fill="#ecf5ef"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#4a7160" font-family="Arial,sans-serif" font-size="28">No image available</text></svg>');
+  const photos = [...new Set(galleryImages)].length ? [...new Set(galleryImages)] : [placeholder];
+  const title = String(property.title || property.property_title || 'Property');
+  const propertyType = String(property.room_type || property.property_type || 'N/A').replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+  const location = [property.address, property.barangay, property.municipality, property.city, property.province].filter(Boolean).join(', ') || 'No address';
+  const owner = session();
+  const ownerName = property.owner_name || property.owner?.name || [owner.first_name, owner.last_name].filter(Boolean).join(' ') || owner.name || 'N/A';
+  let amenities = property.amenities;
+  if (typeof amenities === 'string') {
+    try { amenities = JSON.parse(amenities); } catch { amenities = amenities.split(','); }
+  }
+  const amenityLabels = { wifi: 'Wi-Fi', laundry: 'Laundry', kitchen: 'Kitchen', aircon: 'Aircon', pets_allowed: 'Pets allowed', dishwasher: 'Dishwasher', balcony: 'Balcony', parking: 'Parking', utilities_included: 'Utilities included', cable_ready: 'Cable ready' };
+  const amenityMarkup = (Array.isArray(amenities) ? amenities : []).slice(0, 4).map((amenity) => {
+    const value = String(amenity).trim().toLowerCase();
+    const label = amenityLabels[value] || value.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+    return `<span class="amenity-chip">${escape(label)}</span>`;
+  }).join('');
+
+  const modal = document.createElement('div');
+  modal.className = 'property-details-modal';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-label', 'Property Details');
+  modal.innerHTML = `
+    <div class="property-details-card">
+      <div class="property-details-header">
+        <h2><span class="property-details-header-icon"><i class="bi bi-house-door-fill" aria-hidden="true"></i></span>Property Details</h2>
+        <button type="button" class="modal-close" aria-label="Close property details">×</button>
+      </div>
+      <div class="property-details-content">
+        <div class="property-details-gallery" aria-label="Property photos">
+          <div class="property-details-gallery-stage">
+            <img class="property-details-main-image" src="${escape(photos[0])}" alt="${escape(title)} photo 1">
+            <span class="property-details-image-counter" aria-live="polite">1 / ${photos.length}</span>
+            <button type="button" class="property-details-gallery-nav previous" aria-label="Previous photo">&#8249;</button>
+            <button type="button" class="property-details-gallery-nav next" aria-label="Next photo">&#8250;</button>
+          </div>
+          <div class="property-details-thumbnails" role="group" aria-label="Property photo thumbnails">
+            ${photos.map((image, index) => `<button type="button" class="property-details-thumbnail${index === 0 ? ' active' : ''}" data-gallery-index="${index}" aria-label="View photo ${index + 1}" aria-current="${index === 0}"><img src="${escape(image)}" alt=""></button>`).join('')}
+          </div>
+        </div>
+        <div class="property-details-information">
+          <div class="property-details-heading">
+            <h3>${escape(title)}</h3>
+            <strong>PHP ${Number(property.monthly_rent ?? 0).toLocaleString('en-PH')} / month</strong>
+          </div>
+          <div class="property-details-facts">
+            <div class="details-section"><span class="details-label"><i class="bi bi-geo-alt-fill" aria-hidden="true"></i>Location</span><p>${escape(location)}</p></div>
+            <div class="details-section"><span class="details-label"><i class="bi bi-house-fill" aria-hidden="true"></i>Room Type</span><p>${escape(propertyType)}</p></div>
+            <div class="details-section"><span class="details-label"><i class="bi bi-people-fill" aria-hidden="true"></i>Occupancy</span><p>${property.max_occupants != null ? `Up to ${escape(property.max_occupants)} tenants` : 'N/A'}</p></div>
+            <div class="details-section"><span class="details-label"><i class="bi bi-door-open-fill" aria-hidden="true"></i>Available Slots</span><p>${escape(property.available_slots ?? 'N/A')}</p></div>
+            <div class="details-section"><span class="details-label"><i class="bi bi-gender-ambiguous" aria-hidden="true"></i>Gender Preference</span><p>${escape(String(property.gender_preference || 'Any').replaceAll('_', ' '))}</p></div>
+            <div class="details-section"><span class="details-label"><i class="bi bi-person-fill" aria-hidden="true"></i>Owner</span><p>${escape(ownerName)}</p></div>
+            <div class="details-section details-amenities"><span class="details-label"><i class="bi bi-stars" aria-hidden="true"></i>Amenities</span><div class="amenities-list">${amenityMarkup || '<span>None</span>'}</div></div>
+          </div>
+          <div class="details-section property-details-description"><span class="details-label"><i class="bi bi-card-text" aria-hidden="true"></i>Description</span><p>${escape(property.description || 'No description provided')}</p></div>
+        </div>
+      </div>
+      <div class="property-details-actions"><button type="button" class="btn-secondary close-details">Close</button></div>
+    </div>`;
+
+  const detailsStylesheet = document.querySelector('link[data-owner-style="property-details"]');
+  const closeModal = () => {
+    modal.remove();
+    document.removeEventListener('keydown', handleEscape);
+    detailsStylesheet?.remove();
+  };
+  const handleEscape = (event) => { if (event.key === 'Escape') closeModal(); };
+  document.body.append(modal);
+  modal.querySelector('.modal-close').addEventListener('click', closeModal);
+  modal.querySelector('.close-details').addEventListener('click', closeModal);
+  modal.addEventListener('click', (event) => { if (event.target === modal) closeModal(); });
+  document.addEventListener('keydown', handleEscape);
+
+  const mainImage = modal.querySelector('.property-details-main-image');
+  const counter = modal.querySelector('.property-details-image-counter');
+  const thumbnails = Array.from(modal.querySelectorAll('.property-details-thumbnail'));
+  let photoIndex = 0;
+  const showPhoto = (nextIndex) => {
+    photoIndex = (nextIndex + photos.length) % photos.length;
+    mainImage.src = photos[photoIndex];
+    mainImage.alt = `${title} photo ${photoIndex + 1}`;
+    counter.textContent = `${photoIndex + 1} / ${photos.length}`;
+    thumbnails.forEach((thumbnail, index) => {
+      const active = index === photoIndex;
+      thumbnail.classList.toggle('active', active);
+      thumbnail.setAttribute('aria-current', String(active));
+    });
+  };
+  modal.querySelector('.property-details-gallery-nav.previous').addEventListener('click', () => showPhoto(photoIndex - 1));
+  modal.querySelector('.property-details-gallery-nav.next').addEventListener('click', () => showPhoto(photoIndex + 1));
+  thumbnails.forEach((thumbnail) => thumbnail.addEventListener('click', () => showPhoto(Number(thumbnail.dataset.galleryIndex))));
+  mainImage.addEventListener('click', () => showOwnerPhotoViewer(photos, title));
 }
 
 async function showFullMapModal(properties = []) {
@@ -768,12 +915,39 @@ export async function renderDashboardOwner(root = document.querySelector('#app')
             
             if (Number.isFinite(lat) && Number.isFinite(lng)) {
               const marker = window.L.marker([lat, lng]).addTo(map);
-              const title = String(prop.title || 'Property');
-              const rent = Number(prop.monthly_rent ?? 0).toLocaleString();
-              marker.bindPopup(`<strong>${escape(title)}</strong><br>₱${rent}/mo`);
+              marker.bindPopup(buildOwnerPropertyPopup(prop));
               markers.push([lat, lng]);
               markerCount++;
             }
+          });
+
+          mapPanel.addEventListener('click', (event) => {
+            const detailsButton = event.target.closest('.map-property-details');
+            if (detailsButton) {
+              const property = items.find((item) => String(item.id) === detailsButton.dataset.propertyId);
+              if (!property) return;
+              event.preventDefault();
+              event.stopPropagation();
+              map.closePopup();
+              showOwnerPropertyDetails(property).catch(() => {
+                showToast({ message: 'Could not open property details.', type: 'error' });
+              });
+              return;
+            }
+
+            const photo = event.target.closest('.map-property-photo');
+            if (!photo) return;
+            const property = items.find((item) => String(item.id) === photo.dataset.propertyId);
+            if (!property) return;
+            event.preventDefault();
+            event.stopPropagation();
+            map.closePopup();
+            showOwnerPhotoViewer(ownerPropertyPhotoUrls(property), property.title || property.property_title || 'Property');
+          });
+          mapPanel.addEventListener('keydown', (event) => {
+            if (!['Enter', ' '].includes(event.key) || !event.target.matches('.map-property-photo[role="button"]')) return;
+            event.preventDefault();
+            event.target.click();
           });
           
           // Fit bounds if we have markers

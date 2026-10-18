@@ -322,7 +322,6 @@ import { withMediaAccessToken } from '../services/mediaAccess.js';
                   <span class="map-property-image-badge">1/${Math.min(totalPhotos, 5)}</span>
                 </div>
                 <div class="map-property-body">
-                  <div class="map-property-ribbon">For Rent</div>
                   <h3>${title}</h3>
                   <div class="map-property-location"><span>📍</span> ${escapeHtml(locationText)}</div>
                   <div class="map-property-price">${money(item.monthly_rent ?? 0)} <span>/ month</span></div>
