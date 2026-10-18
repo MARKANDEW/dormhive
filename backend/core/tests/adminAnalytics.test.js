@@ -45,19 +45,28 @@ test('countByRole and countByStatus return zero for missing groups', () => {
   assert.equal(countByStatus([{ status: 'approved', count: 7 }], 'pending'), 0);
 });
 
-test('recent user profile updates use updated_at in the activity feed', () => {
+test('active users with a login record are labeled as logged in', () => {
   const now = Date.now();
   const activities = buildActivityFeed([
     {
-      name: 'Updated Tenant',
+      name: 'Logged In Tenant',
       email: 'tenant@example.com',
       role: 'tenant',
       status: 'active',
       created_at: new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      updated_at: new Date(now - 2 * 60 * 1000).toISOString()
+      updated_at: new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      last_login_at: new Date(now - 2 * 60 * 1000).toISOString()
     },
     {
-      name: 'Older Owner',
+      name: 'Updated Owner',
+      role: 'owner',
+      status: 'active',
+      created_at: new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      updated_at: new Date(now - 1 * 60 * 1000).toISOString(),
+      last_login_at: new Date(now - 2 * 60 * 1000).toISOString()
+    },
+    {
+      name: 'Older Tenant',
       email: 'owner@example.com',
       role: 'owner',
       status: 'active',
@@ -66,9 +75,10 @@ test('recent user profile updates use updated_at in the activity feed', () => {
     }
   ]);
 
-  assert.equal(activities[0].title, 'User profile updated');
-  assert.match(activities[0].time, /^2 mins? ago$/);
-  assert.equal(activities[1].title, 'New user registered');
+  assert.equal(activities[0].title, 'User logged in');
+  assert.match(activities[1].time, /^2 mins? ago$/);
+  assert.equal(activities[1].title, 'User logged in');
+  assert.equal(activities[2].title, 'New user registered');
 });
 
 test('new pending properties appear in the recent activity feed', () => {

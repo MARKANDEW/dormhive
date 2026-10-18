@@ -56,12 +56,12 @@ export async function update(id, { name, first_name, last_name, phone, avatar_ur
 }
 
 export async function updatePassword(id, passwordHash) {
-  await query('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, id]);
+  await query('UPDATE users SET password_hash = ?, updated_at = updated_at WHERE id = ?', [passwordHash, id]);
   return findById(id);
 }
 
 export async function recordLogin(id) {
-  await query('UPDATE users SET last_login_at = NOW(), last_active_at = NOW() WHERE id = ?', [id]);
+  await query('UPDATE users SET last_login_at = NOW(), last_active_at = NOW(), updated_at = updated_at WHERE id = ?', [id]);
   return findById(id);
 }
 

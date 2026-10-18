@@ -10,7 +10,7 @@ export async function users(request, response, next) {
     const { limit } = range(request);
     const [data, activity, notifications] = await Promise.all([
       query('SELECT role, status, COUNT(*) AS count FROM users GROUP BY role, status LIMIT ?', [limit]),
-      query('SELECT name, email, status, created_at, updated_at FROM users ORDER BY COALESCE(updated_at, created_at) DESC LIMIT ?', [limit]),
+      query('SELECT name, email, status, created_at, updated_at, last_login_at FROM users ORDER BY GREATEST(COALESCE(updated_at, created_at), COALESCE(last_login_at, created_at)) DESC LIMIT ?', [limit]),
       query(`SELECT notifications.title, notifications.message, notifications.created_at,
           COALESCE(NULLIF(TRIM(CONCAT_WS(' ', users.first_name, users.last_name)), ''), NULLIF(TRIM(users.name), ''), users.email) AS recipient_name
         FROM notifications LEFT JOIN users ON users.id = notifications.user_id

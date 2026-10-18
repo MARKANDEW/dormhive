@@ -63,12 +63,12 @@ export function buildActivityFeed(users = [], properties = [], bookings = [], no
     if (!['active', 'suspended', 'archived'].includes(status)) return;
     const createdTimestamp = Date.parse(user.created_at);
     const updatedTimestamp = Date.parse(user.updated_at ?? user.created_at);
-    const hasProfileUpdate = Number.isFinite(updatedTimestamp)
-      && (!Number.isFinite(createdTimestamp) || updatedTimestamp > createdTimestamp + 1000);
-    const timestamp = status === 'active' && !hasProfileUpdate ? createdTimestamp : updatedTimestamp;
+    const lastLoginTimestamp = Date.parse(user.last_login_at);
+    const hasLogin = status === 'active' && Number.isFinite(lastLoginTimestamp);
+    const timestamp = status === 'active' ? hasLogin ? lastLoginTimestamp : createdTimestamp : updatedTimestamp;
     activities.push({
-      icon: status === 'active' ? (hasProfileUpdate ? 'sync' : 'user') : 'alert',
-      title: status === 'suspended' ? 'User suspended' : status === 'archived' ? 'User archived' : hasProfileUpdate ? 'User profile updated' : 'New user registered',
+      icon: status === 'active' ? (hasLogin ? 'sync' : 'user') : 'alert',
+      title: status === 'suspended' ? 'User suspended' : status === 'archived' ? 'User archived' : hasLogin ? 'User logged in' : 'New user registered',
       time: relativeTime(timestamp),
       detail: `[${user.name || user.email || 'User'}]`,
       timestamp,
