@@ -38,6 +38,103 @@ const esc = (value = '') => {
   node.textContent = value;
   return node.innerHTML;
 };
+function openTenantPhotoViewer(property, clickedImage = null) {
+  if (!property) return;
+  const photos = normalizePropertyImages(property);
+  const clickedPhoto = clickedImage ? resolveImageUrl(clickedImage) : '';
+  if (clickedPhoto && !photos.includes(clickedPhoto)) photos.unshift(clickedPhoto);
+  if (!photos.length) photos.push(DEFAULT_IMAGE_PLACEHOLDER);
+
+  const initialIndex = Math.max(0, photos.indexOf(clickedPhoto));
+  let photoIndex = initialIndex;
+  const title = property.title || 'Property';
+  const viewer = document.createElement('dialog');
+  viewer.className = 'ui-modal photo-only-modal';
+  viewer.setAttribute('aria-label', `${title} photos`);
+  viewer.innerHTML = `
+    <div class="ui-modal__body photo-viewer-stage">
+      <img class="listing-photo-viewer" alt="">
+      <button type="button" class="photo-viewer-arrow photo-viewer-previous" aria-label="Previous photo" title="Previous photo"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+      <button type="button" class="photo-viewer-arrow photo-viewer-next" aria-label="Next photo" title="Next photo"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+      <div class="photo-viewer-actions">
+        <button type="button" class="photo-viewer-action photo-viewer-download" aria-label="Download photo" title="Download photo"><i class="bi bi-download" aria-hidden="true"></i></button>
+        <button type="button" class="photo-viewer-action photo-viewer-share" aria-label="Share photo" title="Share photo"><i class="bi bi-share" aria-hidden="true"></i></button>
+        <button type="button" class="photo-viewer-action photo-viewer-dismiss" aria-label="Close photo viewer" title="Close viewer"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+      </div>
+    </div>
+    <nav class="photo-viewer-thumbnails" aria-label="Property photos"></nav>`;
+
+  const viewerImage = viewer.querySelector('.listing-photo-viewer');
+  const thumbnails = viewer.querySelector('.photo-viewer-thumbnails');
+  const thumbnailButtons = photos.map((photo, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'photo-viewer-thumbnail';
+    button.dataset.photoIndex = String(index);
+    button.setAttribute('aria-label', `View photo ${index + 1}`);
+    button.setAttribute('aria-current', String(index === initialIndex));
+    const image = document.createElement('img');
+    image.src = photo;
+    image.alt = '';
+    image.loading = 'lazy';
+    button.append(image);
+    thumbnails.append(button);
+    return button;
+  });
+  const previousButton = viewer.querySelector('.photo-viewer-previous');
+  const nextButton = viewer.querySelector('.photo-viewer-next');
+  const renderPhoto = (nextIndex = photoIndex) => {
+    photoIndex = (nextIndex + photos.length) % photos.length;
+    viewerImage.src = photos[photoIndex];
+    viewerImage.alt = `${title} photo ${photoIndex + 1}`;
+    previousButton.hidden = photos.length < 2;
+    nextButton.hidden = photos.length < 2;
+    thumbnailButtons.forEach((button, index) => {
+      const active = index === photoIndex;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-current', String(active));
+    });
+  };
+  thumbnails.addEventListener('click', (event) => {
+    const button = event.target.closest('.photo-viewer-thumbnail');
+    if (button) renderPhoto(Number(button.dataset.photoIndex));
+  });
+  previousButton.addEventListener('click', () => renderPhoto(photoIndex - 1));
+  nextButton.addEventListener('click', () => renderPhoto(photoIndex + 1));
+  viewer.querySelector('.photo-viewer-dismiss').addEventListener('click', () => viewer.close());
+  viewer.addEventListener('click', (event) => { if (event.target === viewer) viewer.close(); });
+  viewer.addEventListener('close', () => viewer.remove(), { once: true });
+  viewer.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowLeft') previousButton.click();
+    if (event.key === 'ArrowRight') nextButton.click();
+  });
+  viewer.querySelector('.photo-viewer-download').addEventListener('click', async () => {
+    try {
+      const response = await fetch(photos[photoIndex]);
+      if (!response.ok) throw new Error('Download failed');
+      const objectUrl = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = `${String(title).replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '')}-photo-${photoIndex + 1}`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    } catch {
+      window.open(photos[photoIndex], '_blank', 'noopener,noreferrer');
+    }
+  });
+  viewer.querySelector('.photo-viewer-share').addEventListener('click', async () => {
+    try {
+      if (navigator.share) await navigator.share({ title, url: photos[photoIndex] });
+      else if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(photos[photoIndex]);
+      else window.open(photos[photoIndex], '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      if (error.name !== 'AbortError') window.open(photos[photoIndex], '_blank', 'noopener,noreferrer');
+    }
+  });
+  renderPhoto();
+  document.body.append(viewer);
+  viewer.showModal();
+}
 const resolveEffectiveOccupancy = (property = {}) => {
   const toFiniteNumber = (value) => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value))
     ? Number(value)
@@ -129,14 +226,26 @@ function loadStyle() {
     style.textContent = `
       .dh-dashboard .listing .photo { position: relative; }
       .dh-dashboard .listing .listing-photo { cursor: zoom-in; }
-      .photo-only-modal { width: min(92vw, 1000px); max-height: 92vh; padding: 0; overflow: hidden; background: transparent; }
+      .ui-modal.photo-only-modal { position: fixed; inset: 0; display: grid; grid-template-rows: minmax(0, 1fr) 64px; width: 100vw; height: 100vh; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; overflow: hidden; border: 0; border-radius: 0; background: #34363b; }
+      .ui-modal.photo-only-modal { box-shadow: none; }
+      .photo-only-modal::backdrop { background: #25272b; }
       .photo-only-modal .ui-modal__header, .photo-only-modal .ui-modal__footer { display: none; }
-      .photo-only-modal .ui-modal__body { position: relative; display: grid; place-items: center; padding: 0; background: transparent; }
-      .photo-only-modal .listing-photo-viewer { display: block; width: 100%; max-height: 92vh; object-fit: contain; border-radius: .65rem; }
-      .photo-only-modal .photo-viewer-arrow { position: absolute; top: 50%; z-index: 1; width: 2.5rem; height: 2.5rem; padding: 0; border: 0; border-radius: 50%; background: rgba(255,255,255,.9); color: #39574e; font-size: 1.7rem; line-height: 1; cursor: pointer; transform: translateY(-50%); }
-      .photo-only-modal .photo-viewer-arrow:hover { background: #fff; }
-      .photo-only-modal .photo-viewer-previous { left: .75rem; }
-      .photo-only-modal .photo-viewer-next { right: .75rem; }
+      .photo-only-modal .ui-modal__body { position: relative; display: grid; place-items: center; min-height: 0; padding: .75rem 4.5rem 0; overflow: hidden; background: #37393e; }
+      .photo-only-modal .listing-photo-viewer { display: block; width: auto; height: auto; max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 0; }
+      .photo-viewer-actions { position: absolute; top: 1rem; right: 1rem; z-index: 2; display: flex; align-items: center; gap: .55rem; }
+      .photo-viewer-action, .photo-viewer-arrow { display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: rgba(18,20,24,.66); color: #fff; cursor: pointer; }
+      .photo-viewer-action { width: 38px; height: 38px; font-size: 1rem; }
+      .photo-viewer-arrow { position: absolute; top: 50%; z-index: 1; width: 42px; height: 42px; font-size: 1.15rem; transform: translateY(-50%); }
+      .photo-viewer-action:hover, .photo-viewer-arrow:hover { background: rgba(5,7,10,.9); }
+      .photo-viewer-previous { left: 1rem; }
+      .photo-viewer-next { right: 1rem; }
+      .photo-viewer-thumbnails { display: flex; align-items: center; justify-content: center; gap: .55rem; min-width: 0; padding: .4rem 1rem; overflow-x: auto; background: #303238; }
+      .photo-viewer-thumbnail { flex: 0 0 56px; width: 56px; height: 40px; padding: 0; overflow: hidden; border: 2px solid transparent; border-radius: 4px; background: #45474c; cursor: pointer; opacity: .68; }
+      .photo-viewer-thumbnail:hover { opacity: .92; }
+      .photo-viewer-thumbnail.is-active { border-color: #d5a51b; opacity: 1; }
+      .photo-viewer-thumbnail img { display: block; width: 100%; height: 100%; object-fit: cover; }
+      .photo-viewer-action:focus-visible, .photo-viewer-arrow:focus-visible, .photo-viewer-thumbnail:focus-visible { outline: 2px solid #e0b329; outline-offset: 2px; }
+      @media (max-width: 600px) { .ui-modal.photo-only-modal { grid-template-rows: minmax(0, 1fr) 58px; } .photo-only-modal .ui-modal__body { padding: .75rem 3rem 0; } .photo-viewer-actions { gap: .3rem; } .photo-viewer-action { width: 34px; height: 34px; } .photo-viewer-arrow { width: 36px; height: 36px; } .photo-viewer-previous { left: .5rem; } .photo-viewer-next { right: .5rem; } .photo-viewer-thumbnail { flex-basis: 54px; width: 54px; height: 36px; } }
       .dh-dashboard .listing-carousel-dots { position: absolute; right: 0; bottom: .65rem; left: 0; z-index: 2; display: flex; justify-content: center; gap: .35rem; }
       .dh-dashboard .listing-carousel-dots .listing-carousel-dot { position: static; top: auto; right: auto; width: .45rem; height: .45rem; padding: 0; border: 1px solid rgba(255,255,255,.95); border-radius: 50%; background: rgba(255,255,255,.7); box-shadow: 0 1px 3px rgba(0,0,0,.35); cursor: pointer; }
       .dh-dashboard .listing-carousel-dot.is-active { background: #b48421; transform: scale(1.2); }
@@ -1271,28 +1380,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
         const property = state.all.find((item) => String(item.id) === String(imageElement.closest('.listing').dataset.id));
         if (!property) return;
         const clickedImage = imageElement.currentSrc || imageElement.src;
-        const galleryImages = normalizePropertyImages(property).length
-          ? normalizePropertyImages(property)
-          : [clickedImage];
-        const startingIndex = Math.max(0, galleryImages.findIndex((image) => image === clickedImage));
-        const viewer = createModal({
-          title: property.title || 'Property Photo',
-          content: `<img class="listing-photo-viewer" src="${esc(clickedImage)}" alt="${esc(property.title || 'Property')} photo ${startingIndex + 1}" />`,
-          closeLabel: 'Close'
-        });
-        viewer.classList.add('photo-only-modal');
-        const viewerBody = viewer.querySelector('.ui-modal__body');
-        viewerBody.insertAdjacentHTML('beforeend', '<button type="button" class="photo-viewer-arrow photo-viewer-previous" aria-label="Previous photo">&#8249;</button><button type="button" class="photo-viewer-arrow photo-viewer-next" aria-label="Next photo">&#8250;</button>');
-        const viewerImage = viewerBody.querySelector('.listing-photo-viewer');
-        let viewerIndex = startingIndex;
-        const showViewerImage = (nextIndex) => {
-          viewerIndex = (nextIndex + galleryImages.length) % galleryImages.length;
-          viewerImage.src = galleryImages[viewerIndex];
-          viewerImage.alt = `${property.title || 'Property'} photo ${viewerIndex + 1}`;
-        };
-        viewerBody.querySelector('.photo-viewer-previous').addEventListener('click', () => showViewerImage(viewerIndex - 1));
-        viewerBody.querySelector('.photo-viewer-next').addEventListener('click', () => showViewerImage(viewerIndex + 1));
-        openModal(viewer);
+        openTenantPhotoViewer(property, clickedImage);
       };
       imageElement.addEventListener('click', openPhotoViewer);
       imageElement.tabIndex = 0;
@@ -1463,28 +1551,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
   }
 
   const openMapPropertyPhotoViewer = (property, clickedImage = null) => {
-    if (!property) return;
-    const galleryImages = normalizePropertyImages(property).length ? normalizePropertyImages(property) : [clickedImage || normalizePropertyImage(property) || DEFAULT_IMAGE_PLACEHOLDER];
-    const startingImage = clickedImage || galleryImages[0] || DEFAULT_IMAGE_PLACEHOLDER;
-    const startingIndex = Math.max(0, galleryImages.findIndex((image) => image === startingImage));
-    const viewer = createModal({
-      title: property.title || 'Property Photo',
-      content: `<img class="listing-photo-viewer" src="${esc(startingImage)}" alt="${esc(property.title || 'Property')} photo ${startingIndex + 1}" />`,
-      closeLabel: 'Close'
-    });
-    viewer.classList.add('photo-only-modal');
-    const viewerBody = viewer.querySelector('.ui-modal__body');
-    viewerBody.insertAdjacentHTML('beforeend', '<button type="button" class="photo-viewer-arrow photo-viewer-previous" aria-label="Previous photo">&#8249;</button><button type="button" class="photo-viewer-arrow photo-viewer-next" aria-label="Next photo">&#8250;</button>');
-    const viewerImage = viewerBody.querySelector('.listing-photo-viewer');
-    let viewerIndex = startingIndex >= 0 ? startingIndex : 0;
-    const showViewerImage = (nextIndex) => {
-      viewerIndex = (nextIndex + galleryImages.length) % galleryImages.length;
-      viewerImage.src = galleryImages[viewerIndex];
-      viewerImage.alt = `${property.title || 'Property'} photo ${viewerIndex + 1}`;
-    };
-    viewerBody.querySelector('.photo-viewer-previous').addEventListener('click', () => showViewerImage(viewerIndex - 1));
-    viewerBody.querySelector('.photo-viewer-next').addEventListener('click', () => showViewerImage(viewerIndex + 1));
-    openModal(viewer);
+    openTenantPhotoViewer(property, clickedImage);
   };
 
   root.addEventListener('click', (event) => {

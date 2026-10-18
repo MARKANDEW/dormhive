@@ -411,24 +411,58 @@
 .thumbnail { width: 56px; height: 42px; border: 1px solid #dbe8ef; border-radius: 10px; background: #eaf4f8 center / cover no-repeat; cursor: zoom-in; }
 .moderation-photo-viewer {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  width: min(94vw, 1100px);
+  inset: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) 64px;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
   max-width: none;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  overflow: visible;
-  transform: translate(-50%, -50%);
+  max-height: none;
   margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: #34363b;
+  box-shadow: none;
 }
-.moderation-photo-viewer::backdrop { background: rgb(15 23 42 / 82%); backdrop-filter: blur(4px); }
-.moderation-photo-viewer__image { display: block; width: 100%; max-height: 88vh; object-fit: contain; border-radius: 0.65rem; }
-.moderation-photo-viewer__close, .moderation-photo-viewer__nav { position: absolute; border: 0; border-radius: 50%; background: rgb(15 23 42 / 75%); color: #fff; cursor: pointer; }
-.moderation-photo-viewer__close { top: 0.75rem; right: 0.75rem; width: 2.25rem; height: 2.25rem; font-size: 1.5rem; line-height: 1; }
-.moderation-photo-viewer__nav { top: 50%; width: 2.75rem; height: 2.75rem; transform: translateY(-50%); font-size: 2rem; line-height: 1; }
-.moderation-photo-viewer__nav--previous { left: 0.75rem; }
-.moderation-photo-viewer__nav--next { right: 0.75rem; }
+
+.moderation-photo-viewer::backdrop { background: #25272b; }
+.moderation-photo-viewer__stage { position: relative; display: grid; place-items: center; min-height: 0; padding: .75rem 4.5rem 0; overflow: hidden; background: #37393e; }
+.moderation-photo-viewer__image { display: block; width: auto; height: auto; max-width: 100%; max-height: 100%; object-fit: contain; }
+.moderation-photo-viewer__actions { position: absolute; top: 1rem; right: 1rem; z-index: 2; display: flex; align-items: center; gap: .55rem; }
+.moderation-photo-viewer__action,
+.moderation-photo-viewer__close,
+.moderation-photo-viewer__nav { display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: rgba(18,20,24,.66); color: #fff; cursor: pointer; }
+.moderation-photo-viewer__action,
+.moderation-photo-viewer__close { width: 38px; height: 38px; font-size: 1rem; }
+.moderation-photo-viewer__action:hover,
+.moderation-photo-viewer__close:hover,
+.moderation-photo-viewer__nav:hover { background: rgba(5,7,10,.9); }
+.moderation-photo-viewer__nav { position: absolute; top: 50%; z-index: 1; width: 42px; height: 42px; transform: translateY(-50%); font-size: 1.15rem; }
+.moderation-photo-viewer__nav--previous { left: 1rem; }
+.moderation-photo-viewer__nav--next { right: 1rem; }
+.moderation-photo-viewer__thumbnails { display: flex; align-items: center; justify-content: center; gap: .55rem; min-width: 0; padding: .4rem 1rem; overflow-x: auto; background: #303238; }
+.moderation-photo-viewer__thumbnail { flex: 0 0 56px; width: 56px; height: 40px; padding: 0; overflow: hidden; border: 2px solid transparent; border-radius: 4px; background: #45474c; cursor: pointer; opacity: .68; }
+.moderation-photo-viewer__thumbnail:hover { opacity: .92; }
+.moderation-photo-viewer__thumbnail.is-active { border-color: #d5a51b; opacity: 1; }
+.moderation-photo-viewer__thumbnail img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.moderation-photo-viewer__action:focus-visible,
+.moderation-photo-viewer__close:focus-visible,
+.moderation-photo-viewer__nav:focus-visible,
+.moderation-photo-viewer__thumbnail:focus-visible { outline: 2px solid #e0b329; outline-offset: 2px; }
+@media (max-width: 600px) {
+  .moderation-photo-viewer { grid-template-rows: minmax(0, 1fr) 58px; }
+  .moderation-photo-viewer__stage { padding: .75rem 3rem 0; }
+  .moderation-photo-viewer__actions { gap: .3rem; }
+  .moderation-photo-viewer__action,
+  .moderation-photo-viewer__close { width: 34px; height: 34px; }
+  .moderation-photo-viewer__nav { width: 36px; height: 36px; }
+  .moderation-photo-viewer__nav--previous { left: .5rem; }
+  .moderation-photo-viewer__nav--next { right: .5rem; }
+  .moderation-photo-viewer__thumbnail { flex-basis: 54px; width: 54px; height: 36px; }
+}
 .action-icons { display: flex; gap: 6px; }
 .action-icons button { display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid #d7e6ef; border-radius: 11px; background: #f4f9fc; color: var(--mod-blue); font-size: 16px; cursor: pointer; }
 .action-icons button:hover { background: #e7f3fb; }
@@ -456,13 +490,23 @@
 .detail-actions .reject { background: #fff0ee; color: #c35b54; }
 .hidden { display: none !important; }
 
-.photo-preview-modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 32px; background: rgb(16 36 51 / 75%); }
-.photo-preview-modal img { max-width: min(92vw, 1000px); max-height: 88vh; border-radius: 16px; object-fit: contain; box-shadow: 0 20px 60px rgb(0 0 0 / 20%); }
-.photo-preview-close { position: fixed; top: 20px; right: 24px; width: 38px; height: 38px; border: 0; border-radius: 50%; background: #fff; color: var(--mod-ink); font-size: 1.5rem; cursor: pointer; }
-.photo-preview-arrow { position: fixed; top: 50%; z-index: 1; width: 46px; height: 46px; border: 0; border-radius: 50%; background: rgb(255 255 255 / 92%); color: var(--mod-ink); font-size: 34px; line-height: 1; cursor: pointer; transform: translateY(-50%); }
-.photo-preview-arrow:hover { background: #fff; }
-.photo-preview-previous { left: 24px; }
-.photo-preview-next { right: 24px; }
+.photo-preview-modal { position: fixed; inset: 0; z-index: 50; display: grid; grid-template-rows: minmax(0, 1fr) 64px; width: 100vw; height: 100vh; height: 100dvh; overflow: hidden; background: #34363b; }
+.photo-preview-stage { position: relative; display: grid; place-items: center; min-height: 0; padding: .75rem 4.5rem 0; overflow: hidden; background: #37393e; }
+.photo-preview-stage > img { display: block; width: auto; height: auto; max-width: 100%; max-height: 100%; object-fit: contain; }
+.photo-preview-actions { position: absolute; top: 1rem; right: 1rem; z-index: 2; display: flex; align-items: center; gap: .55rem; }
+.photo-preview-action, .photo-preview-arrow { display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: rgba(18,20,24,.66); color: #fff; cursor: pointer; }
+.photo-preview-action { width: 38px; height: 38px; font-size: 1rem; }
+.photo-preview-action:hover, .photo-preview-arrow:hover { background: rgba(5,7,10,.9); }
+.photo-preview-arrow { position: absolute; top: 50%; z-index: 1; width: 42px; height: 42px; font-size: 1.15rem; transform: translateY(-50%); }
+.photo-preview-previous { left: 1rem; }
+.photo-preview-next { right: 1rem; }
+.photo-preview-thumbnails { display: flex; align-items: center; justify-content: center; gap: .55rem; min-width: 0; padding: .4rem 1rem; overflow-x: auto; background: #303238; }
+.photo-preview-thumbnail { flex: 0 0 56px; width: 56px; height: 40px; padding: 0; overflow: hidden; border: 2px solid transparent; border-radius: 4px; background: #45474c; cursor: pointer; opacity: .68; }
+.photo-preview-thumbnail:hover { opacity: .92; }
+.photo-preview-thumbnail.is-active { border-color: #d5a51b; opacity: 1; }
+.photo-preview-thumbnail img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.photo-preview-action:focus-visible, .photo-preview-arrow:focus-visible, .photo-preview-thumbnail:focus-visible { outline: 2px solid #e0b329; outline-offset: 2px; }
+@media (max-width: 600px) { .photo-preview-modal { grid-template-rows: minmax(0, 1fr) 58px; } .photo-preview-stage { padding: .75rem 3rem 0; } .photo-preview-actions { gap: .3rem; } .photo-preview-action { width: 34px; height: 34px; } .photo-preview-arrow { width: 36px; height: 36px; } .photo-preview-previous { left: .5rem; } .photo-preview-next { right: .5rem; } .photo-preview-thumbnail { flex-basis: 54px; width: 54px; height: 36px; } }
 
 .listing-view-modal { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgb(18 39 54 / 60%); }
 .listing-view-modal[hidden] { display: none; }

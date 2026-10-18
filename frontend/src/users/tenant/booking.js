@@ -51,56 +51,87 @@ const openBookingPhotoViewer = (photos, alt) => {
   let photoIndex = 0;
   const viewer = document.createElement('dialog');
   viewer.className = 'booking-photo-viewer';
+  viewer.innerHTML = `
+    <div class="booking-photo-viewer__stage">
+      <img class="booking-photo-viewer__image" alt="">
+      <button type="button" class="booking-photo-viewer__nav booking-photo-viewer__nav--previous" aria-label="View previous photo" title="Previous photo"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+      <button type="button" class="booking-photo-viewer__nav booking-photo-viewer__nav--next" aria-label="View next photo" title="Next photo"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+      <div class="booking-photo-viewer__actions">
+        <button type="button" class="booking-photo-viewer__action booking-photo-viewer__download" aria-label="Download photo" title="Download photo"><i class="bi bi-download" aria-hidden="true"></i></button>
+        <button type="button" class="booking-photo-viewer__action booking-photo-viewer__share" aria-label="Share photo" title="Share photo"><i class="bi bi-share" aria-hidden="true"></i></button>
+        <button type="button" class="booking-photo-viewer__action booking-photo-viewer__close" aria-label="Close photo viewer" title="Close viewer"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+      </div>
+    </div>
+    <nav class="booking-photo-viewer__thumbnails" aria-label="Property photos"></nav>`;
 
-  const image = document.createElement('img');
-  image.className = 'booking-photo-viewer__image';
-
-  const closeButton = document.createElement('button');
-  closeButton.type = 'button';
-  closeButton.className = 'booking-photo-viewer__close';
-  closeButton.setAttribute('aria-label', 'Close photo viewer');
-  closeButton.textContent = '×';
-
-  const previousButton = document.createElement('button');
-  previousButton.type = 'button';
-  previousButton.className = 'booking-photo-viewer__nav booking-photo-viewer__nav--previous';
-  previousButton.setAttribute('aria-label', 'View previous photo');
-  previousButton.textContent = '‹';
-
-  const nextButton = document.createElement('button');
-  nextButton.type = 'button';
-  nextButton.className = 'booking-photo-viewer__nav booking-photo-viewer__nav--next';
-  nextButton.setAttribute('aria-label', 'View next photo');
-  nextButton.textContent = '›';
-
-  const counter = document.createElement('span');
-  counter.className = 'booking-photo-viewer__counter';
-  counter.setAttribute('aria-live', 'polite');
-
-  const renderPhoto = () => {
+  const image = viewer.querySelector('.booking-photo-viewer__image');
+  const thumbnails = viewer.querySelector('.booking-photo-viewer__thumbnails');
+  const thumbnailButtons = photos.map((photo, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'booking-photo-viewer__thumbnail';
+    button.dataset.photoIndex = String(index);
+    button.setAttribute('aria-label', `View photo ${index + 1}`);
+    button.setAttribute('aria-current', String(index === 0));
+    const thumbnailImage = document.createElement('img');
+    thumbnailImage.src = photo;
+    thumbnailImage.alt = '';
+    thumbnailImage.loading = 'lazy';
+    button.append(thumbnailImage);
+    thumbnails.append(button);
+    return button;
+  });
+  const previousButton = viewer.querySelector('.booking-photo-viewer__nav--previous');
+  const nextButton = viewer.querySelector('.booking-photo-viewer__nav--next');
+  const renderPhoto = (nextIndex = photoIndex) => {
+    photoIndex = (nextIndex + photos.length) % photos.length;
     image.src = photos[photoIndex];
     image.alt = `${alt}, photo ${photoIndex + 1} of ${photos.length}`;
-    counter.textContent = `${photoIndex + 1} / ${photos.length}`;
     previousButton.hidden = photos.length < 2;
     nextButton.hidden = photos.length < 2;
-    counter.hidden = photos.length < 2;
+    thumbnailButtons.forEach((button, index) => {
+      const active = index === photoIndex;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-current', String(active));
+    });
   };
-
-  previousButton.addEventListener('click', () => {
-    photoIndex = (photoIndex - 1 + photos.length) % photos.length;
-    renderPhoto();
+  thumbnails.addEventListener('click', (event) => {
+    const button = event.target.closest('.booking-photo-viewer__thumbnail');
+    if (button) renderPhoto(Number(button.dataset.photoIndex));
   });
-  nextButton.addEventListener('click', () => {
-    photoIndex = (photoIndex + 1) % photos.length;
-    renderPhoto();
-  });
-  closeButton.addEventListener('click', () => viewer.close());
-  viewer.addEventListener('keydown', (event) => {
-    if (event.key === 'ArrowRight' && photos.length > 1) nextButton.click();
-    if (event.key === 'ArrowLeft' && photos.length > 1) previousButton.click();
-  });
+  previousButton.addEventListener('click', () => renderPhoto(photoIndex - 1));
+  nextButton.addEventListener('click', () => renderPhoto(photoIndex + 1));
+  viewer.querySelector('.booking-photo-viewer__close').addEventListener('click', () => viewer.close());
+  viewer.addEventListener('click', (event) => { if (event.target === viewer) viewer.close(); });
   viewer.addEventListener('close', () => viewer.remove(), { once: true });
-  viewer.append(image, previousButton, nextButton, counter, closeButton);
+  viewer.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowRight') nextButton.click();
+    if (event.key === 'ArrowLeft') previousButton.click();
+  });
+  viewer.querySelector('.booking-photo-viewer__download').addEventListener('click', async () => {
+    try {
+      const response = await fetch(photos[photoIndex]);
+      if (!response.ok) throw new Error('Download failed');
+      const objectUrl = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = `property-photo-${photoIndex + 1}`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    } catch {
+      window.open(photos[photoIndex], '_blank', 'noopener,noreferrer');
+    }
+  });
+  viewer.querySelector('.booking-photo-viewer__share').addEventListener('click', async () => {
+    try {
+      if (navigator.share) await navigator.share({ title: alt, url: photos[photoIndex] });
+      else if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(photos[photoIndex]);
+      else window.open(photos[photoIndex], '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      if (error.name !== 'AbortError') window.open(photos[photoIndex], '_blank', 'noopener,noreferrer');
+    }
+  });
+  viewer.append(thumbnails);
   document.body.append(viewer);
   renderPhoto();
   viewer.showModal();
@@ -140,7 +171,7 @@ const propertyAmenities = (value) => {
 
 function style() {
   const stylesheet = new URL('./style/booking.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'viewing-time-groups-1');
+  stylesheet.searchParams.set('v', 'booking-photo-viewer-reference-1');
   return loadTenantStylesheet('booking', stylesheet);
 }
 

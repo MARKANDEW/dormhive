@@ -124,6 +124,7 @@ CREATE TABLE IF NOT EXISTS messages (
   conversation_id INT NOT NULL,
   sender_id INT NOT NULL,
   body TEXT NOT NULL,
+  photo_batch_id CHAR(36) NULL,
   read_at TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,

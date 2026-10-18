@@ -125,19 +125,127 @@ const renderMessageBody = (value = '', attachmentUrl = '') => {
   return escape(text || 'No message text.');
 };
 
-const openPhotoViewer = (imageDataUrl) => {
-  const modal = document.createElement('div');
+const messagePhotoUrl = (message = {}) => {
+  const body = String(message.body ?? '').trim();
+  if (message.attachment_url) return resolveImageUrl(message.attachment_url);
+  return isImageDataUrl(body) ? body : '';
+};
+
+const isPhotoOnlyMessage = (message = {}) => {
+  const body = String(message.body ?? '').trim();
+  return Boolean(messagePhotoUrl(message)) && (!body || isImageDataUrl(body));
+};
+
+const renderPhotoMessageGroup = (photoMessages, isMine, otherName) => {
+  const photoUrls = photoMessages.map(messagePhotoUrl).filter(Boolean);
+  const senderName = isMine ? 'You' : otherName || 'Owner';
+  const visiblePhotos = photoUrls.slice(0, 4);
+  const additionalCount = photoUrls.length - visiblePhotos.length;
+  const stacked = photoUrls.length >= 2;
+  const moreBadgeIndex = stacked ? 0 : 3;
+  return `
+    <div class="message-photo-group${stacked ? ' message-photo-group--stack' : ''}">
+      <div class="message-photo-group__label">${escape(`${senderName} sent ${photoUrls.length} photos`)}</div>
+      <div class="message-photo-group__grid">
+        ${visiblePhotos.map((photo, index) => `
+          <button type="button" class="message-photo-group__tile${additionalCount && index === moreBadgeIndex ? ' has-more' : ''}" data-photo-index="${index}" aria-label="View photo ${index + 1} of ${photoUrls.length}">
+            <img src="${escape(photo)}" alt="Photo ${index + 1}" />
+            ${additionalCount && index === moreBadgeIndex ? `<span>+${additionalCount}</span>` : ''}
+          </button>`).join('')}
+      </div>
+    </div>`;
+};
+
+const openPhotoViewer = (imageUrls, startIndex = 0) => {
+  const photos = (Array.isArray(imageUrls) ? imageUrls : [imageUrls]).filter(Boolean);
+  if (!photos.length) return;
+  let photoIndex = (startIndex + photos.length) % photos.length;
+  const modal = document.createElement('dialog');
   modal.className = 'photo-viewer-modal';
+  modal.setAttribute('aria-label', 'Message photos');
   modal.innerHTML = `
-    <div class="photo-viewer-backdrop"></div>
-    <div class="photo-viewer-content">
-      <button class="photo-viewer-close" aria-label="Close photo">×</button>
-      <img src="${imageDataUrl}" alt="Message photo" class="photo-viewer-image" />
+    <div class="photo-viewer-stage">
+      <img alt="" class="photo-viewer-image" />
+      <button type="button" class="photo-viewer-arrow photo-viewer-previous" aria-label="Previous photo" title="Previous photo"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+      <button type="button" class="photo-viewer-arrow photo-viewer-next" aria-label="Next photo" title="Next photo"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+      <div class="photo-viewer-actions">
+        <button type="button" class="photo-viewer-action photo-viewer-download" aria-label="Download photo" title="Download photo"><i class="bi bi-download" aria-hidden="true"></i></button>
+        <button type="button" class="photo-viewer-action photo-viewer-share" aria-label="Share photo" title="Share photo"><i class="bi bi-share" aria-hidden="true"></i></button>
+        <button type="button" class="photo-viewer-action photo-gallery-dismiss" aria-label="Close photo viewer" title="Close viewer"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+      </div>
     </div>
+    <nav class="photo-viewer-thumbnails" aria-label="Message photos"></nav>
   `;
+  const image = modal.querySelector('.photo-viewer-image');
+  const thumbnails = modal.querySelector('.photo-viewer-thumbnails');
+  const thumbnailButtons = photos.map((photo, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'photo-viewer-thumbnail';
+    button.dataset.photoIndex = String(index);
+    button.setAttribute('aria-label', `View photo ${index + 1}`);
+    button.setAttribute('aria-current', String(index === photoIndex));
+    const thumbnail = document.createElement('img');
+    thumbnail.src = photo;
+    thumbnail.alt = '';
+    thumbnail.loading = 'eager';
+    button.append(thumbnail);
+    thumbnails.append(button);
+    return button;
+  });
+  const previousButton = modal.querySelector('.photo-viewer-previous');
+  const nextButton = modal.querySelector('.photo-viewer-next');
+  const renderPhoto = (nextIndex = photoIndex) => {
+    photoIndex = (nextIndex + photos.length) % photos.length;
+    image.src = photos[photoIndex];
+    image.alt = `Message photo ${photoIndex + 1} of ${photos.length}`;
+    previousButton.hidden = photos.length < 2;
+    nextButton.hidden = photos.length < 2;
+    thumbnailButtons.forEach((button, index) => {
+      const active = index === photoIndex;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-current', String(active));
+    });
+  };
+  thumbnails.addEventListener('click', (event) => {
+    const button = event.target.closest('.photo-viewer-thumbnail');
+    if (button) renderPhoto(Number(button.dataset.photoIndex));
+  });
+  previousButton.addEventListener('click', () => renderPhoto(photoIndex - 1));
+  nextButton.addEventListener('click', () => renderPhoto(photoIndex + 1));
+  const closeViewer = () => modal.close();
+  modal.querySelector('.photo-gallery-dismiss').addEventListener('click', closeViewer);
+  modal.addEventListener('click', (event) => { if (event.target === modal) closeViewer(); });
+  modal.addEventListener('close', () => modal.remove(), { once: true });
+  modal.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowLeft' && photos.length > 1) { event.preventDefault(); renderPhoto(photoIndex - 1); }
+    if (event.key === 'ArrowRight' && photos.length > 1) { event.preventDefault(); renderPhoto(photoIndex + 1); }
+    if (event.key === 'Escape') closeViewer();
+  });
+  modal.querySelector('.photo-viewer-download').addEventListener('click', async () => {
+    try {
+      const response = await fetch(photos[photoIndex]);
+      if (!response.ok) throw new Error('Download failed');
+      const objectUrl = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = `message-photo-${photoIndex + 1}`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    } catch { window.open(photos[photoIndex], '_blank', 'noopener,noreferrer'); }
+  });
+  modal.querySelector('.photo-viewer-share').addEventListener('click', async () => {
+    try {
+      if (navigator.share) await navigator.share({ title: 'Message photo', url: photos[photoIndex] });
+      else if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(photos[photoIndex]);
+      else window.open(photos[photoIndex], '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      if (error.name !== 'AbortError') window.open(photos[photoIndex], '_blank', 'noopener,noreferrer');
+    }
+  });
   document.body.appendChild(modal);
-  modal.querySelector('.photo-viewer-close').addEventListener('click', () => modal.remove());
-  modal.querySelector('.photo-viewer-backdrop').addEventListener('click', () => modal.remove());
+  renderPhoto();
+  modal.showModal();
 };
 
 const openPropertyDetails = (property) => {
@@ -289,15 +397,10 @@ export async function renderMessage(root = document.querySelector('#app')) {
               <form class="composer" hidden>
                 <div class="composer-tools">
                   <div class="composer-input-wrapper">
-                    <div class="attachment-strip hidden">
-                      <div class="attachment-item">
-                        <img class="attachment-preview" src="" alt="Selected attachment preview">
-                        <button type="button" class="remove-attachment" aria-label="Remove selected photo">×</button>
-                      </div>
-                    </div>
+                    <div class="attachment-strip hidden"></div>
                     <div class="composer-inline-input">
                       <label class="upload-button" title="Send a photo" aria-label="Send a photo">
-                        <input class="image-input" type="file" accept="image/*" hidden>
+                        <input class="image-input" type="file" accept="image/*" multiple hidden>
                         <span>＋</span>
                       </label>
                       <label class="sr-only" for="message-text">Message</label>
@@ -329,14 +432,11 @@ export async function renderMessage(root = document.querySelector('#app')) {
   const searchInput = root.querySelector('.messages-search input');
   const imageInput = form.querySelector('.image-input');
   const attachmentStrip = form.querySelector('.attachment-strip');
-  const attachmentPreview = form.querySelector('.attachment-preview');
-  const removeAttachmentButton = form.querySelector('.remove-attachment');
   const mobileBackButton = root.querySelector('.mobile-back');
   const videoCallButton = root.querySelector('.video-call-button');
   const profileButton = root.querySelector('.profile-button');
   const propertyId = getSearchParam('propertyId');
-  let pendingImage = null;
-  let pendingImagePreview = '';
+  const pendingImages = [];
 
   const propertyFor = (conversation = {}) => {
     const key = String(conversation.property_id ?? '');
@@ -495,19 +595,67 @@ export async function renderMessage(root = document.querySelector('#app')) {
       await fetchPropertyDetails(state.selected.property_id);
       renderThreadHeader();
 
-      list.innerHTML = (Array.isArray(body.data) ? body.data : []).map((item) => {
-        const isMine = item.sender_id === currentUser().id;
+      const conversationMessages = Array.isArray(body.data) ? body.data : [];
+      const groupedMessages = [];
+      for (let index = 0; index < conversationMessages.length;) {
+        const message = conversationMessages[index];
+        if (!isPhotoOnlyMessage(message)) {
+          groupedMessages.push({ message });
+          index += 1;
+          continue;
+        }
+        const photoMessages = [message];
+        const photoBatchId = message.photo_batch_id ?? null;
+        while (index + photoMessages.length < conversationMessages.length) {
+          const nextMessage = conversationMessages[index + photoMessages.length];
+          const nextBatchId = nextMessage.photo_batch_id ?? null;
+          const sameBatch = photoBatchId && nextBatchId
+            ? String(photoBatchId) === String(nextBatchId)
+            : !photoBatchId && !nextBatchId && String(message.created_at) === String(nextMessage.created_at);
+          if (String(nextMessage.sender_id) !== String(message.sender_id) || !isPhotoOnlyMessage(nextMessage) || !sameBatch) break;
+          photoMessages.push(nextMessage);
+        }
+        groupedMessages.push(photoMessages.length > 1 ? { photoMessages } : { message });
+        index += photoMessages.length;
+      }
+      list.innerHTML = groupedMessages.map((entry) => {
+        if (entry.photoMessages) {
+          const photoMessages = entry.photoMessages;
+          const isMine = String(photoMessages[0].sender_id) === String(currentUser().id);
+          return `
+            <article class="message message-photo-group-bubble ${isMine ? 'is-mine' : ''}">
+              <div class="bubble-body">${renderPhotoMessageGroup(photoMessages, isMine, state.selected.participant_name)}</div>
+              <time>${escape(formatMessageTime(photoMessages[photoMessages.length - 1].created_at))}</time>
+            </article>`;
+        }
+        const item = entry.message;
+        const isMine = String(item.sender_id) === String(currentUser().id);
         return `
           <article class="message ${isMine ? 'is-mine' : ''}">
             <div class="bubble-body">${renderMessageBody(item.body, item.attachment_url)}</div>
             <time>${escape(formatMessageTime(item.created_at))}</time>
-          </article>
-        `;
+          </article>`;
       }).join('') || '<p class="empty-state">Start the conversation.</p>';
+
+      const photoGroupEntries = groupedMessages.filter((entry) => entry.photoMessages);
+      list.querySelectorAll('.message-photo-group').forEach((group, index) => {
+        group.photoUrls = photoGroupEntries[index]?.photoMessages.map(messagePhotoUrl).filter(Boolean) ?? [];
+        group.addEventListener('click', (event) => {
+          if (event.target.closest('.message-photo-group__tile')) return;
+          openPhotoViewer(group.photoUrls, 0);
+        });
+      });
 
       list.querySelectorAll('.message-attachment img').forEach((img) => {
         img.style.cursor = 'pointer';
-        img.addEventListener('click', () => openPhotoViewer(img.src));
+        img.addEventListener('click', () => openPhotoViewer([img.src]));
+      });
+      list.querySelectorAll('.message-photo-group__tile').forEach((button) => {
+        button.addEventListener('click', () => {
+          const group = button.closest('.message-photo-group');
+          const photos = group?.photoUrls ?? [];
+          openPhotoViewer(photos, Number(button.dataset.photoIndex));
+        });
       });
 
       list.querySelectorAll('.booking-card-link').forEach((button) => {
@@ -527,32 +675,41 @@ export async function renderMessage(root = document.querySelector('#app')) {
     }
   };
 
-  const clearPendingImage = () => {
-    pendingImage = null;
-    pendingImagePreview = '';
-    imageInput.value = '';
-    attachmentPreview.src = '';
-    attachmentStrip.classList.add('hidden');
+  const renderPendingImages = () => {
+    attachmentStrip.innerHTML = pendingImages.map((item, index) => `
+      <div class="attachment-item" data-pending-index="${index}">
+        <img src="${escape(item.previewUrl)}" alt="Selected photo ${index + 1}">
+        <button type="button" class="remove-attachment" data-pending-index="${index}" aria-label="Remove selected photo ${index + 1}">×</button>
+      </div>`).join('');
+    attachmentStrip.classList.toggle('hidden', pendingImages.length === 0);
   };
 
-  removeAttachmentButton.addEventListener('click', clearPendingImage);
+  const clearPendingImages = () => {
+    pendingImages.forEach((item) => URL.revokeObjectURL(item.previewUrl));
+    pendingImages.length = 0;
+    imageInput.value = '';
+    renderPendingImages();
+  };
+
+  attachmentStrip.addEventListener('click', (event) => {
+    const removeButton = event.target.closest('.remove-attachment');
+    if (!removeButton) return;
+    const [removedImage] = pendingImages.splice(Number(removeButton.dataset.pendingIndex), 1);
+    if (removedImage) URL.revokeObjectURL(removedImage.previewUrl);
+    renderPendingImages();
+  });
 
   imageInput.addEventListener('change', (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
-      status.textContent = 'Please choose an image file.';
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      pendingImage = file;
-      pendingImagePreview = String(reader.result ?? '');
-      attachmentPreview.src = pendingImagePreview;
-      attachmentStrip.classList.remove('hidden');
-    };
-    reader.readAsDataURL(file);
+    const files = Array.from(event.target.files ?? []);
+    imageInput.value = '';
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const invalidFile = files.find((file) => !validTypes.includes(file.type) || file.size > 2 * 1024 * 1024);
+    if (invalidFile) status.textContent = 'Choose image files under 2 MB each.';
+    files.filter((file) => validTypes.includes(file.type) && file.size <= 2 * 1024 * 1024).forEach((file) => {
+      const duplicate = pendingImages.some((item) => item.file.name === file.name && item.file.size === file.size && item.file.lastModified === file.lastModified);
+      if (!duplicate) pendingImages.push({ file, previewUrl: URL.createObjectURL(file) });
+    });
+    renderPendingImages();
   });
 
   const createOrSelectConversationForProperty = async (propertyIdValue) => {
@@ -596,9 +753,10 @@ export async function renderMessage(root = document.querySelector('#app')) {
     if (!state.selected) return;
 
     const textMessage = textarea.value.trim();
-    const hasImage = !!pendingImage;
+    const hasImages = pendingImages.length > 0;
     const hasText = !!textMessage;
-    if (!hasImage && !hasText) return;
+    if (!hasImages && !hasText) return;
+    const photoBatchId = hasImages ? window.crypto.randomUUID() : null;
 
     try {
       if (!state.selected.id) {
@@ -615,10 +773,12 @@ export async function renderMessage(root = document.querySelector('#app')) {
         renderThreadHeader();
       }
 
-      if (hasImage) {
+      while (pendingImages.length) {
+        const pendingImage = pendingImages[0];
         const imageForm = new FormData();
         imageForm.append('conversationId', state.selected.id);
-        imageForm.append('attachment', pendingImage);
+        imageForm.append('photoBatchId', photoBatchId);
+        imageForm.append('attachment', pendingImage.file);
         const response = await fetch(`${API_URL}/messages`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
@@ -628,6 +788,9 @@ export async function renderMessage(root = document.querySelector('#app')) {
           const body = await response.json();
           throw new Error(body.message ?? 'Image could not be sent.');
         }
+        URL.revokeObjectURL(pendingImage.previewUrl);
+        pendingImages.shift();
+        renderPendingImages();
       }
 
       if (hasText) {
@@ -641,7 +804,7 @@ export async function renderMessage(root = document.querySelector('#app')) {
       }
 
       textarea.value = '';
-      clearPendingImage();
+      clearPendingImages();
       await refreshConversationList(state.selected.id);
       await select(state.selected.id);
     } catch (error) {

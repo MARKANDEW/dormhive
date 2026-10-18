@@ -107,35 +107,118 @@ function showPropertyPhotoViewer(property) {
   let photoIndex = 0;
   const viewer = document.createElement('dialog');
   viewer.className = 'portfolio-photo-viewer';
+  const actions = document.createElement('div');
+  actions.className = 'portfolio-photo-viewer__actions';
   const viewerImage = document.createElement('img');
   viewerImage.className = 'portfolio-photo-viewer__image';
+  const stage = document.createElement('div');
+  stage.className = 'portfolio-photo-viewer__stage';
   const closeButton = document.createElement('button');
   closeButton.type = 'button';
   closeButton.className = 'portfolio-photo-viewer__close';
   closeButton.setAttribute('aria-label', 'Close photo viewer');
-  closeButton.textContent = '×';
+  closeButton.title = 'Close viewer';
+  closeButton.innerHTML = '<i class="bi bi-x-lg" aria-hidden="true"></i>';
   const previousButton = document.createElement('button');
   previousButton.type = 'button';
   previousButton.className = 'portfolio-photo-viewer__nav portfolio-photo-viewer__nav--previous';
   previousButton.setAttribute('aria-label', 'View previous photo');
-  previousButton.textContent = '‹';
+  previousButton.title = 'Previous photo';
+  previousButton.innerHTML = '<i class="bi bi-chevron-left" aria-hidden="true"></i>';
   const nextButton = document.createElement('button');
   nextButton.type = 'button';
   nextButton.className = 'portfolio-photo-viewer__nav portfolio-photo-viewer__nav--next';
   nextButton.setAttribute('aria-label', 'View next photo');
-  nextButton.textContent = '›';
-  const renderPhoto = () => {
+  nextButton.title = 'Next photo';
+  nextButton.innerHTML = '<i class="bi bi-chevron-right" aria-hidden="true"></i>';
+  const thumbnails = document.createElement('nav');
+  thumbnails.className = 'portfolio-photo-viewer__thumbnails';
+  thumbnails.setAttribute('aria-label', 'Property photos');
+  const thumbnailButtons = photos.map((photo, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'portfolio-photo-viewer__thumbnail';
+    button.dataset.photoIndex = String(index);
+    button.setAttribute('aria-label', `View photo ${index + 1}`);
+    button.setAttribute('aria-current', String(index === 0));
+    const thumbnailImage = document.createElement('img');
+    thumbnailImage.src = photo;
+    thumbnailImage.alt = '';
+    thumbnailImage.loading = 'lazy';
+    button.append(thumbnailImage);
+    thumbnails.append(button);
+    return button;
+  });
+  const createActionButton = (className, label, iconName) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `portfolio-photo-viewer__action ${className}`;
+    button.setAttribute('aria-label', label);
+    button.title = label;
+    button.innerHTML = `<i class="bi ${iconName}" aria-hidden="true"></i>`;
+    actions.append(button);
+    return button;
+  };
+  const downloadButton = createActionButton('portfolio-photo-viewer__download', 'Download photo', 'bi-download');
+  const shareButton = createActionButton('portfolio-photo-viewer__share', 'Share photo', 'bi-share');
+  actions.append(closeButton);
+
+  const renderPhoto = (nextIndex = photoIndex) => {
+    photoIndex = (nextIndex + photos.length) % photos.length;
     viewerImage.src = photos[photoIndex];
     viewerImage.alt = `${property.title || 'Property'} photo ${photoIndex + 1}`;
-    previousButton.hidden = photos.length < 2;
-    nextButton.hidden = photos.length < 2;
+    const hasMultiplePhotos = photos.length > 1;
+    previousButton.hidden = !hasMultiplePhotos;
+    nextButton.hidden = !hasMultiplePhotos;
+    thumbnailButtons.forEach((button, index) => {
+      const active = index === photoIndex;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-current', String(active));
+    });
   };
-  previousButton.addEventListener('click', () => { photoIndex = (photoIndex - 1 + photos.length) % photos.length; renderPhoto(); });
-  nextButton.addEventListener('click', () => { photoIndex = (photoIndex + 1) % photos.length; renderPhoto(); });
+  thumbnails.addEventListener('click', (event) => {
+    const button = event.target.closest('.portfolio-photo-viewer__thumbnail');
+    if (button) renderPhoto(Number(button.dataset.photoIndex));
+  });
+  previousButton.addEventListener('click', () => renderPhoto(photoIndex - 1));
+  nextButton.addEventListener('click', () => renderPhoto(photoIndex + 1));
+  downloadButton.addEventListener('click', async () => {
+    try {
+      const response = await fetch(photos[photoIndex]);
+      if (!response.ok) throw new Error('Download failed');
+      const objectUrl = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = `${String(property.title || 'property').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '')}-photo-${photoIndex + 1}`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    } catch {
+      window.open(photos[photoIndex], '_blank', 'noopener,noreferrer');
+    }
+  });
+  shareButton.addEventListener('click', async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: property.title || 'Property photo', url: photos[photoIndex] });
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(photos[photoIndex]);
+        showToast({ message: 'Photo link copied.', type: 'success' });
+      } else {
+        throw new Error('Sharing is unavailable.');
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError') showToast({ message: 'Could not share this photo.', type: 'error' });
+    }
+  });
   closeButton.addEventListener('click', () => viewer.close());
   viewer.addEventListener('click', (event) => { if (event.target === viewer) viewer.close(); });
   viewer.addEventListener('close', () => viewer.remove(), { once: true });
-  viewer.append(viewerImage, previousButton, nextButton, closeButton);
+  viewer.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowLeft') previousButton.click();
+    if (event.key === 'ArrowRight') nextButton.click();
+  });
+  stage.append(viewerImage, previousButton, nextButton, actions);
+  viewer.append(stage, thumbnails);
   document.body.append(viewer);
   renderPhoto();
   viewer.showModal();
@@ -143,7 +226,7 @@ function showPropertyPhotoViewer(property) {
 
 function css() {
   const stylesheet = new URL('./style/myListing.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'portfolio-archive-tabs-1');
+  stylesheet.searchParams.set('v', 'portfolio-photo-viewer-reference-1');
   return loadOwnerStylesheet('listings', stylesheet);
 }
 

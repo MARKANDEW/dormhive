@@ -100,7 +100,7 @@ function clearTenantRouteStyles() {
 
 function css() {
   const stylesheet = new URL('./style/dashboardOwner.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'owner-map-location-search-7');
+  stylesheet.searchParams.set('v', 'owner-photo-viewer-reference-4');
   return loadOwnerStylesheet('dashboard', stylesheet);
 }
 async function get(path) { const response = await fetch(`${API}${path}`, { headers: auth() }); const body = await readApiResponse(response); if (!response.ok) throw new Error(getApiErrorMessage(body, 'Unable to load this information.')); return body; }
@@ -114,30 +114,81 @@ function showOwnerPhotoViewer(images, title) {
   let photoIndex = 0;
   const viewer = document.createElement('dialog');
   viewer.className = 'owner-photo-viewer';
+  const actions = document.createElement('div');
+  actions.className = 'owner-photo-viewer__actions';
+
   const viewerImage = document.createElement('img');
   viewerImage.className = 'owner-photo-viewer__image';
-  const closeButton = document.createElement('button');
-  closeButton.type = 'button';
-  closeButton.className = 'owner-photo-viewer__close';
-  closeButton.setAttribute('aria-label', 'Close photo viewer');
-  closeButton.textContent = '×';
+  const stage = document.createElement('div');
+  stage.className = 'owner-photo-viewer__stage';
   const previousButton = document.createElement('button');
   previousButton.type = 'button';
   previousButton.className = 'owner-photo-viewer__nav owner-photo-viewer__nav--previous';
   previousButton.setAttribute('aria-label', 'View previous photo');
-  previousButton.textContent = '‹';
+  previousButton.title = 'Previous photo';
+  previousButton.innerHTML = '<i class="bi bi-chevron-left" aria-hidden="true"></i>';
   const nextButton = document.createElement('button');
   nextButton.type = 'button';
   nextButton.className = 'owner-photo-viewer__nav owner-photo-viewer__nav--next';
   nextButton.setAttribute('aria-label', 'View next photo');
-  nextButton.textContent = '›';
-  const renderPhoto = () => {
+  nextButton.title = 'Next photo';
+  nextButton.innerHTML = '<i class="bi bi-chevron-right" aria-hidden="true"></i>';
+  const thumbnails = document.createElement('nav');
+  thumbnails.className = 'owner-photo-viewer__thumbnails';
+  thumbnails.setAttribute('aria-label', 'Property photos');
+  const thumbnailButtons = images.map((image, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'owner-photo-viewer__thumbnail';
+    button.dataset.photoIndex = String(index);
+    button.setAttribute('aria-label', `View photo ${index + 1}`);
+    button.setAttribute('aria-current', String(index === 0));
+    const thumbnailImage = document.createElement('img');
+    thumbnailImage.src = image;
+    thumbnailImage.alt = '';
+    thumbnailImage.loading = 'lazy';
+    button.append(thumbnailImage);
+    thumbnails.append(button);
+    return button;
+  });
+
+  const createActionButton = (className, label, iconName) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `owner-photo-viewer__action ${className}`;
+    button.setAttribute('aria-label', label);
+    button.title = label;
+    button.innerHTML = `<i class="bi ${iconName}" aria-hidden="true"></i>`;
+    actions.append(button);
+    return button;
+  };
+  const downloadButton = createActionButton('owner-photo-viewer__download', 'Download photo', 'bi-download');
+  const shareButton = createActionButton('owner-photo-viewer__share', 'Share photo', 'bi-share');
+  const closeButton = document.createElement('button');
+  closeButton.type = 'button';
+  closeButton.className = 'owner-photo-viewer__close';
+  closeButton.setAttribute('aria-label', 'Close photo viewer');
+  closeButton.title = 'Close viewer';
+  closeButton.innerHTML = '<i class="bi bi-x-lg" aria-hidden="true"></i>';
+  actions.append(closeButton);
+
+  const renderPhoto = (nextIndex = photoIndex) => {
+    photoIndex = (nextIndex + images.length) % images.length;
     viewerImage.src = images[photoIndex];
     viewerImage.alt = `${title} photo ${photoIndex + 1}`;
     const hasMultiplePhotos = images.length > 1;
     previousButton.hidden = !hasMultiplePhotos;
     nextButton.hidden = !hasMultiplePhotos;
+    thumbnailButtons.forEach((button, index) => {
+      const active = index === photoIndex;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-current', String(active));
+    });
   };
+  thumbnails.addEventListener('click', (event) => {
+    const button = event.target.closest('.owner-photo-viewer__thumbnail');
+    if (button) renderPhoto(Number(button.dataset.photoIndex));
+  });
   previousButton.addEventListener('click', () => {
     photoIndex = (photoIndex - 1 + images.length) % images.length;
     renderPhoto();
@@ -146,10 +197,43 @@ function showOwnerPhotoViewer(images, title) {
     photoIndex = (photoIndex + 1) % images.length;
     renderPhoto();
   });
+  downloadButton.addEventListener('click', async () => {
+    try {
+      const response = await fetch(images[photoIndex]);
+      if (!response.ok) throw new Error('Download failed');
+      const objectUrl = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = `${String(title || 'property').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '')}-photo-${photoIndex + 1}`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    } catch {
+      window.open(images[photoIndex], '_blank', 'noopener,noreferrer');
+    }
+  });
+  shareButton.addEventListener('click', async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, url: images[photoIndex] });
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(images[photoIndex]);
+        showToast({ message: 'Photo link copied.', type: 'success' });
+      } else {
+        throw new Error('Sharing is unavailable.');
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError') showToast({ message: 'Could not share this photo.', type: 'error' });
+    }
+  });
   closeButton.addEventListener('click', () => viewer.close());
   viewer.addEventListener('click', (event) => { if (event.target === viewer) viewer.close(); });
   viewer.addEventListener('close', () => viewer.remove(), { once: true });
-  viewer.append(viewerImage, previousButton, nextButton, closeButton);
+  viewer.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowLeft') previousButton.click();
+    if (event.key === 'ArrowRight') nextButton.click();
+  });
+  stage.append(viewerImage, previousButton, nextButton, actions);
+  viewer.append(stage, thumbnails);
   document.body.append(viewer);
   renderPhoto();
   viewer.showModal();

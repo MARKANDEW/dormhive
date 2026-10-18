@@ -314,6 +314,11 @@ async function checkAndFixDatabase() {
         console.log('\n✅ Missing messages columns added successfully!\n');
       }
 
+      if (!messageColumnNames.includes('photo_batch_id')) {
+        await query('ALTER TABLE messages ADD COLUMN IF NOT EXISTS photo_batch_id CHAR(36) NULL AFTER body');
+        console.log('✓ photo_batch_id column added to messages table');
+      }
+
       const notificationTableExists = (await query("SHOW TABLES LIKE 'notifications'"))[0] !== undefined;
       if (notificationTableExists) {
         const notificationColumns = await query('DESCRIBE notifications');

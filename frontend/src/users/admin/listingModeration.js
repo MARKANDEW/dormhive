@@ -19,7 +19,7 @@ const formatRoomType = (value = '') => ({
 
 function css() {
   const stylesheet = new URL('./style/listingModeration.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'moderation-reject-responsive-1');
+  stylesheet.searchParams.set('v', 'moderation-photo-viewer-reference-2');
   return loadAdminStylesheet('moderation', stylesheet);
 }
 
@@ -242,35 +242,91 @@ export async function renderListingModeration(root = document.querySelector('#ap
     let photoIndex = 0;
     const viewer = document.createElement('dialog');
     viewer.className = 'moderation-photo-viewer';
-    const image = document.createElement('img');
-    image.className = 'moderation-photo-viewer__image';
-    const closeButton = document.createElement('button');
-    closeButton.type = 'button';
-    closeButton.className = 'moderation-photo-viewer__close';
-    closeButton.setAttribute('aria-label', 'Close photo viewer');
-    closeButton.textContent = '×';
-    const previousButton = document.createElement('button');
-    previousButton.type = 'button';
-    previousButton.className = 'moderation-photo-viewer__nav moderation-photo-viewer__nav--previous';
-    previousButton.setAttribute('aria-label', 'View previous photo');
-    previousButton.textContent = '‹';
-    const nextButton = document.createElement('button');
-    nextButton.type = 'button';
-    nextButton.className = 'moderation-photo-viewer__nav moderation-photo-viewer__nav--next';
-    nextButton.setAttribute('aria-label', 'View next photo');
-    nextButton.textContent = '›';
-    const renderPhoto = () => {
+    viewer.innerHTML = `
+      <div class="moderation-photo-viewer__stage">
+        <img class="moderation-photo-viewer__image" alt="">
+        <button type="button" class="moderation-photo-viewer__nav moderation-photo-viewer__nav--previous" aria-label="View previous photo" title="Previous photo"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+        <button type="button" class="moderation-photo-viewer__nav moderation-photo-viewer__nav--next" aria-label="View next photo" title="Next photo"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+        <div class="moderation-photo-viewer__actions">
+          <button type="button" class="moderation-photo-viewer__action moderation-photo-viewer__download" aria-label="Download photo" title="Download photo"><i class="bi bi-download" aria-hidden="true"></i></button>
+          <button type="button" class="moderation-photo-viewer__action moderation-photo-viewer__share" aria-label="Share photo" title="Share photo"><i class="bi bi-share" aria-hidden="true"></i></button>
+          <button type="button" class="moderation-photo-viewer__action moderation-photo-viewer__close" aria-label="Close photo viewer" title="Close viewer"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+        </div>
+      </div>
+      <nav class="moderation-photo-viewer__thumbnails" aria-label="Property photos"></nav>`;
+    const image = viewer.querySelector('.moderation-photo-viewer__image');
+    const thumbnails = viewer.querySelector('.moderation-photo-viewer__thumbnails');
+    const thumbnailButtons = photos.map((photo, index) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'moderation-photo-viewer__thumbnail';
+      button.dataset.photoIndex = String(index);
+      button.setAttribute('aria-label', `View photo ${index + 1}`);
+      button.setAttribute('aria-current', String(index === 0));
+      const thumbnailImage = document.createElement('img');
+      thumbnailImage.src = photo;
+      thumbnailImage.alt = '';
+      thumbnailImage.loading = 'lazy';
+      button.append(thumbnailImage);
+      thumbnails.append(button);
+      return button;
+    });
+    const previousButton = viewer.querySelector('.moderation-photo-viewer__nav--previous');
+    const nextButton = viewer.querySelector('.moderation-photo-viewer__nav--next');
+    const renderPhoto = (nextIndex = photoIndex) => {
+      photoIndex = (nextIndex + photos.length) % photos.length;
       image.src = photos[photoIndex];
       image.alt = `${row.title || 'Property'} photo ${photoIndex + 1}`;
       previousButton.hidden = photos.length < 2;
       nextButton.hidden = photos.length < 2;
+      thumbnailButtons.forEach((button, index) => {
+        const active = index === photoIndex;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-current', String(active));
+      });
     };
     previousButton.addEventListener('click', () => { photoIndex = (photoIndex - 1 + photos.length) % photos.length; renderPhoto(); });
     nextButton.addEventListener('click', () => { photoIndex = (photoIndex + 1) % photos.length; renderPhoto(); });
-    closeButton.addEventListener('click', () => viewer.close());
+    thumbnails.addEventListener('click', (event) => {
+      const button = event.target.closest('.moderation-photo-viewer__thumbnail');
+      if (button) renderPhoto(Number(button.dataset.photoIndex));
+    });
+    viewer.querySelector('.moderation-photo-viewer__close').addEventListener('click', () => viewer.close());
+    viewer.querySelector('.moderation-photo-viewer__download').addEventListener('click', async () => {
+      try {
+        const response = await fetch(photos[photoIndex]);
+        if (!response.ok) throw new Error('Download failed');
+        const objectUrl = URL.createObjectURL(await response.blob());
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.download = `${String(row.title || 'property').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '')}-photo-${photoIndex + 1}`;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      } catch {
+        window.open(photos[photoIndex], '_blank', 'noopener,noreferrer');
+      }
+    });
+    viewer.querySelector('.moderation-photo-viewer__share').addEventListener('click', async () => {
+      try {
+        if (navigator.share) await navigator.share({ title: row.title || 'Property photo', url: photos[photoIndex] });
+        else if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(photos[photoIndex]);
+        else window.open(photos[photoIndex], '_blank', 'noopener,noreferrer');
+      } catch (error) {
+        if (error.name !== 'AbortError') window.open(photos[photoIndex], '_blank', 'noopener,noreferrer');
+      }
+    });
+    viewer.addEventListener('keydown', (event) => {
+      if (photos.length < 2) return;
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        renderPhoto(photoIndex - 1);
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        renderPhoto(photoIndex + 1);
+      }
+    });
     viewer.addEventListener('click', (event) => { if (event.target === viewer) viewer.close(); });
     viewer.addEventListener('close', () => viewer.remove(), { once: true });
-    viewer.append(image, previousButton, nextButton, closeButton);
     document.body.append(viewer);
     renderPhoto();
     viewer.showModal();
@@ -597,19 +653,81 @@ export async function renderListingModeration(root = document.querySelector('#ap
     if (!imageUrls.length) return;
     const preview = document.createElement('div');
     preview.className = 'photo-preview-modal';
-    preview.innerHTML = '<button type="button" class="photo-preview-close" aria-label="Close photo">×</button><button type="button" class="photo-preview-arrow photo-preview-previous" aria-label="Previous photo">‹</button><img alt="Property photo preview"><button type="button" class="photo-preview-arrow photo-preview-next" aria-label="Next photo">›</button>';
+    preview.setAttribute('role', 'dialog');
+    preview.setAttribute('aria-modal', 'true');
+    preview.setAttribute('aria-label', 'Property photos');
+    preview.innerHTML = `
+      <div class="photo-preview-stage">
+        <img alt="">
+        <button type="button" class="photo-preview-arrow photo-preview-previous" aria-label="Previous photo" title="Previous photo"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+        <button type="button" class="photo-preview-arrow photo-preview-next" aria-label="Next photo" title="Next photo"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+        <div class="photo-preview-actions">
+          <button type="button" class="photo-preview-action photo-preview-download" aria-label="Download photo" title="Download photo"><i class="bi bi-download" aria-hidden="true"></i></button>
+          <button type="button" class="photo-preview-action photo-preview-share" aria-label="Share photo" title="Share photo"><i class="bi bi-share" aria-hidden="true"></i></button>
+          <button type="button" class="photo-preview-action photo-preview-close" aria-label="Close photo" title="Close viewer"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+        </div>
+      </div>
+      <nav class="photo-preview-thumbnails" aria-label="Property photos"></nav>`;
     const image = preview.querySelector('img');
     let currentIndex = (startIndex + imageUrls.length) % imageUrls.length;
+    const thumbnails = preview.querySelector('.photo-preview-thumbnails');
+    const thumbnailButtons = imageUrls.map((imageUrl, index) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'photo-preview-thumbnail';
+      button.dataset.photoIndex = String(index);
+      button.setAttribute('aria-label', `View photo ${index + 1}`);
+      button.setAttribute('aria-current', String(index === currentIndex));
+      const thumbnailImage = document.createElement('img');
+      thumbnailImage.src = imageUrl;
+      thumbnailImage.alt = '';
+      thumbnailImage.loading = 'lazy';
+      button.append(thumbnailImage);
+      thumbnails.append(button);
+      return button;
+    });
     const showImage = (index) => {
       currentIndex = (index + imageUrls.length) % imageUrls.length;
       image.src = imageUrls[currentIndex];
       image.alt = `Property photo ${currentIndex + 1} of ${imageUrls.length}`;
+      thumbnailButtons.forEach((button, thumbnailIndex) => {
+        const active = thumbnailIndex === currentIndex;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-current', String(active));
+      });
     };
     showImage(currentIndex);
     const closePreview = () => preview.remove();
     preview.querySelector('.photo-preview-close').addEventListener('click', closePreview);
     preview.querySelector('.photo-preview-previous').addEventListener('click', () => showImage(currentIndex - 1));
     preview.querySelector('.photo-preview-next').addEventListener('click', () => showImage(currentIndex + 1));
+    thumbnails.addEventListener('click', (event) => {
+      const button = event.target.closest('.photo-preview-thumbnail');
+      if (button) showImage(Number(button.dataset.photoIndex));
+    });
+    preview.querySelector('.photo-preview-download').addEventListener('click', async () => {
+      try {
+        const response = await fetch(imageUrls[currentIndex]);
+        if (!response.ok) throw new Error('Download failed');
+        const objectUrl = URL.createObjectURL(await response.blob());
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.download = `property-photo-${currentIndex + 1}`;
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      } catch {
+        window.open(imageUrls[currentIndex], '_blank', 'noopener,noreferrer');
+      }
+    });
+    preview.querySelector('.photo-preview-share').addEventListener('click', async () => {
+      try {
+        if (navigator.share) await navigator.share({ title: image.alt, url: imageUrls[currentIndex] });
+        else if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(imageUrls[currentIndex]);
+        else window.open(imageUrls[currentIndex], '_blank', 'noopener,noreferrer');
+      } catch (error) {
+        if (error.name !== 'AbortError') window.open(imageUrls[currentIndex], '_blank', 'noopener,noreferrer');
+      }
+    });
     preview.addEventListener('click', (event) => {
       if (event.target === preview) closePreview();
     });

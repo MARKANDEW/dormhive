@@ -18,11 +18,11 @@ export async function conversationFor(id, user) {
 export function history(id) {
   return query(`SELECT msg.id, msg.conversation_id, msg.sender_id,
       CASE WHEN msg.body LIKE 'data:image/%' THEN '[Photo]' ELSE msg.body END AS body,
-      msg.read_at, msg.created_at,
+      msg.photo_batch_id, msg.read_at, msg.created_at,
       CASE WHEN media.id IS NOT NULL THEN CONCAT('/api/v1/media/', media.id) END AS attachment_url,
       media.original_filename AS attachment_name, media.mime_type AS attachment_mime_type
     FROM messages msg LEFT JOIN media_files media ON media.message_id = msg.id
-    WHERE msg.conversation_id = ? ORDER BY msg.created_at ASC`, [id]);
+    WHERE msg.conversation_id = ? ORDER BY msg.created_at ASC, msg.id ASC`, [id]);
 }
 
 export async function createConversation({ tenantId, ownerId, propertyId = null }) {
@@ -33,8 +33,8 @@ export async function createConversation({ tenantId, ownerId, propertyId = null 
   return rows[0];
 }
 
-export async function send(conversationId, senderId, body, attachment = null) {
-  const result = await query('INSERT INTO messages (conversation_id, sender_id, body) VALUES (?,?,?)', [conversationId, senderId, body]);
+export async function send(conversationId, senderId, body, attachment = null, photoBatchId = null) {
+  const result = await query('INSERT INTO messages (conversation_id, sender_id, body, photo_batch_id) VALUES (?,?,?,?)', [conversationId, senderId, body, photoBatchId]);
   await query('UPDATE conversations SET updated_at=CURRENT_TIMESTAMP WHERE id=?', [conversationId]);
   if (attachment) {
     await mediaFiles.create({

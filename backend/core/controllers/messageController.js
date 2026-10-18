@@ -72,10 +72,11 @@ export async function send(request, response, next) {
 
     let fileMetadata = null;
     if (request.file) fileMetadata = validateUpload(request.file, { imagesOnly: true });
+    const photoBatchId = request.body?.photoBatchId ? String(request.body.photoBatchId).slice(0, 36) : null;
     const message = await messages.send(conversation.id, request.user.id, body, request.file ? {
       ...fileMetadata,
       buffer: request.file.buffer
-    } : null);
+    } : null, photoBatchId);
     response.status(201).json({ data: message });
   } catch (error) { next(error); }
 }

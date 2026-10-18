@@ -486,92 +486,149 @@ body {
 .booking-photo-viewer {
   position: fixed;
   inset: 0;
-  width: min(94vw, 1100px);
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) 64px;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
   max-width: none;
-  max-height: 92vh;
-  margin: auto;
+  max-height: none;
+  margin: 0;
   padding: 0;
-  overflow: visible;
+  overflow: hidden;
   border: 0;
-  border-radius: 12px;
-  background: transparent;
+  border-radius: 0;
+  background: #34363b;
+  color: #fff;
+  box-shadow: none;
 }
 
 .booking-photo-viewer::backdrop {
-  background: rgba(10, 16, 24, 0.86);
+  background: #25272b;
+}
+
+.booking-photo-viewer__stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  padding: 0.75rem 4.5rem 0;
+  overflow: hidden;
+  background: #37393e;
 }
 
 .booking-photo-viewer__image {
   display: block;
-  width: 100%;
-  max-height: 92vh;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
-  border-radius: 12px;
+  border-radius: 0;
+}
+
+.booking-photo-viewer__actions {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.booking-photo-viewer__action,
+.booking-photo-viewer__close,
+.booking-photo-viewer__nav {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(18, 20, 24, 0.66);
+  color: #fff;
+  cursor: pointer;
+}
+
+.booking-photo-viewer__action,
+.booking-photo-viewer__close {
+  width: 38px;
+  height: 38px;
+  font-size: 1rem;
+}
+
+.booking-photo-viewer__action:hover,
+.booking-photo-viewer__close:hover,
+.booking-photo-viewer__nav:hover {
+  background: rgba(5, 7, 10, 0.9);
 }
 
 .booking-photo-viewer__nav {
   position: absolute;
   top: 50%;
-  display: grid;
-  place-items: center;
-  width: 48px;
-  height: 48px;
-  transform: translateY(-50%);
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 50%;
-  background: rgba(15, 23, 42, 0.78);
-  color: #fff;
-  font-size: 2rem;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.booking-photo-viewer__nav:hover,
-.booking-photo-viewer__close:hover {
-  background: rgba(15, 23, 42, 0.96);
-}
-
-.booking-photo-viewer__nav--previous {
-  left: 16px;
-}
-
-.booking-photo-viewer__nav--next {
-  right: 16px;
-}
-
-.booking-photo-viewer__counter {
-  position: absolute;
-  bottom: 14px;
-  left: 50%;
-  padding: 6px 11px;
-  transform: translateX(-50%);
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.78);
-  color: #fff;
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.booking-photo-viewer__close {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  display: grid;
-  place-items: center;
+  z-index: 1;
   width: 42px;
   height: 42px;
-  border: 0;
-  border-radius: 50%;
-  background: rgba(15, 23, 42, 0.78);
-  color: #fff;
-  font-size: 1.75rem;
-  line-height: 1;
-  cursor: pointer;
+  transform: translateY(-50%);
+  font-size: 1.15rem;
 }
 
-.booking-photo-viewer__nav[hidden],
-.booking-photo-viewer__counter[hidden] {
+.booking-photo-viewer__nav--previous { left: 1rem; }
+.booking-photo-viewer__nav--next { right: 1rem; }
+
+.booking-photo-viewer__close {
+  position: static;
+}
+
+.booking-photo-viewer__thumbnails {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-width: 0;
+  padding: 0.4rem 1rem;
+  overflow-x: auto;
+  background: #303238;
+}
+
+.booking-photo-viewer__thumbnail {
+  flex: 0 0 56px;
+  width: 56px;
+  height: 40px;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  background: #45474c;
+  cursor: pointer;
+  opacity: 0.68;
+}
+
+.booking-photo-viewer__thumbnail:hover { opacity: 0.92; }
+.booking-photo-viewer__thumbnail.is-active { border-color: #d5a51b; opacity: 1; }
+.booking-photo-viewer__thumbnail img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+.booking-photo-viewer__action:focus-visible,
+.booking-photo-viewer__close:focus-visible,
+.booking-photo-viewer__nav:focus-visible,
+.booking-photo-viewer__thumbnail:focus-visible {
+  outline: 2px solid #e0b329;
+  outline-offset: 2px;
+}
+
+.booking-photo-viewer__nav[hidden] {
   display: none;
+}
+
+@media (max-width: 600px) {
+  .booking-photo-viewer { grid-template-rows: minmax(0, 1fr) 58px; }
+  .booking-photo-viewer__stage { padding: 0.75rem 3rem 0; }
+  .booking-photo-viewer__actions { gap: 0.3rem; }
+  .booking-photo-viewer__action, .booking-photo-viewer__close { width: 34px; height: 34px; }
+  .booking-photo-viewer__nav { width: 36px; height: 36px; }
+  .booking-photo-viewer__nav--previous { left: 0.5rem; }
+  .booking-photo-viewer__nav--next { right: 0.5rem; }
+  .booking-photo-viewer__thumbnail { flex-basis: 54px; width: 54px; height: 36px; }
 }
 
 .pill-overlay {
