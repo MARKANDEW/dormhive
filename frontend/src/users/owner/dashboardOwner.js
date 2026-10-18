@@ -368,7 +368,21 @@ export async function renderDashboardOwner(root = document.querySelector('#app')
                 <span class="notification-badge" hidden>0</span>
               </button>
               <div class="notification-dropdown" hidden>
-                <div class="notification-dropdown-header"><strong>Notifications</strong><span>Recent updates</span></div>
+                <div class="notification-dropdown-header">
+                  <strong>Notifications</strong>
+                  <div class="notification-dropdown-actions">
+                    <button class="notification-more-button" type="button" aria-label="Notification actions" aria-expanded="false">
+                      <svg class="notification-more-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="19" cy="12" r="1.8"></circle></svg>
+                    </button>
+                    <div class="notification-actions-menu" hidden>
+                      <button class="notification-mark-all-read" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Mark all as read</span></button>
+                    </div>
+                  </div>
+                </div>
+                <div class="notification-filters" role="group" aria-label="Filter notifications">
+                  <button class="notification-filter is-active" type="button" data-notification-filter="all" aria-pressed="true">All</button>
+                  <button class="notification-filter" type="button" data-notification-filter="unread" aria-pressed="false">Unread</button>
+                </div>
                 <div class="notification-list"><p class="notification-empty">No notifications yet.</p></div>
               </div>
             </div>
@@ -438,19 +452,33 @@ export async function renderDashboardOwner(root = document.querySelector('#app')
   const notificationBadge = root.querySelector('.notification-badge');
   const notificationDropdown = root.querySelector('.notification-dropdown');
   const notificationList = root.querySelector('.notification-list');
+  const notificationMoreButton = root.querySelector('.notification-more-button');
+  const notificationActionsMenu = root.querySelector('.notification-actions-menu');
+  const markAllNotificationsReadButton = root.querySelector('.notification-mark-all-read');
+  const notificationFilterButtons = Array.from(notificationDropdown.querySelectorAll('[data-notification-filter]'));
   let notifications = [];
+  let notificationFilter = 'all';
 
   const renderNotifications = () => {
     const unreadCount = notifications.filter((item) => !item.read_at).length;
     notificationBadge.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
     notificationBadge.hidden = unreadCount === 0;
-    notificationList.innerHTML = notifications.length
-      ? notifications.slice(0, 6).map((item) => `
+    markAllNotificationsReadButton.disabled = unreadCount === 0;
+    notificationFilterButtons.forEach((button) => {
+      const isActive = button.dataset.notificationFilter === notificationFilter;
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-pressed', String(isActive));
+    });
+    const visibleNotifications = (notificationFilter === 'unread'
+      ? notifications.filter((item) => !item.read_at)
+      : notifications).slice(0, 6);
+    notificationList.innerHTML = visibleNotifications.length
+      ? visibleNotifications.map((item) => `
           <button class="notification-item${item.read_at ? '' : ' is-unread'}" type="button" data-notification-id="${item.id}">
             <span class="notification-item-copy"><strong>${escape(item.title || 'Notification')}</strong><span>${escape(item.message || '')}</span></span>
             <time>${escape(formatNotificationDate(item.created_at))}</time>
           </button>`).join('')
-      : '<p class="notification-empty">No notifications yet.</p>';
+      : `<p class="notification-empty">${notificationFilter === 'unread' && notifications.length ? 'No unread notifications.' : 'No notifications yet.'}</p>`;
   };
 
   const loadNotifications = async () => {
@@ -467,6 +495,30 @@ export async function renderDashboardOwner(root = document.querySelector('#app')
     const isOpen = !notificationDropdown.hidden;
     notificationDropdown.hidden = isOpen;
     notificationTrigger.setAttribute('aria-expanded', String(!isOpen));
+  });
+  notificationMoreButton.addEventListener('click', () => {
+    const isOpen = !notificationActionsMenu.hidden;
+    notificationActionsMenu.hidden = isOpen;
+    notificationMoreButton.setAttribute('aria-expanded', String(!isOpen));
+  });
+  markAllNotificationsReadButton.addEventListener('click', async () => {
+    const unreadNotifications = notifications.filter((item) => !item.read_at);
+    if (!unreadNotifications.length) return;
+    markAllNotificationsReadButton.disabled = true;
+    const results = await Promise.allSettled(unreadNotifications.map((item) => markNotificationRead(item.id)));
+    const readAt = new Date().toISOString();
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') unreadNotifications[index].read_at = readAt;
+    });
+    notificationActionsMenu.hidden = true;
+    notificationMoreButton.setAttribute('aria-expanded', 'false');
+    renderNotifications();
+  });
+  notificationDropdown.querySelector('.notification-filters').addEventListener('click', (event) => {
+    const button = event.target.closest('[data-notification-filter]');
+    if (!button) return;
+    notificationFilter = button.dataset.notificationFilter;
+    renderNotifications();
   });
   notificationList.addEventListener('click', async (event) => {
     const item = event.target.closest('[data-notification-id]');

@@ -253,10 +253,118 @@ a {
 
 .notification-dropdown-header {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
   padding: 0.85rem 1rem;
   border-bottom: 1px solid var(--border);
+}
+
+.notification-dropdown-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.notification-more-button {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.notification-more-button:hover {
+  background: #f4f8f6;
+  color: var(--text);
+}
+
+.notification-more-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  fill: currentColor;
+}
+
+.notification-actions-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 2;
+  min-width: 11rem;
+  padding: 0.3rem;
+  border: 1px solid var(--border);
+  border-radius: 0.55rem;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(20, 70, 55, 0.14);
+}
+
+.notification-actions-menu[hidden] {
+  display: none;
+}
+
+.notification-mark-all-read {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.6rem 0.65rem;
+  border: 0;
+  border-radius: 0.35rem;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.notification-mark-all-read svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex: 0 0 auto;
+}
+
+.notification-mark-all-read:hover:not(:disabled) {
+  background: #f4f8f6;
+}
+
+.notification-mark-all-read:disabled {
+  color: #9aa9a2;
+  cursor: default;
+}
+
+.notification-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid #edf2ef;
+}
+
+.notification-filter {
+  padding: 0.45rem 0.65rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.notification-filter:hover {
+  background: #f4f8f6;
+}
+
+.notification-filter.is-active {
+  background: #e8f4ef;
+  color: #15734e;
 }
 
 .notification-dropdown-header span,

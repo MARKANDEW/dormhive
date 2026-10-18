@@ -98,8 +98,22 @@ function loadStyle() {
       .dh-dashboard .notification-trigger > span:first-child { font-size: 1.25rem; line-height: 1; filter: grayscale(1) brightness(.35); }
       .dh-dashboard .notification-badge { position: absolute; top: 2px; right: 1px; min-width: 16px; height: 16px; display: grid; place-items: center; padding: 0 4px; border-radius: 999px; background: #ef4444; color: #fff; font-size: 10px; font-weight: 800; }
       .dh-dashboard .notification-dropdown { position: absolute; top: calc(100% + .65rem); right: 0; z-index: 30; width: min(21rem, calc(100vw - 2rem)); overflow: hidden; border: 1px solid #dce6e2; border-radius: .8rem; background: #fff; box-shadow: 0 12px 30px rgba(20, 70, 55, .14); }
-      .dh-dashboard .notification-dropdown-header { display: flex; justify-content: space-between; gap: 1rem; padding: .85rem 1rem; border-bottom: 1px solid #dce6e2; }
-      .dh-dashboard .notification-dropdown-header span, .dh-dashboard .notification-empty, .dh-dashboard .notification-item time { color: #6d8179; font-size: .75rem; }
+      .dh-dashboard .notification-dropdown-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .85rem 1rem; border-bottom: 1px solid #dce6e2; }
+      .dh-dashboard .notification-dropdown-actions { position: relative; display: flex; align-items: center; }
+      .dh-dashboard .notification-more-button { display: grid; place-items: center; width: 2rem; height: 2rem; padding: 0; border: 0; border-radius: .5rem; background: transparent; color: #6d8179; cursor: pointer; }
+      .dh-dashboard .notification-more-button:hover { background: #f4f8f6; color: #1f3530; }
+      .dh-dashboard .notification-more-icon { width: 1.15rem; height: 1.15rem; fill: currentColor; }
+      .dh-dashboard .notification-actions-menu { position: absolute; top: calc(100% + .35rem); right: 0; z-index: 2; min-width: 11rem; padding: .3rem; border: 1px solid #dce6e2; border-radius: .55rem; background: #fff; box-shadow: 0 8px 20px rgba(20, 70, 55, .14); }
+      .dh-dashboard .notification-actions-menu[hidden] { display: none; }
+      .dh-dashboard .notification-mark-all-read { display: flex; align-items: center; gap: .65rem; width: 100%; padding: .6rem .65rem; border: 0; border-radius: .35rem; background: transparent; color: #1f3530; font: inherit; font-size: .8rem; text-align: left; cursor: pointer; }
+      .dh-dashboard .notification-mark-all-read svg { width: 1.1rem; height: 1.1rem; flex: 0 0 auto; }
+      .dh-dashboard .notification-mark-all-read:hover:not(:disabled) { background: #f4f8f6; }
+      .dh-dashboard .notification-mark-all-read:disabled { color: #9aa9a2; cursor: default; }
+      .dh-dashboard .notification-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .35rem; padding: .55rem .75rem; border-bottom: 1px solid #edf2ef; }
+      .dh-dashboard .notification-filter { padding: .45rem .65rem; border: 0; border-radius: .5rem; background: transparent; color: #6d8179; font: inherit; font-size: .8rem; font-weight: 600; cursor: pointer; }
+      .dh-dashboard .notification-filter:hover { background: #f4f8f6; }
+      .dh-dashboard .notification-filter.is-active { background: #e8f4ef; color: #15734e; }
+      .dh-dashboard .notification-empty, .dh-dashboard .notification-item time { color: #6d8179; font-size: .75rem; }
       .dh-dashboard .notification-list { max-height: 20rem; overflow-y: auto; }
       .dh-dashboard .notification-item { display: flex; align-items: flex-start; justify-content: space-between; gap: .8rem; width: 100%; padding: .85rem 1rem; border: 0; border-bottom: 1px solid #edf2ef; background: #fff; color: #1f3530; text-align: left; cursor: pointer; }
       .dh-dashboard .notification-item:hover, .dh-dashboard .notification-item.is-unread { background: #f7fcf9; }
@@ -688,7 +702,21 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
                 <span class="notification-badge" hidden>0</span>
               </button>
               <div class="notification-dropdown" hidden>
-                <div class="notification-dropdown-header"><strong>Notifications</strong><span>Recent updates</span></div>
+                <div class="notification-dropdown-header">
+                  <strong>Notifications</strong>
+                  <div class="notification-dropdown-actions">
+                    <button class="notification-more-button" type="button" aria-label="Notification actions" aria-expanded="false">
+                      <svg class="notification-more-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="19" cy="12" r="1.8"></circle></svg>
+                    </button>
+                    <div class="notification-actions-menu" hidden>
+                      <button class="notification-mark-all-read" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg><span>Mark all as read</span></button>
+                    </div>
+                  </div>
+                </div>
+                <div class="notification-filters" role="group" aria-label="Filter notifications">
+                  <button class="notification-filter is-active" type="button" data-notification-filter="all" aria-pressed="true">All</button>
+                  <button class="notification-filter" type="button" data-notification-filter="unread" aria-pressed="false">Unread</button>
+                </div>
                 <div class="notification-list"><p class="notification-empty">No notifications yet.</p></div>
               </div>
             </div>
@@ -817,19 +845,33 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
   const notificationBadge = root.querySelector('.notification-badge');
   const notificationDropdown = root.querySelector('.notification-dropdown');
   const notificationList = root.querySelector('.notification-list');
+  const notificationMoreButton = root.querySelector('.notification-more-button');
+  const notificationActionsMenu = root.querySelector('.notification-actions-menu');
+  const markAllNotificationsReadButton = root.querySelector('.notification-mark-all-read');
+  const notificationFilterButtons = Array.from(notificationDropdown.querySelectorAll('[data-notification-filter]'));
   let notifications = [];
+  let notificationFilter = 'all';
 
   const renderNotifications = () => {
     const unreadCount = notifications.filter((item) => !item.read_at).length;
     notificationBadge.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
     notificationBadge.hidden = unreadCount === 0;
-    notificationList.innerHTML = notifications.length
-      ? notifications.slice(0, 6).map((item) => `
+    markAllNotificationsReadButton.disabled = unreadCount === 0;
+    notificationFilterButtons.forEach((button) => {
+      const isActive = button.dataset.notificationFilter === notificationFilter;
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-pressed', String(isActive));
+    });
+    const visibleNotifications = (notificationFilter === 'unread'
+      ? notifications.filter((item) => !item.read_at)
+      : notifications).slice(0, 6);
+    notificationList.innerHTML = visibleNotifications.length
+      ? visibleNotifications.map((item) => `
           <button class="notification-item${item.read_at ? '' : ' is-unread'}" type="button" data-notification-id="${item.id}">
             <span class="notification-item-copy"><strong>${esc(item.title || 'Notification')}</strong><span>${esc(item.message || '')}</span></span>
             <time>${esc(formatNotificationDate(item.created_at))}</time>
           </button>`).join('')
-      : '<p class="notification-empty">No notifications yet.</p>';
+      : `<p class="notification-empty">${notificationFilter === 'unread' && notifications.length ? 'No unread notifications.' : 'No notifications yet.'}</p>`;
   };
 
   const loadNotifications = async () => {
@@ -846,6 +888,30 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
     const isOpen = !notificationDropdown.hidden;
     notificationDropdown.hidden = isOpen;
     notificationTrigger.setAttribute('aria-expanded', String(!isOpen));
+  });
+  notificationMoreButton.addEventListener('click', () => {
+    const isOpen = !notificationActionsMenu.hidden;
+    notificationActionsMenu.hidden = isOpen;
+    notificationMoreButton.setAttribute('aria-expanded', String(!isOpen));
+  });
+  markAllNotificationsReadButton.addEventListener('click', async () => {
+    const unreadNotifications = notifications.filter((item) => !item.read_at);
+    if (!unreadNotifications.length) return;
+    markAllNotificationsReadButton.disabled = true;
+    const results = await Promise.allSettled(unreadNotifications.map((item) => markNotificationRead(item.id)));
+    const readAt = new Date().toISOString();
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled') unreadNotifications[index].read_at = readAt;
+    });
+    notificationActionsMenu.hidden = true;
+    notificationMoreButton.setAttribute('aria-expanded', 'false');
+    renderNotifications();
+  });
+  notificationDropdown.querySelector('.notification-filters').addEventListener('click', (event) => {
+    const button = event.target.closest('[data-notification-filter]');
+    if (!button) return;
+    notificationFilter = button.dataset.notificationFilter;
+    renderNotifications();
   });
   notificationList.addEventListener('click', async (event) => {
     const item = event.target.closest('[data-notification-id]');
