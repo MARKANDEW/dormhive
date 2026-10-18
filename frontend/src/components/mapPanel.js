@@ -1,3 +1,4 @@
+import { withMediaAccessToken } from '../services/mediaAccess.js';
 
   function style() {
     if (document.querySelector('[data-component-style="mapPanel"]')) return;
@@ -22,6 +23,28 @@
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+
+  const parsePropertyImages = (item = {}) => {
+    let list = item.images;
+    if (typeof list === 'string') {
+      try {
+        list = JSON.parse(list);
+      } catch {
+        list = list ? [list] : [];
+      }
+    }
+    if (!Array.isArray(list)) list = [];
+    const normalized = [
+      item.image_url,
+      item.cover_image,
+      ...list,
+      ...(Array.isArray(item.gallery) ? item.gallery : [])
+    ]
+      .filter(Boolean)
+      .map((image) => String(image).trim())
+      .filter(Boolean);
+    return [...new Set(normalized)];
+  };
 
   const money = (value = 0) => `₱${Number(value || 0).toLocaleString('en-PH')}`;
 
@@ -285,8 +308,33 @@
           } : {};
           const marker = L.marker([lat, lng], markerOptions).addTo(markers);
           const title = escapeHtml(item.title || item.property_title || item.name || 'Listing');
-          const content = `<strong>${title}</strong><br>${money(item.monthly_rent ?? 0)}<br>${escapeHtml(item.municipality || '')}<br><button type="button" class="map-property-details" data-property-id="${escapeHtml(item.id ?? '')}">View Details</button>`;
-          marker.bindPopup(content);
+          const nameText = item.title || item.property_title || item.name || 'Listing';
+          const locationText = [item.barangay, item.city, item.municipality, item.province].filter(Boolean).join(', ') || 'Metro Manila';
+          const galleryImages = parsePropertyImages(item);
+          const roomImage = galleryImages[0] || item.image_url || item.cover_image || item.thumbnail || '';
+          const detailImage = roomImage ? withMediaAccessToken(String(roomImage)) : 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500"><rect width="800" height="500" fill="#edf4f1"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#48676a" font-family="Arial,sans-serif" font-size="28">No image</text></svg>');
+          const totalPhotos = Math.max(galleryImages.length, 1);
+          const popupContent = `
+            <div class="map-property-popup">
+              <div class="map-property-card">
+                <div class="map-property-image">
+                  <img class="map-property-photo" data-property-id="${escapeHtml(item.id ?? '')}" src="${detailImage}" alt="${escapeHtml(nameText)}" />
+                  <span class="map-property-image-badge">1/${Math.min(totalPhotos, 5)}</span>
+                </div>
+                <div class="map-property-body">
+                  <div class="map-property-ribbon">For Rent</div>
+                  <h3>${title}</h3>
+                  <div class="map-property-location"><span>📍</span> ${escapeHtml(locationText)}</div>
+                  <div class="map-property-price">${money(item.monthly_rent ?? 0)} <span>/ month</span></div>
+                  <div class="map-property-actions">
+                    <button type="button" class="map-property-details" data-property-id="${escapeHtml(item.id ?? '')}">View Details</button>
+                    <button type="button" class="map-property-directions" data-property-id="${escapeHtml(item.id ?? '')}">Get Directions</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+          marker.bindPopup(popupContent);
           marker.on('click', () => {
             const statusEl = root.querySelector('#map-status');
             if (statusEl) statusEl.textContent = `${title} selected`; 

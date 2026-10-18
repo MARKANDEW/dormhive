@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-globalThis.window = { DORMHIVE_API_URL: 'https://api.example.test/api/v1' };
+globalThis.window = {
+  DORMHIVE_API_URL: 'https://api.example.test/api/v1',
+  location: { origin: 'http://localhost:3000' }
+};
 globalThis.localStorage = {
   getItem(key) { return key === 'dormhive.accessToken' ? 'test-access-token' : null; }
 };
@@ -11,6 +14,10 @@ const { withMediaAccessToken } = await import('../../../frontend/src/services/me
 test('adds access tokens only to same-origin database media URLs', () => {
   assert.equal(
     withMediaAccessToken('/api/v1/media/42'),
+    'https://api.example.test/api/v1/media/42?access_token=test-access-token'
+  );
+  assert.equal(
+    withMediaAccessToken('http://localhost:3000/api/v1/media/42'),
     'https://api.example.test/api/v1/media/42?access_token=test-access-token'
   );
   assert.equal(

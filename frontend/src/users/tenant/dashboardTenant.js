@@ -1462,11 +1462,63 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
     });
   }
 
+  const openMapPropertyPhotoViewer = (property, clickedImage = null) => {
+    if (!property) return;
+    const galleryImages = normalizePropertyImages(property).length ? normalizePropertyImages(property) : [clickedImage || normalizePropertyImage(property) || DEFAULT_IMAGE_PLACEHOLDER];
+    const startingImage = clickedImage || galleryImages[0] || DEFAULT_IMAGE_PLACEHOLDER;
+    const startingIndex = Math.max(0, galleryImages.findIndex((image) => image === startingImage));
+    const viewer = createModal({
+      title: property.title || 'Property Photo',
+      content: `<img class="listing-photo-viewer" src="${esc(startingImage)}" alt="${esc(property.title || 'Property')} photo ${startingIndex + 1}" />`,
+      closeLabel: 'Close'
+    });
+    viewer.classList.add('photo-only-modal');
+    const viewerBody = viewer.querySelector('.ui-modal__body');
+    viewerBody.insertAdjacentHTML('beforeend', '<button type="button" class="photo-viewer-arrow photo-viewer-previous" aria-label="Previous photo">&#8249;</button><button type="button" class="photo-viewer-arrow photo-viewer-next" aria-label="Next photo">&#8250;</button>');
+    const viewerImage = viewerBody.querySelector('.listing-photo-viewer');
+    let viewerIndex = startingIndex >= 0 ? startingIndex : 0;
+    const showViewerImage = (nextIndex) => {
+      viewerIndex = (nextIndex + galleryImages.length) % galleryImages.length;
+      viewerImage.src = galleryImages[viewerIndex];
+      viewerImage.alt = `${property.title || 'Property'} photo ${viewerIndex + 1}`;
+    };
+    viewerBody.querySelector('.photo-viewer-previous').addEventListener('click', () => showViewerImage(viewerIndex - 1));
+    viewerBody.querySelector('.photo-viewer-next').addEventListener('click', () => showViewerImage(viewerIndex + 1));
+    openModal(viewer);
+  };
+
   root.addEventListener('click', (event) => {
+    const propertyPhoto = event.target.closest('.map-property-photo');
+    if (propertyPhoto && root.contains(propertyPhoto)) {
+      const property = state.all.find((item) => String(item.id) === String(propertyPhoto.dataset.propertyId));
+      if (property) {
+        const clickedImage = propertyPhoto.currentSrc || propertyPhoto.src;
+        openMapPropertyPhotoViewer(property, clickedImage);
+      }
+      return;
+    }
+
     const detailsButton = event.target.closest('.map-property-details');
-    if (!detailsButton || !root.contains(detailsButton)) return;
-    const property = state.all.find((item) => String(item.id) === String(detailsButton.dataset.propertyId));
-    if (property) openPropertyDetails(property);
+    if (detailsButton && root.contains(detailsButton)) {
+      const property = state.all.find((item) => String(item.id) === String(detailsButton.dataset.propertyId));
+      if (property) openPropertyDetails(property);
+      return;
+    }
+
+    const directionsButton = event.target.closest('.map-property-directions');
+    if (directionsButton && root.contains(directionsButton)) {
+      const property = state.all.find((item) => String(item.id) === String(directionsButton.dataset.propertyId));
+      if (!property) return;
+      const latitude = Number(property.latitude ?? property.lat ?? NaN);
+      const longitude = Number(property.longitude ?? property.lng ?? NaN);
+      const destination = Number.isFinite(latitude) && Number.isFinite(longitude)
+        ? `${latitude},${longitude}`
+        : encodeURIComponent(property.address || property.municipality || property.title || 'property');
+      const mapsUrl = Number.isFinite(latitude) && Number.isFinite(longitude)
+        ? `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`
+        : `https://www.google.com/maps/search/?api=1&query=${destination}`;
+      window.open(mapsUrl, '_blank', 'noopener,noreferrer');
+    }
   });
 
   const load = async () => {
