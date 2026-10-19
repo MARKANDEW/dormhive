@@ -12,7 +12,7 @@ export async function list({ page, limit, municipality, roomType, minPrice, maxP
   } else {
     filters.push("p.status = 'approved'");
     filters.push("u.status = 'active'");
-    filters.push('COALESCE((SELECT SUM(COALESCE(b.occupants, 1)) FROM bookings b WHERE b.property_id = p.id AND b.status = "approved"), 0) < COALESCE(p.max_occupants, p.available_slots, 0)');
+    filters.push("COALESCE((SELECT SUM(COALESCE(b.occupants, 1)) FROM bookings b WHERE b.property_id = p.id AND b.status = 'approved'), 0) < COALESCE(p.max_occupants, p.available_slots, 0)");
   }
   if (municipality) { filters.push('p.municipality = ?'); values.push(municipality); }
   if (roomType) { filters.push('p.room_type = ?'); values.push(roomType); }
