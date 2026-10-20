@@ -846,6 +846,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
     propertyModal.hidden = false;
     showFormStep(1);
   });
+  if (requestedAction === 'create') addPropertyButton?.click();
   closeButtons.forEach((button) => button.addEventListener('click', closeModal));
   listingSuccessOkButton?.addEventListener('click', () => {
     listingSuccessModal.hidden = true;

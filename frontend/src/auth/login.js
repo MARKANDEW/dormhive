@@ -26,9 +26,12 @@ function loadStylesheet() {
   });
 }
 
-function redirectForRole(role) {
+function redirectForRole(role, email) {
   const destinations = { tenant: '/tenant/dashboardTenant', owner: '/owner/dashboardOwner', admin: '/admin/dashboardAdmin' };
-  window.location.assign('#' + (destinations[role] ?? '/'));
+  const pendingEmail = localStorage.getItem('dormhive.owner.onboardingEmail');
+  const showOwnerOnboarding = role === 'owner' && pendingEmail && pendingEmail.toLowerCase() === String(email ?? '').toLowerCase();
+  if (showOwnerOnboarding) localStorage.removeItem('dormhive.owner.onboardingEmail');
+  window.location.assign('#' + (showOwnerOnboarding ? '/owner/dashboardOwner?welcome=owner' : destinations[role] ?? '/'));
 }
 
 function showMessage(element, message) {
@@ -371,7 +374,7 @@ export async function renderLogin(root = document.querySelector('#app')) {
       if (!response.ok) throw new Error(loginErrorMessage(response, body));
       localStorage.setItem('dormhive.accessToken', body.accessToken);
       localStorage.setItem('dormhive.user', JSON.stringify(body.user));
-      redirectForRole(body.user.role);
+      redirectForRole(body.user.role, body.user.email);
     } catch (error) {
       showMessage(loginMessage, error instanceof TypeError ? 'Unable to reach the sign-in service. Please check that the backend is running.' : error.message);
       loginSubmitButton.disabled = false;
@@ -407,6 +410,9 @@ export async function renderLogin(root = document.querySelector('#app')) {
         const response = await fetch(`${API_BASE_URL}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         const body = await readApiResponse(response);
         if (!response.ok) throw new Error(getApiErrorMessage(body, 'Unable to create your account.'));
+        if (body?.user?.role === 'owner') {
+          localStorage.setItem('dormhive.owner.onboardingEmail', body.user.email);
+        }
         showToast({ message: 'Account created successfully!', type: 'success' });
         navigate('/login', true);
       } catch (error) {

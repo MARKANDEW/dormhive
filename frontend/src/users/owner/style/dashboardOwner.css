@@ -40,6 +40,105 @@ body {
   color: var(--text);
 }
 
+.owner-welcome[hidden] {
+  display: none;
+}
+
+.owner-welcome {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(9 31 25 / 58%);
+}
+
+.owner-welcome-dialog {
+  width: min(100%, 520px);
+  min-height: min(418px, calc(100vh - 40px));
+  padding: 32px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--white);
+  box-shadow: 0 24px 72px rgb(4 26 20 / 24%);
+}
+
+.owner-welcome-dialog h2 {
+  margin: 10px 0 8px;
+  color: var(--text);
+  font-size: 26px;
+  line-height: 1.2;
+}
+
+.owner-welcome-copy {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.owner-welcome-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.owner-welcome-choice {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 72px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--text);
+  text-align: left;
+}
+
+.owner-welcome-choice:hover,
+.owner-welcome-choice:focus-visible {
+  border-color: var(--primary);
+  outline: none;
+}
+
+.owner-welcome-choice > i {
+  color: var(--primary);
+  font-size: 22px;
+}
+
+.owner-welcome-choice span {
+  display: grid;
+  gap: 4px;
+}
+
+.owner-welcome-choice small {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.owner-welcome-choice--primary {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--white);
+}
+
+.owner-welcome-choice--primary > i,
+.owner-welcome-choice--primary small {
+  color: rgb(255 255 255 / 84%);
+}
+
+@media (max-width: 560px) {
+  .owner-welcome-dialog {
+    padding: 24px 20px;
+  }
+
+  .owner-welcome-dialog h2 {
+    font-size: 22px;
+  }
+}
+
 button,
 input {
   font: inherit;

@@ -226,6 +226,9 @@ export async function renderRegister(root = document.querySelector('#app')) {
       const response = await fetch(`${API_BASE_URL}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const body = await readApiResponse(response);
       if (!response.ok) throw new Error(getApiErrorMessage(body, 'Unable to create your account.'));
+      if (body?.user?.role === 'owner') {
+        localStorage.setItem('dormhive.owner.onboardingEmail', body.user.email);
+      }
       showToast({ message: 'Account created successfully!', type: 'success' });
       navigate('/login', true);
     } catch (error) {

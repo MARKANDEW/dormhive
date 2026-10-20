@@ -100,7 +100,7 @@ function clearTenantRouteStyles() {
 
 function css() {
   const stylesheet = new URL('./style/dashboardOwner.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'owner-photo-viewer-reference-4');
+  stylesheet.searchParams.set('v', 'owner-photo-viewer-reference-7');
   return loadOwnerStylesheet('dashboard', stylesheet);
 }
 async function get(path) { const response = await fetch(`${API}${path}`, { headers: auth() }); const body = await readApiResponse(response); if (!response.ok) throw new Error(getApiErrorMessage(body, 'Unable to load this information.')); return body; }
@@ -673,9 +673,38 @@ export async function renderDashboardOwner(root = document.querySelector('#app')
           </section>
         </main>
       </div>
+    </div>
+    <div class="owner-welcome" data-owner-welcome hidden>
+      <section class="owner-welcome-dialog" role="dialog" aria-modal="true" aria-labelledby="owner-welcome-title">
+        <p class="eyebrow">YOUR OWNER ACCOUNT</p>
+        <h2 id="owner-welcome-title">Welcome, ${escape(firstName)}. What would you like to do first?</h2>
+        <p class="owner-welcome-copy">You can create a listing now or explore your dashboard first.</p>
+        <div class="owner-welcome-actions">
+          <button class="owner-welcome-choice owner-welcome-choice--primary" type="button" data-owner-welcome-add>
+            <i class="bi bi-plus-circle" aria-hidden="true"></i>
+            <span><strong>Add a property</strong><small>Create your first listing</small></span>
+          </button>
+          <button class="owner-welcome-choice" type="button" data-owner-welcome-explore>
+            <i class="bi bi-compass" aria-hidden="true"></i>
+            <span><strong>Explore your dashboard</strong><small>Look around before adding a listing</small></span>
+          </button>
+        </div>
+      </section>
     </div>`;
   const shell = root.querySelector('.owner-shell');
   const listingGrid = root.querySelector('.listings-card-grid');
+  const ownerWelcome = root.querySelector('[data-owner-welcome]');
+  const routeSearch = new URLSearchParams(window.DORMHIVE_ROUTE_SEARCH ?? window.location.search);
+  if (routeSearch.get('welcome') === 'owner') {
+    history.replaceState({}, '', '#/owner/dashboardOwner');
+    ownerWelcome.hidden = false;
+  }
+  root.querySelector('[data-owner-welcome-add]').addEventListener('click', () => {
+    location.hash = '#/owner/myListing?action=create';
+  });
+  root.querySelector('[data-owner-welcome-explore]').addEventListener('click', () => {
+    ownerWelcome.hidden = true;
+  });
   root.querySelector('.menu').addEventListener('click', () => shell.classList.toggle('nav-open'));
   root.querySelector('[data-route="#/owner/myListing"]').addEventListener('click', () => location.hash = '#/owner/myListing');
   const notificationMenu = root.querySelector('.notification-menu');

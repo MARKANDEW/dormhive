@@ -44,7 +44,7 @@ function resetAdminScroll() {
 }
 export async function renderRoute() {
   if (location.hash && !location.hash.startsWith('#/')) return;
-  const renderId = ++routeRenderId; const { path, search } = routeLocation(); const user = currentUser(); const publicRoutes = ['/', '/login', '/register', '/terms', '/privacy', '/forgot-password', '/reset-password', '/oauth/callback']; if (path === '/' || path === '/login') { if (user) return navigate(redirectForRole(user.role), true); }
+  const renderId = ++routeRenderId; const { path, search } = routeLocation(); const user = currentUser(); const publicRoutes = ['/', '/login', '/register', '/terms', '/privacy', '/forgot-password', '/reset-password', '/oauth/callback']; if (path === '/login' && user) return navigate(redirectForRole(user.role), true);
   const route = routes.find(([url]) => url === path);
   if (!route) return navigate(redirectForRole(user?.role), true);
   if (!user && !publicRoutes.includes(path)) return navigate('/login', true);
