@@ -266,7 +266,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
               <button type="button" class="add-property">Add a New Property</button>
             </div>
             <div class="property-status-tabs" role="group" aria-label="Filter listings by archive status">
-              <button type="button" class="active" data-property-status="active" aria-pressed="true">Active listings</button>
+              <button type="button" class="active" data-property-status="active" aria-pressed="true">Current listings</button>
               <button type="button" data-property-status="archived" aria-pressed="false">Archived</button>
             </div>
 

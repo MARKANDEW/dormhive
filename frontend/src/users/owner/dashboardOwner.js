@@ -663,11 +663,11 @@ export async function renderDashboardOwner(root = document.querySelector('#app')
           </section>
           <section class="interactions-grid">
             <article class="panel table-panel">
-              <div class="panel-title-row"><h2>Inquiries Overview</h2><a href="#/owner/inquiries">View all</a></div>
+              <div class="panel-title-row"><h2>Inquiries &amp; Bookings</h2></div>
               <div class="table-wrap"><table><thead><tr><th>Tenant Name</th><th>Property</th><th>Date</th><th>Status</th><th>Action</th></tr></thead><tbody></tbody></table></div>
             </article>
             <article class="panel listings-panel">
-              <div class="panel-title-row"><h2>My Top Listings</h2><a href="#/owner/myListing">Manage</a></div>
+              <div class="panel-title-row"><h2>My Listings</h2><a href="#/owner/myListing">Manage</a></div>
               <div class="listings-card-grid"></div>
             </article>
           </section>
@@ -935,13 +935,14 @@ export async function renderDashboardOwner(root = document.querySelector('#app')
     root.querySelector('tbody').innerHTML = requests.slice(0, 5).map((item) => {
       const normalized = (item.status ?? 'Pending').toLowerCase().replace(/\s+/g, '-');
       const badgeClass = statusClass[normalized] ?? 'status-pending';
+      const viewHref = normalized === 'approved' ? '#/owner/activeTenant' : '#/owner/inquiries';
       return `
         <tr>
           <td>${escape(item.tenant_name ?? item.user_name ?? 'Tenant')}</td>
           <td>${escape(item.property_title ?? item.property_name ?? 'DormHive Listing')}</td>
           <td>${new Date(item.move_in_date ?? item.created_at ?? Date.now()).toLocaleDateString()}</td>
           <td><span class="status-tag ${badgeClass}">${escape(item.status ?? 'Pending')}</span></td>
-          <td><a class="table-action" href="#/owner/inquiries">View</a></td>
+          <td><a class="table-action" href="${viewHref}">View</a></td>
         </tr>`;
     }).join('') || '<tr><td colspan="5">No inquiries yet.</td></tr>';
 
