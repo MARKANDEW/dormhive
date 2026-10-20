@@ -231,7 +231,7 @@ function loadStyle() {
       .photo-only-modal::backdrop { background: #25272b; }
       .photo-only-modal .ui-modal__header, .photo-only-modal .ui-modal__footer { display: none; }
       .photo-only-modal .ui-modal__body { position: relative; display: grid; place-items: center; min-height: 0; padding: .75rem 4.5rem 0; overflow: hidden; background: #37393e; }
-      .photo-only-modal .listing-photo-viewer { display: block; width: auto; height: auto; max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 0; }
+      .photo-only-modal .listing-photo-viewer { display: block; width: auto; height: auto; max-width: calc(100vw - 9rem); max-height: calc(100dvh - 64px - .75rem); object-fit: contain; border-radius: 0; }
       .photo-viewer-actions { position: absolute; top: 1rem; right: 1rem; z-index: 2; display: flex; align-items: center; gap: .55rem; }
       .photo-viewer-action, .photo-viewer-arrow { display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: rgba(18,20,24,.66); color: #fff; cursor: pointer; }
       .photo-viewer-action { width: 38px; height: 38px; font-size: 1rem; }
@@ -245,7 +245,7 @@ function loadStyle() {
       .photo-viewer-thumbnail.is-active { border-color: #d5a51b; opacity: 1; }
       .photo-viewer-thumbnail img { display: block; width: 100%; height: 100%; object-fit: cover; }
       .photo-viewer-action:focus-visible, .photo-viewer-arrow:focus-visible, .photo-viewer-thumbnail:focus-visible { outline: 2px solid #e0b329; outline-offset: 2px; }
-      @media (max-width: 600px) { .ui-modal.photo-only-modal { grid-template-rows: minmax(0, 1fr) 58px; } .photo-only-modal .ui-modal__body { padding: .75rem 3rem 0; } .photo-viewer-actions { gap: .3rem; } .photo-viewer-action { width: 34px; height: 34px; } .photo-viewer-arrow { width: 36px; height: 36px; } .photo-viewer-previous { left: .5rem; } .photo-viewer-next { right: .5rem; } .photo-viewer-thumbnail { flex-basis: 54px; width: 54px; height: 36px; } }
+      @media (max-width: 600px) { .ui-modal.photo-only-modal { grid-template-rows: minmax(0, 1fr) 58px; } .photo-only-modal .ui-modal__body { padding: .75rem 3rem 0; } .photo-only-modal .listing-photo-viewer { max-width: calc(100vw - 6rem); max-height: calc(100dvh - 58px - .75rem); } .photo-viewer-actions { gap: .3rem; } .photo-viewer-action { width: 34px; height: 34px; } .photo-viewer-arrow { width: 36px; height: 36px; } .photo-viewer-previous { left: .5rem; } .photo-viewer-next { right: .5rem; } .photo-viewer-thumbnail { flex-basis: 54px; width: 54px; height: 36px; } }
       .dh-dashboard .listing-carousel-dots { position: absolute; right: 0; bottom: .65rem; left: 0; z-index: 2; display: flex; justify-content: center; gap: .35rem; }
       .dh-dashboard .listing-carousel-dots .listing-carousel-dot { position: static; top: auto; right: auto; width: .45rem; height: .45rem; padding: 0; border: 1px solid rgba(255,255,255,.95); border-radius: 50%; background: rgba(255,255,255,.7); box-shadow: 0 1px 3px rgba(0,0,0,.35); cursor: pointer; }
       .dh-dashboard .listing-carousel-dot.is-active { background: #b48421; transform: scale(1.2); }

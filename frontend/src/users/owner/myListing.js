@@ -226,7 +226,7 @@ function showPropertyPhotoViewer(property) {
 
 function css() {
   const stylesheet = new URL('./style/myListing.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'portfolio-photo-viewer-reference-1');
+  stylesheet.searchParams.set('v', 'portfolio-photo-viewer-reference-2');
   return loadOwnerStylesheet('listings', stylesheet);
 }
 

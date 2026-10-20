@@ -19,7 +19,7 @@ const formatRoomType = (value = '') => ({
 
 function css() {
   const stylesheet = new URL('./style/listingModeration.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'moderation-photo-viewer-reference-2');
+  stylesheet.searchParams.set('v', 'moderation-photo-viewer-reference-3');
   return loadAdminStylesheet('moderation', stylesheet);
 }
 
@@ -256,6 +256,18 @@ export async function renderListingModeration(root = document.querySelector('#ap
       <nav class="moderation-photo-viewer__thumbnails" aria-label="Property photos"></nav>`;
     const image = viewer.querySelector('.moderation-photo-viewer__image');
     const thumbnails = viewer.querySelector('.moderation-photo-viewer__thumbnails');
+    const retryImageOnError = (target) => {
+      const retriedSources = new Set();
+      target.addEventListener('error', () => {
+        const source = target.dataset.originalSource;
+        if (!source || retriedSources.has(source)) return;
+        retriedSources.add(source);
+        const retryUrl = new URL(source);
+        retryUrl.searchParams.set('_retry', String(Date.now()));
+        target.src = retryUrl.toString();
+      });
+    };
+    retryImageOnError(image);
     const thumbnailButtons = photos.map((photo, index) => {
       const button = document.createElement('button');
       button.type = 'button';
@@ -264,6 +276,8 @@ export async function renderListingModeration(root = document.querySelector('#ap
       button.setAttribute('aria-label', `View photo ${index + 1}`);
       button.setAttribute('aria-current', String(index === 0));
       const thumbnailImage = document.createElement('img');
+      retryImageOnError(thumbnailImage);
+      thumbnailImage.dataset.originalSource = photo;
       thumbnailImage.src = photo;
       thumbnailImage.alt = '';
       thumbnailImage.loading = 'lazy';
@@ -275,6 +289,7 @@ export async function renderListingModeration(root = document.querySelector('#ap
     const nextButton = viewer.querySelector('.moderation-photo-viewer__nav--next');
     const renderPhoto = (nextIndex = photoIndex) => {
       photoIndex = (nextIndex + photos.length) % photos.length;
+      image.dataset.originalSource = photos[photoIndex];
       image.src = photos[photoIndex];
       image.alt = `${row.title || 'Property'} photo ${photoIndex + 1}`;
       previousButton.hidden = photos.length < 2;

@@ -100,7 +100,7 @@ function clearTenantRouteStyles() {
 
 function css() {
   const stylesheet = new URL('./style/dashboardOwner.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'owner-photo-viewer-reference-7');
+  stylesheet.searchParams.set('v', 'owner-photo-viewer-reference-8');
   return loadOwnerStylesheet('dashboard', stylesheet);
 }
 async function get(path) { const response = await fetch(`${API}${path}`, { headers: auth() }); const body = await readApiResponse(response); if (!response.ok) throw new Error(getApiErrorMessage(body, 'Unable to load this information.')); return body; }

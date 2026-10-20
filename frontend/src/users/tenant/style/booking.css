@@ -521,8 +521,8 @@ body {
   display: block;
   width: auto;
   height: auto;
-  max-width: 100%;
-  max-height: 100%;
+  max-width: calc(100vw - 9rem);
+  max-height: calc(100dvh - 64px - 0.75rem);
   object-fit: contain;
   border-radius: 0;
 }
@@ -623,6 +623,10 @@ body {
 @media (max-width: 600px) {
   .booking-photo-viewer { grid-template-rows: minmax(0, 1fr) 58px; }
   .booking-photo-viewer__stage { padding: 0.75rem 3rem 0; }
+  .booking-photo-viewer__image {
+    max-width: calc(100vw - 6rem);
+    max-height: calc(100dvh - 58px - 0.75rem);
+  }
   .booking-photo-viewer__actions { gap: 0.3rem; }
   .booking-photo-viewer__action, .booking-photo-viewer__close { width: 34px; height: 34px; }
   .booking-photo-viewer__nav { width: 36px; height: 36px; }

@@ -1102,8 +1102,8 @@ body {
   display: block;
   width: auto;
   height: auto;
-  max-width: 100%;
-  max-height: 100%;
+  max-width: calc(100vw - 9rem);
+  max-height: calc(100dvh - 64px - 0.75rem);
   object-fit: contain;
   border-radius: 0;
 }
@@ -1215,6 +1215,10 @@ body {
   .portfolio-photo-viewer__action,
   .portfolio-photo-viewer__close { width: 34px; height: 34px; }
   .portfolio-photo-viewer__stage { padding: 0.75rem 3rem 0; }
+  .portfolio-photo-viewer__image {
+    max-width: calc(100vw - 6rem);
+    max-height: calc(100dvh - 58px - 0.75rem);
+  }
   .portfolio-photo-viewer__nav { width: 36px; height: 36px; }
   .portfolio-photo-viewer__thumbnail { flex-basis: 54px; width: 54px; height: 36px; }
 }

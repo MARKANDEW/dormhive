@@ -171,7 +171,7 @@ const propertyAmenities = (value) => {
 
 function style() {
   const stylesheet = new URL('./style/booking.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'booking-photo-viewer-reference-1');
+  stylesheet.searchParams.set('v', 'booking-photo-viewer-reference-2');
   return loadTenantStylesheet('booking', stylesheet);
 }
 

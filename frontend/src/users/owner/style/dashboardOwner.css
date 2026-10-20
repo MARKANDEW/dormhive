@@ -1404,8 +1404,8 @@ a {
   display: block;
   width: auto;
   height: auto;
-  max-width: 100%;
-  max-height: 100%;
+  max-width: calc(100vw - 9rem);
+  max-height: calc(100dvh - 64px - 0.75rem);
   object-fit: contain;
   border-radius: 0;
 }
@@ -1494,6 +1494,11 @@ a {
 
   .owner-photo-viewer__stage {
     padding: 0.75rem 3rem 0;
+  }
+
+  .owner-photo-viewer__image {
+    max-width: calc(100vw - 6rem);
+    max-height: calc(100dvh - 58px - 0.75rem);
   }
 
   .owner-photo-viewer__nav {
