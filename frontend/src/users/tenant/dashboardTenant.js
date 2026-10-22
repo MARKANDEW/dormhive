@@ -515,13 +515,20 @@ function loadPropertyDetailsStyle() {
     .property-detail-facts p { min-width: 0; margin: 0; }
     .property-detail-facts strong { display: block; color: #24483f; font-size: .82rem; line-height: 1.4; overflow-wrap: anywhere; }
     .property-detail-description p { margin: 0; color: #4d655d; font-size: .84rem; line-height: 1.5; white-space: pre-line; }
-    .property-photo-viewer { position: fixed; inset: 0; margin: auto; display: grid; place-items: center; width: min(94vw, 1100px); max-width: none; max-height: 88vh; padding: 0; border: 0; background: transparent; overflow: visible; }
-    .property-photo-viewer::backdrop { background: rgb(15 23 42 / 82%); backdrop-filter: blur(4px); }
-    .property-photo-viewer__image { display: block; width: 100%; max-height: 88vh; object-fit: contain; border-radius: .65rem; user-select: none; -webkit-user-drag: none; }
-    .property-photo-viewer__close { position: absolute; top: .75rem; right: .75rem; display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border: 0; border-radius: 50%; background: rgb(15 23 42 / 75%); color: #fff; font-size: 1.5rem; line-height: 1; cursor: pointer; user-select: none; }
-    .property-photo-viewer__nav { position: absolute; top: 50%; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; padding: 0; border: 0; border-radius: 50%; transform: translateY(-50%); background: rgb(15 23 42 / 75%); color: #fff; font-size: 2rem; line-height: 1; cursor: pointer; user-select: none; }
-    .property-photo-viewer__nav--previous { left: .75rem; }
-    .property-photo-viewer__nav--next { right: .75rem; }
+    .property-photo-viewer { position: fixed; inset: 0; display: grid; grid-template-rows: minmax(0, 1fr) 64px; width: 100vw; height: 100vh; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; overflow: hidden; border: 0; background: #34363b; }
+    .property-photo-viewer::backdrop { background: #25272b; }
+    .property-photo-viewer__stage { position: relative; display: grid; place-items: center; min-height: 0; padding: .75rem 4.5rem 0; overflow: hidden; background: #37393e; }
+    .property-photo-viewer__image { display: block; width: auto; height: auto; max-width: calc(100vw - 9rem); max-height: calc(100dvh - 64px - .75rem); object-fit: contain; border-radius: 0; user-select: none; -webkit-user-drag: none; }
+    .property-photo-viewer .photo-viewer-actions { top: 1rem; right: 1rem; }
+    .property-photo-viewer .photo-viewer-previous { left: 1rem; }
+    .property-photo-viewer .photo-viewer-next { right: 1rem; }
+    .property-photo-viewer .photo-viewer-thumbnails { height: 64px; }
+    @media (max-width: 600px) {
+      .property-photo-viewer__stage { padding: .75rem 3rem 0; }
+      .property-photo-viewer__image { max-width: calc(100vw - 6rem); max-height: calc(100dvh - 64px - .75rem); }
+      .property-photo-viewer .photo-viewer-previous { left: .5rem; }
+      .property-photo-viewer .photo-viewer-next { right: .5rem; }
+    }
     .dashboard-request-form { margin-top: 1.35rem; padding-top: 1.15rem; border-top: 1px solid #dce8e3; }
     .dashboard-request-heading { margin-bottom: .9rem; }
     .dashboard-request-heading h3 { margin: 0; color: #173b35; font-size: 1rem; font-weight: 750; }
@@ -1185,32 +1192,111 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
         viewerImage.className = 'property-photo-viewer__image';
         viewerImage.src = galleryImage.src;
         viewerImage.alt = galleryImage.alt;
+        const viewerPhotos = galleryImages.length ? galleryImages : [galleryImage.src];
+        let viewerIndex = Math.min(galleryIndex, viewerPhotos.length - 1);
         const previousButton = document.createElement('button');
         previousButton.type = 'button';
-        previousButton.className = 'property-photo-viewer__nav property-photo-viewer__nav--previous';
+        previousButton.className = 'photo-viewer-arrow photo-viewer-previous';
         previousButton.setAttribute('aria-label', 'View previous photo');
-        previousButton.textContent = '‹';
+        previousButton.title = 'Previous photo';
+        previousButton.innerHTML = '<i class="bi bi-chevron-left" aria-hidden="true"></i>';
         const nextButton = document.createElement('button');
         nextButton.type = 'button';
-        nextButton.className = 'property-photo-viewer__nav property-photo-viewer__nav--next';
+        nextButton.className = 'photo-viewer-arrow photo-viewer-next';
         nextButton.setAttribute('aria-label', 'View next photo');
-        nextButton.textContent = '›';
+        nextButton.title = 'Next photo';
+        nextButton.innerHTML = '<i class="bi bi-chevron-right" aria-hidden="true"></i>';
         const closeButton = document.createElement('button');
         closeButton.type = 'button';
-        closeButton.className = 'property-photo-viewer__close';
+        closeButton.className = 'photo-viewer-action photo-viewer-dismiss';
         closeButton.setAttribute('aria-label', 'Close photo viewer');
-        closeButton.textContent = '×';
-        const updateViewerImage = () => {
-          viewerImage.src = galleryImage.src;
-          viewerImage.alt = galleryImage.alt;
+        closeButton.title = 'Close viewer';
+        closeButton.innerHTML = '<i class="bi bi-x-lg" aria-hidden="true"></i>';
+        const downloadButton = document.createElement('button');
+        downloadButton.type = 'button';
+        downloadButton.className = 'photo-viewer-action photo-viewer-download';
+        downloadButton.setAttribute('aria-label', 'Download photo');
+        downloadButton.title = 'Download photo';
+        downloadButton.innerHTML = '<i class="bi bi-download" aria-hidden="true"></i>';
+        const shareButton = document.createElement('button');
+        shareButton.type = 'button';
+        shareButton.className = 'photo-viewer-action photo-viewer-share';
+        shareButton.setAttribute('aria-label', 'Share photo');
+        shareButton.title = 'Share photo';
+        shareButton.innerHTML = '<i class="bi bi-share" aria-hidden="true"></i>';
+        const actions = document.createElement('div');
+        actions.className = 'photo-viewer-actions';
+        actions.append(downloadButton, shareButton, closeButton);
+        const stage = document.createElement('div');
+        stage.className = 'property-photo-viewer__stage';
+        stage.append(viewerImage, previousButton, nextButton, actions);
+        const thumbnails = document.createElement('nav');
+        thumbnails.className = 'photo-viewer-thumbnails';
+        thumbnails.setAttribute('aria-label', 'Property photos');
+        const thumbnailButtons = viewerPhotos.map((photo, index) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'photo-viewer-thumbnail';
+          button.dataset.photoIndex = String(index);
+          button.setAttribute('aria-label', `View photo ${index + 1}`);
+          const thumbnail = document.createElement('img');
+          thumbnail.src = photo;
+          thumbnail.alt = '';
+          thumbnail.loading = 'lazy';
+          button.append(thumbnail);
+          thumbnails.append(button);
+          return button;
+        });
+        const renderViewerImage = (nextIndex) => {
+          viewerIndex = (nextIndex + viewerPhotos.length) % viewerPhotos.length;
+          if (galleryImages.length) showGalleryImage(viewerIndex);
+          viewerImage.src = viewerPhotos[viewerIndex];
+          viewerImage.alt = `${property.title || 'Property'} photo ${viewerIndex + 1}`;
+          previousButton.hidden = viewerPhotos.length < 2;
+          nextButton.hidden = viewerPhotos.length < 2;
+          thumbnailButtons.forEach((button, index) => {
+            const active = index === viewerIndex;
+            button.classList.toggle('is-active', active);
+            button.setAttribute('aria-current', String(active));
+          });
         };
-        previousButton.addEventListener('click', () => { showGalleryImage(galleryIndex - 1); updateViewerImage(); });
-        nextButton.addEventListener('click', () => { showGalleryImage(galleryIndex + 1); updateViewerImage(); });
-        viewer.append(viewerImage, previousButton, nextButton, closeButton);
+        previousButton.addEventListener('click', () => renderViewerImage(viewerIndex - 1));
+        nextButton.addEventListener('click', () => renderViewerImage(viewerIndex + 1));
+        thumbnails.addEventListener('click', (event) => {
+          const button = event.target.closest('.photo-viewer-thumbnail');
+          if (button) renderViewerImage(Number(button.dataset.photoIndex));
+        });
         const removeViewer = () => viewer.remove();
         closeButton.addEventListener('click', () => viewer.close());
         viewer.addEventListener('click', (event) => { if (event.target === viewer) viewer.close(); });
         viewer.addEventListener('close', removeViewer, { once: true });
+        viewer.addEventListener('keydown', (event) => {
+          if (event.key === 'ArrowLeft' && viewerPhotos.length > 1) { event.preventDefault(); renderViewerImage(viewerIndex - 1); }
+          if (event.key === 'ArrowRight' && viewerPhotos.length > 1) { event.preventDefault(); renderViewerImage(viewerIndex + 1); }
+        });
+        downloadButton.addEventListener('click', async () => {
+          try {
+            const response = await fetch(viewerPhotos[viewerIndex]);
+            if (!response.ok) throw new Error('Download failed');
+            const objectUrl = URL.createObjectURL(await response.blob());
+            const link = document.createElement('a');
+            link.href = objectUrl;
+            link.download = `${String(property.title || 'property').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '')}-photo-${viewerIndex + 1}`;
+            link.click();
+            setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+          } catch { window.open(viewerPhotos[viewerIndex], '_blank', 'noopener,noreferrer'); }
+        });
+        shareButton.addEventListener('click', async () => {
+          try {
+            if (navigator.share) await navigator.share({ title: property.title || 'Property photo', url: viewerPhotos[viewerIndex] });
+            else if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(viewerPhotos[viewerIndex]);
+            else window.open(viewerPhotos[viewerIndex], '_blank', 'noopener,noreferrer');
+          } catch (error) {
+            if (error.name !== 'AbortError') window.open(viewerPhotos[viewerIndex], '_blank', 'noopener,noreferrer');
+          }
+        });
+        viewer.append(stage, thumbnails);
+        renderViewerImage(viewerIndex);
         document.body.append(viewer);
         viewer.showModal();
       };

@@ -47,7 +47,7 @@ function buildOwnerPropertyPopup(property = {}) {
       <div class="map-property-card">
         <div class="map-property-image">
           <img class="map-property-photo" data-property-id="${escape(String(property.id ?? ''))}" src="${escape(primaryImage)}" alt="${escape(title)}" ${photoSources.length ? 'tabindex="0" role="button" aria-label="View property photos"' : ''} />
-          <span class="map-property-image-badge">1/${Math.min(totalPhotos, 5)}</span>
+          <span class="map-property-image-badge">1/${totalPhotos}</span>
         </div>
         <div class="map-property-body">
           <h3>${escape(title)}</h3>

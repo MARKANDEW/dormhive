@@ -319,7 +319,7 @@ import { withMediaAccessToken } from '../services/mediaAccess.js';
               <div class="map-property-card">
                 <div class="map-property-image">
                   <img class="map-property-photo" data-property-id="${escapeHtml(item.id ?? '')}" src="${detailImage}" alt="${escapeHtml(nameText)}" />
-                  <span class="map-property-image-badge">1/${Math.min(totalPhotos, 5)}</span>
+                  <span class="map-property-image-badge">1/${totalPhotos}</span>
                 </div>
                 <div class="map-property-body">
                   <h3>${title}</h3>
