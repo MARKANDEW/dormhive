@@ -471,6 +471,7 @@ export async function renderBooking(root = document.querySelector('#app')) {
             title: dateValue && timeValue ? 'Change Viewing Schedule' : 'Set Viewing Schedule',
             content: `<form class="tenant-viewing-schedule-form"><label for="tenant-viewing-date">Viewing Date</label><input id="tenant-viewing-date" type="date" required value="${escape(dateValue)}"><label>Viewing Time</label>${viewingTimeFields({ idPrefix: 'tenant-viewing-time', value: timeValue, required: true })}<p role="status"></p></form>`,
             closeLabel: 'Cancel',
+            closeOnBackdrop: false,
             footerMarkup: '<button type="button" class="btn btn--primary" data-save-viewing-schedule>Save Schedule</button>'
           });
           const dateInput = modal.querySelector('#tenant-viewing-date');
