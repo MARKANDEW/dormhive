@@ -96,9 +96,7 @@ export async function listForUser(user) {
     's.*',
     "COALESCE(CONCAT_WS(' ', u.first_name, u.last_name), u.name) AS requester_name",
     'u.email AS requester_email',
-    'u.role AS requester_role',
-    'a.name AS assigned_admin_name',
-    'a.email AS assigned_admin_email'
+    'u.role AS requester_role'
   ];
 
   if (hasPriority) {
@@ -108,12 +106,15 @@ export async function listForUser(user) {
   }
 
   if (hasAssignedAdmin) {
-    baseSelect.push('s.assigned_admin_id');
+    baseSelect.push('s.assigned_admin_id', 'a.name AS assigned_admin_name', 'a.email AS assigned_admin_email');
+  } else {
+    baseSelect.push('NULL AS assigned_admin_id', 'NULL AS assigned_admin_name', 'NULL AS assigned_admin_email');
   }
 
   const whereClause = user.role === 'admin' ? '' : ` WHERE s.${userKey} = ?`;
   const values = user.role === 'admin' ? [] : [user.id];
-  const rows = await query(`SELECT ${baseSelect.join(', ')} FROM support_tickets s JOIN users u ON u.id = s.${userKey} LEFT JOIN users a ON a.id = s.assigned_admin_id${whereClause} ORDER BY s.created_at DESC`, values);
+  const assignedAdminJoin = hasAssignedAdmin ? ' LEFT JOIN users a ON a.id = s.assigned_admin_id' : '';
+  const rows = await query(`SELECT ${baseSelect.join(', ')} FROM support_tickets s JOIN users u ON u.id = s.${userKey}${assignedAdminJoin}${whereClause} ORDER BY s.created_at DESC`, values);
 
   return rows.map((row) => ({
     ...row,

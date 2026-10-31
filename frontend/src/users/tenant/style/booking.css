@@ -1080,10 +1080,10 @@ body {
   background-color: #fff;
 }
 
-.viewing-time-select {
+.tenant-viewing-schedule-form input[type="time"] {
   width: 100%;
   min-width: 0;
-  height: 42px;
+  min-height: 42px;
   padding: 0 0.65rem;
   border: 1px solid #d4e0db;
   border-radius: 0.45rem;
@@ -1092,9 +1092,13 @@ body {
   font: inherit;
 }
 
-.viewing-time-select:focus-visible {
-  outline: 2px solid #1aa87a;
-  outline-offset: 1px;
+.tenant-viewing-schedule-form input[type="time"]::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
+.tenant-viewing-schedule-form input[type="time"]:focus-visible {
+  border-color: #9aa9a3;
+  outline: none;
 }
 
 /* =========================================================

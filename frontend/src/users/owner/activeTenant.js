@@ -28,7 +28,7 @@ function renderTenantAvatar(entry) {
 
 function css() {
   const stylesheet = new URL('./style/activeTenant.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'mobile-tenant-empty-row-width-3');
+  stylesheet.searchParams.set('v', 'active-tenant-focus-neutral-1');
   return loadOwnerStylesheet('tenants', stylesheet);
 }
 
@@ -118,6 +118,13 @@ export async function renderActiveTenant(root = document.querySelector('#app')) 
                 </tbody>
               </table>
             </div>
+            <nav class="tenant-pagination" aria-label="Active tenants pagination">
+              <span class="tenant-pagination__info" aria-live="polite">Page 1 of 1</span>
+              <div>
+                <button type="button" data-page-previous aria-label="Previous page" disabled>Previous</button>
+                <button type="button" data-page-next aria-label="Next page" disabled>Next</button>
+              </div>
+            </nav>
           </section>
         </main>
       </div>
@@ -130,8 +137,13 @@ export async function renderActiveTenant(root = document.querySelector('#app')) 
   const tbody = root.querySelector('.tenant-table-body');
   const searchInput = root.querySelector('#tenant-search');
   const countBadge = root.querySelector('#tenant-count');
+  const pageInfo = root.querySelector('.tenant-pagination__info');
+  const previousPageButton = root.querySelector('[data-page-previous]');
+  const nextPageButton = root.querySelector('[data-page-next]');
+  const pageSize = 5;
   let allRows = [];
   let isLoading = false;
+  let currentPage = 1;
 
   const renderRows = (query = '') => {
     const term = query.trim().toLowerCase();
@@ -139,8 +151,12 @@ export async function renderActiveTenant(root = document.querySelector('#app')) 
       const haystack = [entry.tenant_name, unitLabel(entry), entry.property_title, entry.status].filter(Boolean).join(' ').toLowerCase();
       return !term || haystack.includes(term);
     });
+    const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+    currentPage = Math.min(Math.max(1, currentPage), totalPages);
+    const startIndex = (currentPage - 1) * pageSize;
+    const pageRows = rows.slice(startIndex, startIndex + pageSize);
 
-    tbody.innerHTML = rows.map((entry) => {
+    tbody.innerHTML = pageRows.map((entry) => {
       const { label, className } = tenantStatus(entry);
       return `
         <tr data-booking-id="${esc(String(entry.id ?? ''))}">
@@ -178,7 +194,21 @@ export async function renderActiveTenant(root = document.querySelector('#app')) 
         </tr>`;
     }).join('') || '<tr class="empty-row"><td colspan="5" class="empty">No active tenants matched your search.</td></tr>';
     if (countBadge) countBadge.textContent = String(rows.length);
+    pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+    previousPageButton.disabled = currentPage <= 1;
+    nextPageButton.disabled = currentPage >= totalPages || rows.length === 0;
   };
+
+  previousPageButton.addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage -= 1;
+      renderRows(searchInput.value);
+    }
+  });
+  nextPageButton.addEventListener('click', () => {
+    currentPage += 1;
+    renderRows(searchInput.value);
+  });
 
   tbody.addEventListener('click', (event) => {
     const button = event.target.closest('button[data-action]');
@@ -261,6 +291,9 @@ export async function renderActiveTenant(root = document.querySelector('#app')) 
     if (!document.hidden) loadTenants();
   });
 
-  searchInput?.addEventListener('input', (event) => renderRows(event.target.value));
+  searchInput?.addEventListener('input', (event) => {
+    currentPage = 1;
+    renderRows(event.target.value);
+  });
 
 }

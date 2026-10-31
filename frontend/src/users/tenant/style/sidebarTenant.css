@@ -51,6 +51,48 @@
     8px 0 24px rgba(22, 48, 71, 0.1);
 }
 
+@media (min-width: 901px) {
+  .dh-sidebar:not(:hover):not(:focus-within) {
+    padding-inline: 0.65rem;
+  }
+
+  .dh-sidebar:not(:hover):not(:focus-within) .dh-logo {
+    justify-content: center;
+    gap: 0;
+    margin-inline: 0;
+  }
+
+  .dh-sidebar:not(:hover):not(:focus-within) .dh-logo b {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+  }
+
+  .dh-sidebar:not(:hover):not(:focus-within) .dh-logo > span {
+    flex: 0 0 0;
+    width: 0;
+    overflow: hidden;
+  }
+
+  .dh-sidebar:not(:hover):not(:focus-within) nav {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .dh-sidebar:not(:hover):not(:focus-within) nav a {
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+    padding-inline: 0;
+  }
+
+  .dh-sidebar:not(:hover):not(:focus-within) nav a > span {
+    flex: 0 0 0;
+    width: 0;
+    overflow: hidden;
+  }
+}
+
 .dh-sidebar::before,
 .dh-sidebar::after {
   position: absolute;

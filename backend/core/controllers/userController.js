@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import * as users from '../models/User.js';
 import * as mediaFiles from '../models/Media.js';
 import { validateUpload } from '../utils/fileValidation.js';
+import { sendVerificationDecisionEmail } from '../services/email.js';
 
 export function validatePasswordChange({ currentPassword, newPassword, confirmPassword }) {
   if (!currentPassword || !newPassword || !confirmPassword) {
@@ -49,13 +50,71 @@ export async function list(request, response, next) {
   try {
     const page = Math.max(1, Number(request.query.page) || 1);
     const limit = Math.min(100, Math.max(1, Number(request.query.limit) || 20));
+    const requestedVerificationStatus = String(request.query.verificationStatus ?? '').toLowerCase();
+    if (requestedVerificationStatus && !['all', 'pending', 'approved', 'rejected'].includes(requestedVerificationStatus)) {
+      return response.status(422).json({ message: 'Verification status must be pending, approved, rejected, or all.' });
+    }
     const result = await users.list({
       page,
       limit,
       search: String(request.query.search ?? ''),
-      archivedOnly: request.query.archived === 'true'
+      archivedOnly: request.query.archived === 'true',
+      verificationStatus: requestedVerificationStatus && requestedVerificationStatus !== 'all' ? requestedVerificationStatus : null
     });
-    response.json({ data: result.rows, pagination: { page, limit, total: result.total } });
+    response.json({ data: result.rows, pagination: { page, limit, total: result.total }, counts: result.counts });
+  } catch (error) { next(error); }
+}
+
+export async function verificationDocument(request, response, next) {
+  try {
+    const document = await users.findVerificationDocument(request.params.id);
+    return document
+      ? response.json({ data: { id: document.id, filename: document.original_filename, mimeType: document.mime_type } })
+      : response.status(404).json({ message: 'No pending verification document was found.' });
+  } catch (error) { next(error); }
+}
+
+export async function reviewVerification(request, response, next) {
+  try {
+    const verificationStatus = String(request.body.status ?? '').toLowerCase();
+    if (!['approved', 'rejected'].includes(verificationStatus)) {
+      return response.status(422).json({ message: 'Verification status must be approved or rejected.' });
+    }
+    const target = await users.findById(request.params.id);
+    if (!target) return response.status(404).json({ message: 'User not found.' });
+    if (target.status === 'archived') return response.status(409).json({ message: 'Archived accounts cannot be reviewed.' });
+    if (target.verification_status !== 'pending') {
+      return response.status(409).json({ message: 'This account has already been reviewed.' });
+    }
+    const document = await users.findVerificationDocument(request.params.id);
+    if (!document) return response.status(409).json({ message: 'This account has no verification document to review.' });
+    const updated = await users.reviewVerification(request.params.id, verificationStatus);
+    if (!updated) return response.status(409).json({ message: 'This account has already been reviewed.' });
+
+    let documentDeleted = false;
+    try {
+      await mediaFiles.remove(document.id);
+      await users.clearVerificationDocument(request.params.id, document.id);
+      documentDeleted = true;
+    } catch (error) {
+      console.error('Unable to delete reviewed identity document.', error.message);
+    }
+    let emailNotification;
+    try {
+      emailNotification = await sendVerificationDecisionEmail({
+        email: target.email,
+        name: target.name,
+        status: verificationStatus
+      });
+    } catch (error) {
+      console.error('Unable to send verification decision email.', error.message);
+      emailNotification = { sent: false, reason: 'failed' };
+    }
+    const user = await users.findById(request.params.id);
+    const notices = [`Account ${verificationStatus}.`];
+    if (!emailNotification.sent) notices.push('The email notification was not sent; contact the applicant manually.');
+    if (!documentDeleted) notices.push('The uploaded ID could not be deleted; contact support to remove it.');
+    return response.json({ data: user, emailNotification, documentDeleted, message: notices.join(' ') });
   } catch (error) { next(error); }
 }
 

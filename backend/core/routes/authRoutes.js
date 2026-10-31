@@ -1,19 +1,20 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
-import { login, logout, oauthCallback, oauthStart, register, requestPasswordResetOtp, resetPassword, verifyPasswordResetOtp } from '../controllers/authController.js';
+import { login, logout, oauthCallback, oauthStart, passwordResetEmailStatus, register, requestPasswordResetEmail, resetPassword } from '../controllers/authController.js';
 import { validate } from '../middleware/validate.js';
+import { uploadIdentityDocument } from '../config/upload.js';
 const router = Router();
-const passwordResetOtpLimiter = rateLimit({
+const passwordResetLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000,
 	limit: 50,
 	standardHeaders: 'draft-7',
 	legacyHeaders: false,
 	message: { message: 'Too many password reset attempts. Please try again later.' }
 });
-router.post('/register', validate(['first_name', 'last_name', 'email', 'password']), register);
+router.post('/register', uploadIdentityDocument.single('identityDocument'), validate(['first_name', 'last_name', 'email', 'password']), register);
 router.post('/login', validate(['email', 'password']), login);
-router.post('/password-reset/request-otp', passwordResetOtpLimiter, validate(['phone']), requestPasswordResetOtp);
-router.post('/password-reset/verify-otp', passwordResetOtpLimiter, validate(['phone', 'code']), verifyPasswordResetOtp);
+router.get('/password-reset/status', passwordResetEmailStatus);
+router.post('/password-reset/request', passwordResetLimiter, validate(['email']), requestPasswordResetEmail);
 router.post('/password-reset/confirm', validate(['token', 'password']), resetPassword);
 router.post('/logout', logout);
 router.get('/:provider/start', oauthStart);

@@ -73,7 +73,18 @@ test('archived login requires a valid password before returning the archive noti
   });
 });
 
-test('active users continue through login and unknown statuses remain denied', () => {
-  assert.equal(loginRejection({ status: 'active' }, true), null);
-  assert.deepEqual(loginRejection({ status: 'pending' }, true), { status: 401, message: 'Invalid email or password.' });
+test('only approved active users continue through login', () => {
+  assert.equal(loginRejection({ status: 'active', verification_status: 'approved' }, true), null);
+  assert.deepEqual(loginRejection({ status: 'pending', verification_status: 'pending' }, true), {
+    status: 403,
+    message: 'Your account is awaiting admin verification. We will email you when it has been reviewed.'
+  });
+  assert.deepEqual(loginRejection({ status: 'suspended', verification_status: 'rejected' }, true), {
+    status: 403,
+    message: 'Your account verification was rejected. Please check your email for details or contact DormHive support.'
+  });
+  assert.deepEqual(loginRejection({ status: 'pending', verification_status: 'pending' }, false), {
+    status: 401,
+    message: 'Invalid email or password.'
+  });
 });

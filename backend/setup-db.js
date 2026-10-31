@@ -54,6 +54,8 @@ async function checkAndFixDatabase() {
           avatar_url VARCHAR(255),
           role ENUM('tenant', 'owner', 'admin') DEFAULT 'tenant',
           status ENUM('active', 'suspended', 'pending', 'archived') DEFAULT 'active',
+          verification_status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'approved',
+          verification_document_id INT NULL,
           archived_status ENUM('active', 'suspended', 'pending') NULL,
           archived_at DATETIME NULL,
           last_login_at DATETIME NULL,
@@ -73,14 +75,16 @@ async function checkAndFixDatabase() {
           barangay VARCHAR(100),
           latitude DECIMAL(10, 8),
           longitude DECIMAL(11, 8),
-          room_type ENUM('bedspace', 'private_room', 'entire_unit') NOT NULL,
+          room_type VARCHAR(100) NOT NULL,
           monthly_rent DECIMAL(10, 2) NOT NULL,
-          max_occupants INT NOT NULL,
+          max_occupants INT NULL,
+          total_slots INT NOT NULL DEFAULT 1,
           available_slots INT,
           gender_preference ENUM('co-ed', 'male', 'female'),
           amenities JSON,
           image_url VARCHAR(255),
           images JSON,
+          ownership_document_id INT NULL,
           status ENUM('pending', 'approved', 'rejected', 'archived') DEFAULT 'pending',
           archived_status ENUM('pending', 'approved', 'rejected') NULL,
           archived_at DATETIME NULL,
@@ -105,6 +109,7 @@ async function checkAndFixDatabase() {
           viewing_date DATE NULL,
           viewing_time TIME NULL,
           viewing_schedule_tenant_submitted TINYINT(1) NOT NULL DEFAULT 0,
+          occupants INT NOT NULL DEFAULT 1,
           message TEXT,
           status ENUM('pending', 'approved', 'rejected', 'cancelled') DEFAULT 'pending',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -165,6 +170,7 @@ async function checkAndFixDatabase() {
         `CREATE TABLE IF NOT EXISTS support_tickets (
           id INT AUTO_INCREMENT PRIMARY KEY,
           user_id INT NOT NULL,
+          assigned_admin_id INT NULL,
           subject VARCHAR(255) NOT NULL,
           description TEXT,
           status ENUM('open', 'in-progress', 'resolved', 'closed') DEFAULT 'open',
@@ -209,6 +215,8 @@ async function checkAndFixDatabase() {
         console.log('✓ avatar_url column added to users table');
       }
       await query("ALTER TABLE users MODIFY COLUMN status ENUM('active', 'suspended', 'pending', 'archived') DEFAULT 'active'");
+      await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'approved'");
+      await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_document_id INT NULL");
       await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS archived_status ENUM('active', 'suspended', 'pending') NULL");
       await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS archived_at DATETIME NULL");
       await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at DATETIME NULL");
@@ -227,11 +235,20 @@ async function checkAndFixDatabase() {
       };
       
       const missingColumns = Object.keys(requiredColumns).filter(col => !columnNames.includes(col));
+
+      if (!columnNames.includes('total_slots')) {
+        await query('ALTER TABLE properties ADD COLUMN total_slots INT NULL AFTER max_occupants');
+        await query('UPDATE properties SET total_slots = GREATEST(1, COALESCE(max_occupants, 1)) WHERE total_slots IS NULL');
+        await query('ALTER TABLE properties MODIFY COLUMN total_slots INT NOT NULL DEFAULT 1');
+        console.log('✓ total_slots column added and backfilled from existing capacity');
+      }
+      await query('ALTER TABLE properties MODIFY COLUMN max_occupants INT NULL');
       
       if (missingColumns.length > 0) {
         console.log(`⚠️  Found ${missingColumns.length} missing column(s). Adding them...\n`);
         
         const alterStatements = [
+          "ALTER TABLE properties ADD COLUMN IF NOT EXISTS total_slots INT NOT NULL DEFAULT 1 AFTER max_occupants",
           "ALTER TABLE properties ADD COLUMN IF NOT EXISTS available_slots INT AFTER max_occupants",
           "ALTER TABLE properties ADD COLUMN IF NOT EXISTS gender_preference ENUM('co-ed', 'male', 'female') AFTER available_slots",
           "ALTER TABLE properties ADD COLUMN IF NOT EXISTS amenities JSON AFTER gender_preference",
@@ -248,8 +265,10 @@ async function checkAndFixDatabase() {
         console.log('✓ All required columns exist\n');
       }
       await query("ALTER TABLE properties MODIFY COLUMN status ENUM('pending', 'approved', 'rejected', 'archived') DEFAULT 'pending'");
+      await query('ALTER TABLE properties MODIFY COLUMN room_type VARCHAR(100) NOT NULL');
       await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS archived_status ENUM('pending', 'approved', 'rejected') NULL");
       await query("ALTER TABLE properties ADD COLUMN IF NOT EXISTS archived_at DATETIME NULL");
+      await query('ALTER TABLE properties ADD COLUMN IF NOT EXISTS ownership_document_id INT NULL');
 
       const bookingTableExists = (await query("SHOW TABLES LIKE 'bookings'"))[0] !== undefined;
       if (bookingTableExists) {
@@ -266,6 +285,10 @@ async function checkAndFixDatabase() {
         if (!bookingColumnNames.includes('viewing_schedule_tenant_submitted')) {
           await query('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS viewing_schedule_tenant_submitted TINYINT(1) NOT NULL DEFAULT 0 AFTER viewing_time');
           console.log('✓ viewing_schedule_tenant_submitted column added to bookings table');
+        }
+        if (!bookingColumnNames.includes('occupants')) {
+          await query('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS occupants INT NOT NULL DEFAULT 1 AFTER viewing_schedule_tenant_submitted');
+          console.log('✓ occupants column added to bookings table');
         }
         if (!bookingColumnNames.includes('is_indefinite_move_out')) {
           await query('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS is_indefinite_move_out TINYINT(1) NOT NULL DEFAULT 0 AFTER move_out_date');
@@ -344,6 +367,7 @@ async function checkAndFixDatabase() {
       INDEX idx_ticket_messages_ticket (ticket_id),
       INDEX idx_ticket_messages_sender (sender_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+    await query('ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS assigned_admin_id INT NULL AFTER user_id');
     const ticketMessageColumns = await query('SHOW COLUMNS FROM support_ticket_messages');
     const ticketMessageColumnNames = ticketMessageColumns.map((column) => column.Field);
     if (!ticketMessageColumnNames.includes('attachment_url')) {
@@ -374,6 +398,7 @@ async function checkAndFixDatabase() {
       property_id ${propertyIdType} NULL,
       message_id ${messageIdType} NULL,
       ticket_message_id ${ticketMessageIdType} NULL,
+      is_private TINYINT(1) NOT NULL DEFAULT 0,
       original_filename VARCHAR(255) NOT NULL,
       mime_type VARCHAR(127) NOT NULL,
       file_size INT UNSIGNED NOT NULL,
@@ -391,6 +416,7 @@ async function checkAndFixDatabase() {
       INDEX idx_media_message (message_id),
       INDEX idx_media_ticket_message (ticket_message_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+    await query('ALTER TABLE media_files ADD COLUMN IF NOT EXISTS is_private TINYINT(1) NOT NULL DEFAULT 0');
 
     console.log('✨ Database setup complete! You can now:');
     console.log('   1. Run the backend: npm start');

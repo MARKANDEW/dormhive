@@ -79,6 +79,11 @@ form {
   margin: 0 auto;
 }
 
+.form-box.register form {
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+}
+
 .form-box.register {
   padding: 0;
   background: transparent;
@@ -154,6 +159,39 @@ form {
 
 .form-inner .checkbox-label {
   margin: 14px 0 18px;
+}
+
+.identity-upload {
+  display: grid;
+  gap: 7px;
+  margin: 14px 0;
+}
+
+.identity-upload label {
+  color: #344054;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.identity-upload label span {
+  color: #b42318;
+}
+
+.identity-upload input[type="file"] {
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #d0d5dd;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #344054;
+  font-size: 0.82rem;
+}
+
+.identity-upload small {
+  color: #667085;
+  font-size: 0.76rem;
+  line-height: 1.45;
 }
 
 .container.active .form-box {
@@ -526,6 +564,7 @@ form {
   left: -250%;
   width: 300%;
   height: 100%;
+  pointer-events: none;
   background: var(--dormhive-primary);
   border-radius: 150px;
   z-index: 2;
@@ -1046,55 +1085,17 @@ form {
   opacity: 0.7;
 }
 
-.password-reset-otp-inputs {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 0.55rem;
-  margin: 0.25rem 0 0.3rem;
-}
-
-.password-reset-form input.password-reset-otp-input {
-  width: 100%;
-  min-width: 0;
-  aspect-ratio: 1;
-  padding: 0;
-  border: 1px solid #d6e5dd;
+.password-reset-support-link {
+  display: block;
+  margin-top: 1.25rem;
+  padding: 0.85rem 1rem;
   border-radius: 9px;
-  background: #f7faf8;
-  color: #17352f;
-  font: inherit;
-  font-size: 1.2rem;
+  background: var(--dormhive-primary-dark);
+  color: #fff;
+  font-size: 0.9rem;
   font-weight: 700;
   text-align: center;
-}
-
-.password-reset-timer {
-  margin: 0;
-  color: #6d8179;
-  font-size: 0.8rem;
-  text-align: center;
-}
-
-.password-reset-timer strong {
-  color: #31594c;
-  font-variant-numeric: tabular-nums;
-}
-
-.password-reset-resend {
-  justify-self: center;
-  padding: 0.25rem 0.5rem;
-  border: 0;
-  background: transparent;
-  color: #147b5d;
-  font: inherit;
-  font-size: 0.82rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.password-reset-resend:disabled {
-  color: #899891;
-  cursor: default;
+  text-decoration: none;
 }
 
 .password-reset-message {
@@ -1126,9 +1127,6 @@ form {
   }
   .password-reset-card h1 {
     font-size: 1.55rem;
-  }
-  .password-reset-otp-inputs {
-    gap: 0.4rem;
   }
   .container {
     width: 100vw;
@@ -1477,6 +1475,8 @@ form {
   .form-box.login form,
   .form-box.register form {
     width: min(100%, 568px);
+    max-height: none;
+    overflow: visible;
     padding: 28px 20px 30px;
     border-radius: 28px;
     background: rgba(255, 255, 255, 0.96);

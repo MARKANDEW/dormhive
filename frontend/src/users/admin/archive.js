@@ -1,4 +1,4 @@
-import { ensureAdminSidebarStyles, loadAdminStylesheet, renderAdminSidebar } from './sidebarAdmin.js';
+import { ensureAdminSidebarStyles, loadAdminStylesheet, renderAdminDateMeta, renderAdminSidebar } from './sidebarAdmin.js';
 import { applyAdminPrivacy } from './privacy.js';
 import { successDialog } from '../../components/modal.js';
 
@@ -12,7 +12,7 @@ const esc = (value = '') => {
 
 function loadStyles() {
   const stylesheet = new URL('./style/userManagement.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'archive-page-3');
+  stylesheet.searchParams.set('v', 'user-table-actions-16-2');
   return loadAdminStylesheet('users', stylesheet);
 }
 
@@ -44,6 +44,7 @@ export async function renderArchive(root = document.querySelector('#app')) {
               <h1>Archive</h1>
               <p>Restore archived tenant and owner accounts or property listings.</p>
             </div>
+            ${renderAdminDateMeta()}
           </header>
           <section class="users-content">
             <div class="archive-tabs" role="group" aria-label="Archived record type">

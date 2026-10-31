@@ -19,13 +19,33 @@ const resolveImageUrl = (value = '') => {
 };
 
 function style() {
-  return loadTenantStylesheet('message', new URL('./style/message.css', import.meta.url));
+  const stylesheet = new URL('./style/message.css', import.meta.url);
+  stylesheet.searchParams.set('v', 'tenant-message-neutral-focus-1');
+  return loadTenantStylesheet('message', stylesheet);
 }
 
 const escape = (value = '') => {
   const node = document.createElement('span');
   node.textContent = value;
   return node.innerHTML;
+};
+
+const ROOM_TYPE_LABELS = {
+  bedspace: 'Bedspace',
+  bed_space: 'Bedspace',
+  shared_room: 'Bedspace',
+  private_room: 'Solo Room',
+  solo_room: 'Solo Room',
+  solo: 'Solo Room',
+  entire_unit: 'Studio Unit',
+  studio_unit: 'Studio Unit',
+  studio: 'Studio Unit'
+};
+const formatRoomType = (value = '') => {
+  const type = String(value ?? '').trim();
+  const normalized = type.toLowerCase();
+  return ROOM_TYPE_LABELS[normalized]
+    ?? (type.replace(/[_-]+/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase()) || 'Not specified');
 };
 
 const isImageDataUrl = (value = '') => typeof value === 'string' && /^data:image\//i.test(value.trim());
@@ -136,16 +156,14 @@ const isPhotoOnlyMessage = (message = {}) => {
   return Boolean(messagePhotoUrl(message)) && (!body || isImageDataUrl(body));
 };
 
-const renderPhotoMessageGroup = (photoMessages, isMine, otherName) => {
+const renderPhotoMessageGroup = (photoMessages) => {
   const photoUrls = photoMessages.map(messagePhotoUrl).filter(Boolean);
-  const senderName = isMine ? 'You' : otherName || 'Owner';
   const visiblePhotos = photoUrls.slice(0, 4);
   const additionalCount = photoUrls.length - visiblePhotos.length;
   const stacked = photoUrls.length >= 2;
   const moreBadgeIndex = stacked ? 0 : 3;
   return `
     <div class="message-photo-group${stacked ? ' message-photo-group--stack' : ''}">
-      <div class="message-photo-group__label">${escape(`${senderName} sent ${photoUrls.length} photos`)}</div>
       <div class="message-photo-group__grid">
         ${visiblePhotos.map((photo, index) => `
           <button type="button" class="message-photo-group__tile${additionalCount && index === moreBadgeIndex ? ' has-more' : ''}" data-photo-index="${index}" aria-label="View photo ${index + 1} of ${photoUrls.length}">
@@ -285,8 +303,7 @@ const openPropertyDetails = (property) => {
         </div>
         <div class="message-property-grid">
           <p><span class="message-property-fact-icon"><i class="bi bi-geo-alt-fill" aria-hidden="true"></i></span><span class="message-property-fact-copy"><small>Location</small><strong>${escape(location)}</strong></span></p>
-          <p><span class="message-property-fact-icon"><i class="bi bi-house-fill" aria-hidden="true"></i></span><span class="message-property-fact-copy"><small>Room Type</small><strong>${escape(property.room_type || 'Not specified')}</strong></span></p>
-          <p><span class="message-property-fact-icon"><i class="bi bi-people-fill" aria-hidden="true"></i></span><span class="message-property-fact-copy"><small>Occupancy</small><strong>${escape(property.max_occupants ? `Up to ${property.max_occupants} tenants` : 'Not specified')}</strong></span></p>
+          <p><span class="message-property-fact-icon"><i class="bi bi-house-fill" aria-hidden="true"></i></span><span class="message-property-fact-copy"><small>Room Type</small><strong>${escape(formatRoomType(property.room_type))}</strong></span></p>
           <p><span class="message-property-fact-icon"><i class="bi bi-door-open-fill" aria-hidden="true"></i></span><span class="message-property-fact-copy"><small>Available Slots</small><strong>${escape(property.available_slots ?? 'Not specified')}</strong></span></p>
           <p><span class="message-property-fact-icon"><i class="bi bi-gender-ambiguous" aria-hidden="true"></i></span><span class="message-property-fact-copy"><small>Gender Preference</small><strong>${escape(property.gender_preference || 'Not specified')}</strong></span></p>
           <p><span class="message-property-fact-icon"><i class="bi bi-person-fill" aria-hidden="true"></i></span><span class="message-property-fact-copy"><small>Owner</small><strong>${escape(property.owner_name || 'Not specified')}</strong></span></p>
@@ -618,23 +635,36 @@ export async function renderMessage(root = document.querySelector('#app')) {
         groupedMessages.push(photoMessages.length > 1 ? { photoMessages } : { message });
         index += photoMessages.length;
       }
-      list.innerHTML = groupedMessages.map((entry) => {
+      list.innerHTML = groupedMessages.map((entry, index) => {
+        const firstMessage = entry.photoMessages?.[0] ?? entry.message;
+        const isMine = String(firstMessage.sender_id) === String(currentUser().id);
+        const nextEntry = groupedMessages[index + 1];
+        const nextMessage = nextEntry?.photoMessages?.[0] ?? nextEntry?.message;
+        const showAvatar = !isMine && (!nextMessage || String(nextMessage.sender_id) !== String(firstMessage.sender_id));
+        const avatar = isMine
+          ? ''
+          : showAvatar
+            ? `<span class="message-sender-avatar">${participantAvatar(state.selected)}</span>`
+            : '<span class="message-sender-avatar is-placeholder" aria-hidden="true"></span>';
+        const rowClass = isMine ? 'is-mine' : 'is-theirs';
         if (entry.photoMessages) {
           const photoMessages = entry.photoMessages;
-          const isMine = String(photoMessages[0].sender_id) === String(currentUser().id);
           return `
-            <article class="message message-photo-group-bubble ${isMine ? 'is-mine' : ''}">
-              <div class="bubble-body">${renderPhotoMessageGroup(photoMessages, isMine, state.selected.participant_name)}</div>
-              <time>${escape(formatMessageTime(photoMessages[photoMessages.length - 1].created_at))}</time>
-            </article>`;
+            <div class="message-row ${rowClass}">${avatar}
+              <article class="message message-photo-group-bubble ${isMine ? 'is-mine' : ''}">
+                <div class="bubble-body">${renderPhotoMessageGroup(photoMessages)}</div>
+                <time>${escape(formatMessageTime(photoMessages[photoMessages.length - 1].created_at))}</time>
+              </article>
+            </div>`;
         }
         const item = entry.message;
-        const isMine = String(item.sender_id) === String(currentUser().id);
         return `
-          <article class="message ${isMine ? 'is-mine' : ''}">
-            <div class="bubble-body">${renderMessageBody(item.body, item.attachment_url)}</div>
-            <time>${escape(formatMessageTime(item.created_at))}</time>
-          </article>`;
+          <div class="message-row ${rowClass}">${avatar}
+            <article class="message ${isMine ? 'is-mine' : ''}">
+              <div class="bubble-body">${renderMessageBody(item.body, item.attachment_url)}</div>
+              <time>${escape(formatMessageTime(item.created_at))}</time>
+            </article>
+          </div>`;
       }).join('') || '<p class="empty-state">Start the conversation.</p>';
 
       const photoGroupEntries = groupedMessages.filter((entry) => entry.photoMessages);

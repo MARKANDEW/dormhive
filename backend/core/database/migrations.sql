@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS users (
   avatar_url VARCHAR(255),
   role ENUM('tenant', 'owner', 'admin') DEFAULT 'tenant',
   status ENUM('active','suspended','pending','archived') DEFAULT 'active',
+  verification_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved',
+  verification_document_id INT NULL,
   archived_status ENUM('active','suspended','pending') NULL,
   archived_at DATETIME NULL,
   last_login_at DATETIME NULL,
@@ -33,20 +35,6 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
   INDEX idx_password_reset_expiry (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS password_reset_otps (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  phone_e164 VARCHAR(16) NOT NULL UNIQUE,
-  verification_sid VARCHAR(64) NOT NULL,
-  attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
-  expires_at DATETIME NOT NULL,
-  resend_after DATETIME NOT NULL,
-  verified_at DATETIME NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  INDEX idx_password_reset_otp_expiry (expires_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 -- Create properties table
 CREATE TABLE IF NOT EXISTS properties (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -58,14 +46,16 @@ CREATE TABLE IF NOT EXISTS properties (
   barangay VARCHAR(100),
   latitude DECIMAL(10, 8),
   longitude DECIMAL(11, 8),
-  room_type ENUM('bedspace', 'private_room', 'entire_unit') NOT NULL,
+  room_type VARCHAR(100) NOT NULL,
   monthly_rent DECIMAL(10, 2) NOT NULL,
-  max_occupants INT NOT NULL,
+  max_occupants INT NULL,
+  total_slots INT NOT NULL DEFAULT 1,
   available_slots INT,
   gender_preference ENUM('co-ed', 'male', 'female'),
   amenities JSON,
   image_url VARCHAR(255),
   images JSON,
+  ownership_document_id INT NULL,
   status ENUM('pending', 'approved', 'rejected', 'archived') DEFAULT 'pending',
   archived_status ENUM('pending', 'approved', 'rejected') NULL,
   archived_at DATETIME NULL,
@@ -90,6 +80,7 @@ CREATE TABLE IF NOT EXISTS bookings (
   viewing_date DATE NULL,
   viewing_time TIME NULL,
   viewing_schedule_tenant_submitted TINYINT(1) NOT NULL DEFAULT 0,
+  occupants INT NOT NULL DEFAULT 1,
   message TEXT,
   status ENUM('pending', 'approved', 'rejected', 'cancelled') DEFAULT 'pending',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -151,6 +142,7 @@ CREATE TABLE IF NOT EXISTS notifications (
 CREATE TABLE IF NOT EXISTS support_tickets (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
+  assigned_admin_id INT NULL,
   subject VARCHAR(255) NOT NULL,
   description TEXT,
   status ENUM('open', 'in-progress', 'resolved', 'closed') DEFAULT 'open',
@@ -160,6 +152,8 @@ CREATE TABLE IF NOT EXISTS support_tickets (
   INDEX idx_status (status),
   INDEX idx_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS assigned_admin_id INT NULL AFTER user_id;
 
 CREATE TABLE IF NOT EXISTS support_ticket_messages (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -177,23 +171,32 @@ CREATE TABLE IF NOT EXISTS support_ticket_messages (
 -- Add missing columns to properties table if they don't exist
 -- Run these if you have an existing properties table without these columns:
 ALTER TABLE properties ADD COLUMN IF NOT EXISTS available_slots INT AFTER max_occupants;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS total_slots INT NULL AFTER max_occupants;
+UPDATE properties SET total_slots = GREATEST(1, COALESCE(max_occupants, 1)) WHERE total_slots IS NULL;
+ALTER TABLE properties MODIFY COLUMN total_slots INT NOT NULL DEFAULT 1;
+ALTER TABLE properties MODIFY COLUMN max_occupants INT NULL;
 ALTER TABLE properties ADD COLUMN IF NOT EXISTS gender_preference ENUM('co-ed', 'male', 'female') AFTER available_slots;
 ALTER TABLE properties ADD COLUMN IF NOT EXISTS amenities JSON AFTER gender_preference;
 ALTER TABLE properties ADD COLUMN IF NOT EXISTS images JSON AFTER image_url;
+ALTER TABLE properties MODIFY COLUMN room_type VARCHAR(100) NOT NULL;
 
 -- Add first_name and last_name to users for separate name storage
 ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name VARCHAR(100) AFTER name;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name VARCHAR(100) AFTER first_name;
 ALTER TABLE users MODIFY COLUMN status ENUM('active','suspended','pending','archived') DEFAULT 'active';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_document_id INT NULL;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS archived_status ENUM('active','suspended','pending') NULL;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS archived_at DATETIME NULL;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at DATETIME NULL;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_at DATETIME NULL;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS ownership_document_id INT NULL;
 UPDATE users SET last_active_at = last_login_at WHERE last_login_at IS NOT NULL AND last_active_at IS NULL;
 ALTER TABLE properties MODIFY COLUMN status ENUM('pending', 'approved', 'rejected', 'archived') DEFAULT 'pending';
 ALTER TABLE properties ADD COLUMN IF NOT EXISTS archived_status ENUM('pending', 'approved', 'rejected') NULL;
 ALTER TABLE properties ADD COLUMN IF NOT EXISTS archived_at DATETIME NULL;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS is_indefinite_move_out TINYINT(1) NOT NULL DEFAULT 0 AFTER move_out_date;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS occupants INT NOT NULL DEFAULT 1 AFTER viewing_schedule_tenant_submitted;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS viewing_schedule_tenant_submitted TINYINT(1) NOT NULL DEFAULT 0 AFTER viewing_time;
 
 ALTER TABLE notifications ADD COLUMN IF NOT EXISTS message TEXT AFTER title;
@@ -209,6 +212,7 @@ CREATE TABLE IF NOT EXISTS media_files (
   property_id INT NULL,
   message_id INT NULL,
   ticket_message_id INT NULL,
+  is_private TINYINT(1) NOT NULL DEFAULT 0,
   original_filename VARCHAR(255) NOT NULL,
   mime_type VARCHAR(127) NOT NULL,
   file_size INT UNSIGNED NOT NULL,
@@ -226,3 +230,5 @@ CREATE TABLE IF NOT EXISTS media_files (
   INDEX idx_media_message (message_id),
   INDEX idx_media_ticket_message (ticket_message_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE media_files ADD COLUMN IF NOT EXISTS is_private TINYINT(1) NOT NULL DEFAULT 0;

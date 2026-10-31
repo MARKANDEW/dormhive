@@ -23,6 +23,9 @@
 .ui-toast--success {
   background: #1aa87a;
 }
+.ui-toast--warning {
+  background: #9a6700;
+}
 .ui-toast.is-leaving {
   opacity: 0;
   transition: opacity 0.18s;

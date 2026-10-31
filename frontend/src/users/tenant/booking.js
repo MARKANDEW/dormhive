@@ -1,11 +1,20 @@
 import { ensureTenantSidebarStyles, loadTenantStylesheet, renderTenantSidebar } from './sidebarTenant.js';
 import { getUserAvatarUrl } from './setting.js';
 import { createModal, openModal } from '../../components/modal.js';
-import { parseViewingTime, viewingTimeFields } from './viewingTime.js';
 import { api as apiClient } from '../../services/api.js';
 import { markNotificationRead } from '../../services/notificationSystem.js';
 import { withMediaAccessToken } from '../../services/mediaAccess.js';
 import { buildInitialsAvatarSvg, getAvatarInitials } from '../../services/avatar.js';
+
+function parseViewingTime(value = '') {
+  const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(String(value).trim());
+  if (!match) return value ? null : '';
+  const totalMinutes = Number(match[1]) * 60 + Number(match[2]);
+  const isAvailable = (totalMinutes >= 480 && totalMinutes <= 660)
+    || (totalMinutes >= 720 && totalMinutes <= 960)
+    || (totalMinutes >= 1020 && totalMinutes <= 1140);
+  return isAvailable ? `${match[1]}:${match[2]}` : null;
+}
 
 const API_URL = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const apiBase = API_URL.replace(/\/api\/v1\/?$/, '');
@@ -171,7 +180,7 @@ const propertyAmenities = (value) => {
 
 function style() {
   const stylesheet = new URL('./style/booking.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'booking-photo-viewer-reference-2');
+  stylesheet.searchParams.set('v', 'booking-photo-viewer-reference-5');
   return loadTenantStylesheet('booking', stylesheet);
 }
 
@@ -469,7 +478,7 @@ export async function renderBooking(root = document.querySelector('#app')) {
           const timeValue = hasTenantSchedule ? String(booking.viewing_time ?? '').slice(0, 5) : '';
           const modal = createModal({
             title: dateValue && timeValue ? 'Change Viewing Schedule' : 'Set Viewing Schedule',
-            content: `<form class="tenant-viewing-schedule-form"><label for="tenant-viewing-date">Viewing Date</label><input id="tenant-viewing-date" type="date" required value="${escape(dateValue)}"><label>Viewing Time</label>${viewingTimeFields({ idPrefix: 'tenant-viewing-time', value: timeValue, required: true })}<p role="status"></p></form>`,
+            content: `<form class="tenant-viewing-schedule-form"><label for="tenant-viewing-date">Viewing Date</label><input id="tenant-viewing-date" type="date" required value="${escape(dateValue)}"><label for="tenant-viewing-time">Viewing Time</label><input id="tenant-viewing-time" type="time" required value="${escape(timeValue || '08:00')}" min="08:00" max="19:00" step="1800" lang="en-US"><p role="status"></p></form>`,
             closeLabel: 'Cancel',
             closeOnBackdrop: false,
             footerMarkup: '<button type="button" class="btn btn--primary" data-save-viewing-schedule>Save Schedule</button>'

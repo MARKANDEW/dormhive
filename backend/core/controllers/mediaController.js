@@ -6,7 +6,7 @@ export async function get(request, response, next) {
     const file = await mediaFiles.findAuthorized(request.params.id, request.user);
     if (!file) return response.status(404).end();
 
-    const inline = file.mime_type.startsWith('image/');
+    const inline = file.mime_type.startsWith('image/') || (file.mime_type === 'application/pdf' && Number(file.is_private) === 1);
     const encodedFilename = encodeURIComponent(file.original_filename.replace(/[\r\n"\\]/g, '_'));
     const asciiFilename = file.original_filename.replace(/[^\x20-\x7e]|["\\;]/g, '_');
     response.set({

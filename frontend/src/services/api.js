@@ -43,10 +43,11 @@ export function createApiClient(baseUrl = API_BASE_URL) {
       if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, String(value));
     });
     const token = readToken();
+    const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
     const response = await fetch(url, {
       method, signal,
-      headers: { Accept: 'application/json', ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(auth && token ? { Authorization: `Bearer ${token}` } : {}), ...headers },
-      body: body === undefined ? undefined : JSON.stringify(body)
+      headers: { Accept: 'application/json', ...(body !== undefined && !isFormData ? { 'Content-Type': 'application/json' } : {}), ...(auth && token ? { Authorization: `Bearer ${token}` } : {}), ...headers },
+      body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body)
     });
     const payload = await readApiResponse(response);
     if (!response.ok) {
@@ -69,7 +70,7 @@ export function createApiClient(baseUrl = API_BASE_URL) {
     session: { get token() { return readToken(); }, set: setSession, clear: clearSession },
     health: (options = {}) => request('/health', { auth: false, ...options }),
     auth: {
-      async register(payload, options = {}) { const result = await request('/auth/register', { method: 'POST', body: payload, auth: false, ...options }); setSession(result); return result; },
+      async register(payload, options = {}) { return request('/auth/register', { method: 'POST', body: payload, auth: false, ...options }); },
       async login(payload, options = {}) { const result = await request('/auth/login', { method: 'POST', body: payload, auth: false, ...options }); setSession(result); return result; },
       async logout(options = {}) { try { return await request('/auth/logout', { method: 'POST', auth: false, ...options }); } finally { clearSession(); } }
     },

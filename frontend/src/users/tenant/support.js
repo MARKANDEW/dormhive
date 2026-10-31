@@ -6,7 +6,9 @@ const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const headers = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
 
 function css() {
-  return loadTenantStylesheet('support', new URL('./style/support.css', import.meta.url));
+  const stylesheet = new URL('./style/support.css', import.meta.url);
+  stylesheet.searchParams.set('v', 'support-messenger-composer-1');
+  return loadTenantStylesheet('support', stylesheet);
 }
 
 const faqs = [
@@ -22,38 +24,117 @@ const attachmentHref = (value) => value ? withMediaAccessToken(`${API.replace(/\
 const renderTickets = (tickets) => tickets.length ? tickets.map((ticket) => `<article class="support-ticket-row" data-ticket-id="${escapeHtml(ticket.id)}" tabindex="0"><div><strong>${escapeHtml(ticket.subject)}</strong><small>${escapeHtml(ticket.description)}</small></div><span class="support-ticket-meta"><b class="support-ticket-status ${escapeHtml(ticket.status)}">${escapeHtml(ticket.status)}</b><span>${escapeHtml(ticket.priority)} priority</span><time>${ticket.created_at ? new Date(ticket.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'No date'}</time></span></article>`).join('') : '<p class="support-ticket-empty">You have not submitted any support tickets yet.</p>';
 const renderMessages = (messages) => messages.filter((message) => !message.is_internal).map((message) => {
   const attachment = attachmentHref(message.attachment_url);
-  const preview = attachment && String(message.attachment_mime_type || '').startsWith('image/')
+  const isImageAttachment = attachment && String(message.attachment_mime_type || '').startsWith('image/');
+  const imagePreview = isImageAttachment
     ? `<img class="support-message-attachment-preview" src="${escapeHtml(attachment)}" alt="${escapeHtml(message.attachment_name || 'Ticket attachment')}" />`
     : '';
-  return `<div class="support-message-wrap${message.sender_role === 'admin' ? '' : ' support-message-wrap--self'}"><article class="support-message"><strong>${escapeHtml(message.sender_name || 'Support')}</strong><p>${escapeHtml(message.body)}</p>${attachment ? `${preview}<a class="support-message-attachment" href="${escapeHtml(attachment)}" target="_blank" rel="noopener"><i class="bi bi-paperclip"></i> ${escapeHtml(message.attachment_name || 'Open attachment')}</a>` : ''}</article><time>${message.created_at ? new Date(message.created_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : ''}</time></div>`;
+  const fileLink = attachment && !isImageAttachment
+    ? `<a class="support-message-attachment" href="${escapeHtml(attachment)}" target="_blank" rel="noopener"><i class="bi bi-paperclip"></i> ${escapeHtml(message.attachment_name || 'Open attachment')}</a>`
+    : '';
+  const messageDateTime = message.created_at ? new Date(message.created_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+  return `<div class="support-message-wrap${message.sender_role === 'admin' ? '' : ' support-message-wrap--self'}"><article class="support-message" title="${escapeHtml(messageDateTime)}">${message.body ? `<p>${escapeHtml(message.body)}</p>` : ''}${imagePreview}${fileLink}</article></div>`;
 }).join('') || '<p class="support-ticket-empty">No replies yet.</p>';
 async function loadTickets(root) {
   const list = root.querySelector('[data-support-ticket-list]');
   if (!list) return;
+  const workspace = root.querySelector('[data-support-ticket-workspace]');
+  const conversation = root.querySelector('[data-support-conversation]');
+  const currentPage = root.querySelector('[data-support-ticket-page]');
+  const previousPage = root.querySelector('[data-support-ticket-previous]');
+  const nextPage = root.querySelector('[data-support-ticket-next]');
+  const pageSize = 7;
+  let tickets = [];
+  let page = 1;
+  const renderConversationHeader = (ticket) => {
+    const status = String(ticket?.status || 'open').toLowerCase();
+    const priority = String(ticket?.priority || 'medium').toLowerCase();
+    return `<header class="support-conversation-header"><button type="button" class="support-mobile-back" data-support-back aria-label="Back to tickets"><i class="bi bi-arrow-left"></i></button><div class="support-conversation-heading"><h3>${escapeHtml(ticket?.subject || 'Support request')}</h3><div class="support-conversation-badges"><span class="support-ticket-status ${escapeHtml(status)}">${escapeHtml(status)}</span><span class="support-conversation-priority">${escapeHtml(priority)} priority</span></div></div></header>`;
+  };
+
+  const renderPage = () => {
+    const pageCount = Math.max(1, Math.ceil(tickets.length / pageSize));
+    page = Math.min(page, pageCount);
+    const start = (page - 1) * pageSize;
+    list.innerHTML = renderTickets(tickets.slice(start, start + pageSize));
+    currentPage.textContent = `${page} / ${pageCount}`;
+    previousPage.disabled = page === 1;
+    nextPage.disabled = page === pageCount;
+  };
+
   try {
     const response = await fetch(`${API}/support-tickets`, { headers: headers() });
     const body = await response.json();
     if (!response.ok) throw new Error(body.message || 'Unable to load support tickets.');
-    list.innerHTML = renderTickets(body.data || []);
+    tickets = Array.isArray(body.data) ? body.data : [];
+    renderPage();
+    previousPage.addEventListener('click', () => { if (page > 1) { page -= 1; renderPage(); } });
+    nextPage.addEventListener('click', () => { if (page < Math.ceil(tickets.length / pageSize)) { page += 1; renderPage(); } });
     list.onclick = async (event) => {
       const row = event.target.closest('[data-ticket-id]');
-      const conversation = root.querySelector('[data-support-conversation]');
       if (!row || !conversation) return;
-      conversation.hidden = false;
-      conversation.innerHTML = '<p class="support-ticket-empty">Loading conversation...</p>';
+      const ticket = tickets.find((item) => String(item.id) === String(row.dataset.ticketId));
+      const conversationHeader = renderConversationHeader(ticket);
+      workspace.classList.add('is-conversation-open');
+      conversation.innerHTML = `${conversationHeader}<p class="support-ticket-empty">Loading conversation...</p>`;
       const messagesResponse = await fetch(`${API}/support-tickets/${row.dataset.ticketId}/messages`, { headers: headers() });
       const messagesBody = await messagesResponse.json();
-      conversation.innerHTML = messagesResponse.ok ? `<h3>Conversation</h3>${renderMessages(messagesBody.data || [])}<form class="support-reply-form" data-ticket-id="${escapeHtml(row.dataset.ticketId)}"><textarea name="body" rows="3" required placeholder="Write a reply..."></textarea><input type="file" name="attachment" accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"><button type="submit">Send</button></form>` : `<p class="support-ticket-empty">${escapeHtml(messagesBody.message || 'Unable to load conversation.')}</p>`;
-      conversation.querySelector('.support-reply-form')?.addEventListener('submit', async (replyEvent) => {
+      conversation.innerHTML = messagesResponse.ok ? `${conversationHeader}<div class="support-message-list">${renderMessages(messagesBody.data || [])}</div><form class="support-reply-form" data-ticket-id="${escapeHtml(row.dataset.ticketId)}"><div class="support-reply-input-wrapper"><div class="support-reply-inline-input"><label class="support-attachment-picker" title="Send a photo" aria-label="Send a photo"><input type="file" name="attachment" accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"><span>＋</span></label><textarea name="body" rows="1" required placeholder="Write a reply..."></textarea></div></div><button type="submit" aria-label="Send reply"><i class="bi bi-send"></i></button></form>` : `${conversationHeader}<p class="support-ticket-empty">${escapeHtml(messagesBody.message || 'Unable to load conversation.')}</p>`;
+      conversation.querySelector('[data-support-back]')?.addEventListener('click', () => workspace.classList.remove('is-conversation-open'));
+      conversation.querySelectorAll('.support-message-attachment-preview').forEach((image) => {
+        image.classList.add('is-avatar-previewable');
+        image.tabIndex = 0;
+        image.setAttribute('role', 'button');
+        image.setAttribute('aria-label', `View ${image.alt} photo`);
+        image.addEventListener('click', () => {
+          const viewer = document.createElement('dialog');
+          viewer.className = 'support-photo-viewer';
+          const fullImage = document.createElement('img');
+          fullImage.src = image.src;
+          fullImage.alt = image.alt;
+          viewer.addEventListener('click', () => viewer.close());
+          viewer.addEventListener('close', () => viewer.remove(), { once: true });
+          viewer.append(fullImage);
+          document.body.append(viewer);
+          viewer.showModal();
+        });
+      });
+      const messageList = conversation.querySelector('.support-message-list');
+      if (messageList) messageList.scrollTop = messageList.scrollHeight;
+      const replyForm = conversation.querySelector('.support-reply-form');
+      const sendButton = replyForm?.querySelector('button[type="submit"]');
+      const replyTextarea = replyForm?.querySelector('textarea');
+      replyTextarea?.addEventListener('input', () => {
+        if (!replyTextarea.value) {
+          replyTextarea.style.height = '32px';
+          replyTextarea.style.overflowY = 'hidden';
+          return;
+        }
+        replyTextarea.style.height = 'auto';
+        replyTextarea.style.height = `${Math.min(replyTextarea.scrollHeight, 120)}px`;
+        replyTextarea.style.overflowY = replyTextarea.scrollHeight > 120 ? 'auto' : 'hidden';
+      });
+      replyTextarea?.addEventListener('keydown', (keyEvent) => {
+        if (keyEvent.key !== 'Enter' || keyEvent.shiftKey || keyEvent.isComposing) return;
+        keyEvent.preventDefault();
+        if (!sendButton?.disabled) replyForm.requestSubmit();
+      });
+      replyForm?.addEventListener('submit', async (replyEvent) => {
         replyEvent.preventDefault();
+        if (sendButton?.disabled) return;
+        if (sendButton) sendButton.disabled = true;
         const form = replyEvent.currentTarget;
         const formData = new FormData(form);
         const replyBody = new FormData();
         replyBody.append('body', String(formData.get('body') || ''));
         if (formData.get('attachment')?.size) replyBody.append('attachment', formData.get('attachment'));
-        const replyResponse = await fetch(`${API}/support-tickets/${row.dataset.ticketId}/messages`, { method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` }, body: replyBody });
-        if (!replyResponse.ok) { const result = await replyResponse.json().catch(() => ({})); showToast({ message: result.message || 'Unable to send reply.', type: 'error' }); return; }
-        row.click();
+        try {
+          const replyResponse = await fetch(`${API}/support-tickets/${row.dataset.ticketId}/messages`, { method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` }, body: replyBody });
+          if (!replyResponse.ok) { const result = await replyResponse.json().catch(() => ({})); throw new Error(result.message || 'Unable to send reply.'); }
+          row.click();
+        } catch (error) {
+          showToast({ message: error.message || 'Unable to send reply.', type: 'error' });
+          if (sendButton?.isConnected) sendButton.disabled = false;
+        }
       });
     };
   } catch (error) {
@@ -71,7 +152,7 @@ export async function renderSupport(root = document.querySelector('#app')) {
   root.querySelector('.dh-app')?.classList.add('support-standalone');
   const formCard = root.querySelector('.user-ticket-form');
   const ticketForm = formCard?.querySelector('form');
-  root.querySelector('.user-ticket-form')?.insertAdjacentHTML('beforebegin', '<section class="support-tickets-card"><header><h2>My Support Tickets</h2><p>View the support requests you have submitted.</p></header><div data-support-ticket-list><p class="support-ticket-empty">Loading tickets...</p></div><div class="support-conversation" data-support-conversation hidden></div></section>');
+  root.querySelector('.user-ticket-form')?.insertAdjacentHTML('beforebegin', '<section class="support-tickets-card"><header><h2>My Support Tickets</h2><p>View the support requests you have submitted.</p></header><div class="support-ticket-workspace" data-support-ticket-workspace><section class="support-ticket-list-panel" aria-label="My support tickets"><div data-support-ticket-list><p class="support-ticket-empty">Loading tickets...</p></div><footer class="support-ticket-pagination"><div><button type="button" data-support-ticket-previous disabled aria-label="Previous page">‹</button><span data-support-ticket-page>1 / 1</span><button type="button" data-support-ticket-next disabled aria-label="Next page">›</button></div></footer></section><section class="support-conversation" data-support-conversation><div class="support-conversation-empty"><i class="bi bi-chat-square-text"></i><strong>Select a ticket</strong><span>The conversation will appear here.</span></div></section></div></section>');
   const dashboardLink = document.createElement('a');
   dashboardLink.className = 'support-dashboard-link';
   dashboardLink.href = '#/tenant/dashboardTenant';

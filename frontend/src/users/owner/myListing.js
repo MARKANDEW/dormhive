@@ -43,12 +43,12 @@ const parseNumericValue = (value, fallback = 0) => {
   return Number.isFinite(number) ? number : fallback;
 };
 const getOccupancySummary = (property = {}, bookings = []) => {
-  const totalCapacity = Math.max(0, parseNumericValue(property.max_occupants ?? property.available_slots ?? 0, 0));
+  const totalCapacity = Math.max(0, parseNumericValue(property.total_slots ?? 0, 0));
   const occupied = bookings.filter((booking) => {
     const bookingPropertyId = String(booking.property_id ?? booking.propertyId ?? '');
     const status = String(booking.status ?? '').toLowerCase();
     return String(property.id) === bookingPropertyId && status === 'approved';
-  }).reduce((sum, booking) => sum + Math.max(0, parseNumericValue(booking.occupants ?? 1, 1)), 0);
+  }).length;
   const rate = totalCapacity > 0 ? Math.min(100, Math.round((occupied / totalCapacity) * 100)) : 0;
   const label = totalCapacity > 0 && occupied >= totalCapacity ? 'Fully Occupied' : `${rate}% (${occupied}/${totalCapacity})`;
   return {
@@ -226,7 +226,7 @@ function showPropertyPhotoViewer(property) {
 
 function css() {
   const stylesheet = new URL('./style/myListing.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'portfolio-photo-viewer-reference-2');
+  stylesheet.searchParams.set('v', 'portfolio-search-focus-neutral-1');
   return loadOwnerStylesheet('listings', stylesheet);
 }
 
@@ -293,6 +293,11 @@ export async function renderMyListing(root = document.querySelector('#app')) {
                     <span class="step-number">3</span>
                     <span class="step-label">Details</span>
                   </div>
+                  <div class="step-connector"></div>
+                  <div class="step-marker" data-step="4">
+                    <span class="step-number">4</span>
+                    <span class="step-label">Review</span>
+                  </div>
                 </div>
 
                 <form id="property-form" enctype="multipart/form-data" novalidate>
@@ -314,10 +319,10 @@ export async function renderMyListing(root = document.querySelector('#app')) {
                         <option value="bedspace">Bedspace</option>
                         <option value="private_room">Solo Room</option>
                         <option value="entire_unit">Studio Unit</option>
-                      </select></label>
+                        <option value="other">Other</option>
+                      </select><input name="customRoomType" type="text" maxlength="100" placeholder="Type your property type" aria-label="Custom property type" hidden></label>
                       <label>Monthly price (₱)<input name="monthlyRent" type="text" inputmode="decimal" autocomplete="off" required></label>
-                      <label>Maximum occupancy<input name="maxOccupants" type="number" min="1" required></label>
-                      <label>Available slots<input name="availableSlots" type="number" min="1" required></label>
+                      <label>Total rental slots<input name="totalSlots" type="number" min="1" value="1" required></label>
                       <label>Gender preference<select name="genderPreference" required>
                         <option value="">Select preference</option>
                         <option value="co-ed">Co-Ed</option>
@@ -339,6 +344,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
                     <div class="map-helper-bar">Click or drag the marker to pin your property's exact location on the map.</div>
                     <div class="map-pin-stage" id="map-pin-stage">
                       <div id="property-map" class="property-map" aria-label="Property location map"></div>
+                      <button type="button" class="map-current-location" id="use-current-location" aria-label="Return pin to your current location" title="Use my current location"><i class="bi bi-crosshair" aria-hidden="true"></i></button>
                     </div>
                     <div class="location-details-panel">
                       <p class="location-status" id="location-status">Move the pin to detect the address.</p>
@@ -371,6 +377,11 @@ export async function renderMyListing(root = document.querySelector('#app')) {
                         <label class="amenity-check"><input type="checkbox" name="amenities" value="cable_ready"> <span>Cable ready</span></label>
                       </div>
                     </div>
+                    <div class="ownership-proof-field">
+                      <label for="ownership-proof">Proof of ownership or authorization <span aria-hidden="true">*</span></label>
+                      <input id="ownership-proof" name="ownershipProof" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf">
+                      <small>Upload a title, tax declaration, or signed owner/manager authorization. JPEG, PNG, WEBP, or PDF up to 5 MB. Admins only can view this private document.</small>
+                    </div>
                     <div class="media-dropzone">
                       <input id="property-image" name="images" type="file" accept="image/jpeg,image/png,image/gif,image/webp" multiple hidden>
                       <label for="property-image" class="media-dropzone-label">
@@ -388,7 +399,19 @@ export async function renderMyListing(root = document.querySelector('#app')) {
                     </div>
                     <div class="modal-actions">
                       <button type="button" class="btn-secondary step-back" data-back-step="2">Back</button>
-                      <button type="submit" class="btn-primary">Create Listing &amp; Set Location</button>
+                      <button type="button" class="btn-primary" id="review-listing">Review Listing</button>
+                    </div>
+                  </div>
+
+                  <div id="property-form-step-4" class="property-form-step" hidden>
+                    <div class="form-step-title">
+                      <h3>Review Your Listing</h3>
+                      <p>Check the information and photos before submitting.</p>
+                    </div>
+                    <div id="listing-review-summary" class="listing-review-summary"></div>
+                    <div class="modal-actions">
+                      <button type="button" class="btn-secondary step-back" data-back-step="3">Back to Edit</button>
+                      <button type="submit" class="btn-primary">Create Listing</button>
                     </div>
                   </div>
                 </form>
@@ -425,7 +448,11 @@ export async function renderMyListing(root = document.querySelector('#app')) {
                   <tbody id="portfolio-body"></tbody>
                 </table>
               </div>
-
+              <nav class="pagination" aria-label="Property listings pagination">
+                <button type="button" data-page="prev">Previous</button>
+                <span class="pagination-page" aria-live="polite">0 properties</span>
+                <button type="button" data-page="next">Next</button>
+              </nav>
             </section>
 
             <div id="property-action-confirm" class="property-action-confirm" hidden>
@@ -459,6 +486,9 @@ export async function renderMyListing(root = document.querySelector('#app')) {
   const propertyFormStep1 = root.querySelector('#property-form-step-1');
   const propertyFormStep2 = root.querySelector('#property-form-step-2');
   const propertyFormStep3 = root.querySelector('#property-form-step-3');
+  const propertyFormStep4 = root.querySelector('#property-form-step-4');
+  const reviewListingButton = root.querySelector('#review-listing');
+  const listingReviewSummary = root.querySelector('#listing-review-summary');
   const propertySearchInput = root.querySelector('.property-search input');
   const propertyTypeFilter = root.querySelector('.property-filter select');
   const propertyStatusTabs = root.querySelectorAll('[data-property-status]');
@@ -475,6 +505,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
   const locationStatus = root.querySelector('#location-status');
   const locationPreview = root.querySelector('#location-preview');
   const locationCoords = root.querySelector('#location-coords');
+  const useCurrentLocationButton = root.querySelector('#use-current-location');
   const locationNextButton = root.querySelector('#location-next');
   const stepNextButtons = root.querySelectorAll('.step-next');
   const stepBackButtons = root.querySelectorAll('.step-back');
@@ -487,6 +518,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
   let leafletMap = null;
   let leafletMarker = null;
   let leafletLoadingPromise = null;
+  let currentLocationAccuracy = null;
   let activePage = 1;
   let workflowPropertyId = null;
   let workflowTitle = '';
@@ -495,6 +527,25 @@ export async function renderMyListing(root = document.querySelector('#app')) {
   let selectedPhotos = [];
   let photoSelectionChanged = false;
   const monthlyRentInput = propertyForm.elements.monthlyRent;
+  const roomTypeSelect = propertyForm.elements.roomType;
+  const customRoomTypeInput = propertyForm.elements.customRoomType;
+  const ownershipProofInput = propertyForm.elements.ownershipProof;
+  const isOwnershipProofRequired = () => {
+    if (!propertyForm.dataset.editingPropertyId || propertyForm.dataset.hasOwnershipProof !== 'true') return true;
+    return [
+      [propertyForm.elements.address.value, propertyForm.dataset.originalAddress],
+      [propertyForm.elements.municipality.value, propertyForm.dataset.originalMunicipality],
+      [propertyForm.elements.barangay.value, propertyForm.dataset.originalBarangay]
+    ].some(([current, original]) => String(current ?? '').trim().toLowerCase() !== String(original ?? '').trim().toLowerCase());
+  };
+  const syncCustomRoomType = () => {
+    const isOther = roomTypeSelect.value === 'other';
+    customRoomTypeInput.hidden = !isOther;
+    customRoomTypeInput.required = isOther;
+    if (!isOther) customRoomTypeInput.value = '';
+  };
+
+  roomTypeSelect.addEventListener('change', syncCustomRoomType);
 
   monthlyRentInput.addEventListener('input', () => {
     const rawValue = monthlyRentInput.value;
@@ -629,6 +680,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
     propertyFormStep1.hidden = step !== 1;
     propertyFormStep2.hidden = step !== 2;
     propertyFormStep3.hidden = step !== 3;
+    propertyFormStep4.hidden = step !== 4;
     updateStepIndicator(step);
     propertyFormMessage.hidden = true;
     if (step === 2) {
@@ -641,8 +693,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
       const title = propertyForm.elements.title.value.trim();
       const roomType = propertyForm.elements.roomType.value;
       const monthlyRent = Number(propertyForm.elements.monthlyRent.value.replace(/,/g, ''));
-      const maxOccupants = propertyForm.elements.maxOccupants.value;
-      const availableSlots = propertyForm.elements.availableSlots.value;
+      const totalSlots = propertyForm.elements.totalSlots.value;
       const genderPreference = propertyForm.elements.genderPreference.value;
       
       if (!title) {
@@ -653,16 +704,17 @@ export async function renderMyListing(root = document.querySelector('#app')) {
         setFormMessage('Please select a property type.');
         return false;
       }
+      if (roomType === 'other' && !customRoomTypeInput.value.trim()) {
+        setFormMessage('Please enter your property type.');
+        customRoomTypeInput.focus();
+        return false;
+      }
       if (!Number.isFinite(monthlyRent) || monthlyRent < 1) {
         setFormMessage('Please enter a valid monthly price.');
         return false;
       }
-      if (!maxOccupants || Number(maxOccupants) < 1) {
-        setFormMessage('Please enter a valid maximum occupancy.');
-        return false;
-      }
-      if (!availableSlots || Number(availableSlots) < 1) {
-        setFormMessage('Please enter valid available slots.');
+      if (!totalSlots || !Number.isInteger(Number(totalSlots)) || Number(totalSlots) < 1) {
+        setFormMessage('Please enter a valid number of rental slots.');
         return false;
       }
       if (!genderPreference) {
@@ -683,6 +735,19 @@ export async function renderMyListing(root = document.querySelector('#app')) {
       return true;
     }
     if (step === 3) {
+      const proofRequired = isOwnershipProofRequired();
+      ownershipProofInput.required = proofRequired;
+      const ownershipProof = ownershipProofInput.files[0];
+      if (proofRequired && !ownershipProof) {
+        setFormMessage('Upload proof of ownership or authorization before submitting this listing.');
+        ownershipProofInput.focus();
+        return false;
+      }
+      if (ownershipProof && ownershipProof.size > 5 * 1024 * 1024) {
+        setFormMessage('Ownership proof must be no larger than 5 MB.');
+        ownershipProofInput.focus();
+        return false;
+      }
       const imageField = propertyForm.elements.images;
       const isEditing = !!propertyForm.dataset.editingPropertyId;
       // Only require image when creating new property, not when editing
@@ -695,9 +760,42 @@ export async function renderMyListing(root = document.querySelector('#app')) {
     return true;
   };
 
+  const renderListingReview = () => {
+    const roomType = roomTypeSelect.value === 'other'
+      ? customRoomTypeInput.value.trim()
+      : normalizePropertyTypeLabel(roomTypeSelect.value);
+    const amenities = Array.from(propertyForm.querySelectorAll('input[name="amenities"]:checked'))
+      .map((checkbox) => formatAmenityLabel(checkbox.value));
+    const photos = selectedPhotos.map((photo) => photo.previewUrl).filter(Boolean);
+    const values = [
+      ['Property type', roomType],
+      ['Monthly price', `PHP ${propertyForm.elements.monthlyRent.value || '0'} / month`],
+      ['Total rental slots', propertyForm.elements.totalSlots.value],
+      ['Gender preference', propertyForm.elements.genderPreference.selectedOptions[0]?.textContent || 'Not specified'],
+      ['Location', [propertyForm.elements.address.value, propertyForm.elements.barangay.value, propertyForm.elements.municipality.value].filter(Boolean).join(', ')],
+      ['Ownership proof', ownershipProofInput.files[0]?.name || (propertyForm.dataset.hasOwnershipProof === 'true' ? 'Existing proof on file (private)' : 'Missing')],
+      ['Amenities', amenities.join(', ') || 'None selected'],
+      ['Description', propertyForm.elements.description.value.trim() || 'No description provided']
+    ];
+
+    listingReviewSummary.innerHTML = `
+      <dl class="listing-review-facts">${values.map(([label, value]) => `<div><dt>${escape(label)}</dt><dd>${escape(value)}</dd></div>`).join('')}</dl>
+      <section class="listing-review-gallery" aria-label="Listing photos">
+        <h4>Photos <span>${photos.length}</span></h4>
+        ${photos.length ? `<div class="listing-review-photos">${photos.map((photo, index) => `<img src="${escape(photo)}" alt="Listing photo ${index + 1}" />`).join('')}</div>` : '<p>No photos selected.</p>'}
+      </section>`;
+  };
+
   const closeModal = () => {
     propertyModal.hidden = true;
     propertyForm.reset();
+    propertyForm.elements.address.value = '';
+    propertyForm.elements.municipality.value = '';
+    propertyForm.elements.barangay.value = '';
+    propertyForm.elements.latitude.value = '';
+    propertyForm.elements.longitude.value = '';
+    currentLocationAccuracy = null;
+    syncCustomRoomType();
     resetPhotos();
     showFormStep(1);
     propertyFormMessage.hidden = true;
@@ -712,10 +810,16 @@ export async function renderMyListing(root = document.querySelector('#app')) {
     locationNextButton.disabled = true;
     // Reset editing state
     propertyForm.removeAttribute('data-editing-property-id');
+    delete propertyForm.dataset.hasOwnershipProof;
+    delete propertyForm.dataset.originalAddress;
+    delete propertyForm.dataset.originalMunicipality;
+    delete propertyForm.dataset.originalBarangay;
+    ownershipProofInput.required = true;
     const modalHeader = propertyModal.querySelector('.property-modal-header h2');
     const submitBtn = propertyForm.querySelector('button[type="submit"]');
     modalHeader.textContent = 'Create a listing';
-    submitBtn.textContent = 'Create Listing & Set Location';
+    submitBtn.textContent = 'Create Listing';
+    reviewListingButton.textContent = 'Review Listing';
   };
 
   const loadLeafletAssets = () => {
@@ -741,12 +845,36 @@ export async function renderMyListing(root = document.querySelector('#app')) {
     return leafletLoadingPromise;
   };
 
+  const getCurrentUserCoordinates = () => new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      resolve(null);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => resolve({ latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy }),
+      () => resolve(null),
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+    );
+  });
+
   const initializeLeafletMap = async () => {
     if (!mapContainer) return;
     await loadLeafletAssets();
-    const storedLatitude = parseFloat(propertyForm.elements.latitude.value) || MAP_DEFAULT_CENTER.latitude;
-    const storedLongitude = parseFloat(propertyForm.elements.longitude.value) || MAP_DEFAULT_CENTER.longitude;
-    const initialCenter = [storedLatitude, storedLongitude];
+    const latitudeValue = propertyForm.elements.latitude.value.trim();
+    const longitudeValue = propertyForm.elements.longitude.value.trim();
+    const storedLatitude = Number(latitudeValue);
+    const storedLongitude = Number(longitudeValue);
+    const hasStoredCoordinates = latitudeValue !== '' && longitudeValue !== '' && Number.isFinite(storedLatitude) && Number.isFinite(storedLongitude);
+    let initialCoordinates = hasStoredCoordinates ? { latitude: storedLatitude, longitude: storedLongitude } : null;
+
+    if (!hasStoredCoordinates && !propertyForm.dataset.editingPropertyId) {
+      locationStatus.textContent = 'Finding your current location...';
+      initialCoordinates = await getCurrentUserCoordinates();
+    }
+    const hasInitialLocation = Boolean(initialCoordinates);
+    currentLocationAccuracy = initialCoordinates?.accuracy ?? null;
+    const mapCoordinates = initialCoordinates || MAP_DEFAULT_CENTER;
+    const initialCenter = [mapCoordinates.latitude, mapCoordinates.longitude];
 
     if (!leafletMap) {
       leafletMap = L.map(mapContainer, {
@@ -765,9 +893,13 @@ export async function renderMyListing(root = document.querySelector('#app')) {
         draggable: true,
       }).addTo(leafletMap);
 
-      leafletMarker.on('dragend', syncLocationFromMarker);
+      leafletMarker.on('dragend', () => {
+        currentLocationAccuracy = null;
+        syncLocationFromMarker();
+      });
       leafletMap.on('click', (event) => {
         leafletMarker.setLatLng(event.latlng);
+        currentLocationAccuracy = null;
         syncLocationFromMarker();
       });
     } else {
@@ -776,6 +908,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
     }
 
     setTimeout(() => leafletMap?.invalidateSize(), 150);
+    return hasInitialLocation;
   };
 
   const initializeMapStep = async () => {
@@ -786,8 +919,13 @@ export async function renderMyListing(root = document.querySelector('#app')) {
     locationNextButton.disabled = true;
 
     try {
-      await initializeLeafletMap();
-      syncLocationFromMarker();
+      const hasInitialLocation = await initializeLeafletMap();
+      if (hasInitialLocation) {
+        syncLocationFromMarker();
+      } else {
+        locationStatus.textContent = 'Could not access your current location.';
+        locationPreview.textContent = 'Allow location access and retry, or move the pin to your property.';
+      }
     } catch (error) {
       locationStatus.textContent = 'Unable to load the map. Please try again later.';
       setFormMessage('Could not initialize the location map.');
@@ -811,7 +949,9 @@ export async function renderMyListing(root = document.querySelector('#app')) {
   };
 
   const setLocationPreview = ({ displayName, addressLine, municipality, barangay, latitude, longitude }) => {
-    locationStatus.textContent = 'Location detected successfully.';
+    locationStatus.textContent = Number.isFinite(currentLocationAccuracy)
+      ? `Current location found (about ${Math.max(1, Math.round(currentLocationAccuracy))} m accuracy).`
+      : 'Location detected successfully.';
     locationPreview.textContent = displayName || addressLine || 'Address detected.';
     locationCoords.textContent = latitude && longitude ? `Latitude: ${latitude.toFixed(6)}, Longitude: ${longitude.toFixed(6)}` : '';
     locationNextButton.disabled = !addressLine || !municipality || !latitude || !longitude;
@@ -841,6 +981,27 @@ export async function renderMyListing(root = document.querySelector('#app')) {
     const { latitude, longitude } = pinCoordinates();
     reverseGeocode(latitude, longitude);
   };
+
+  useCurrentLocationButton?.addEventListener('click', async () => {
+    useCurrentLocationButton.disabled = true;
+    locationStatus.textContent = 'Finding your current location...';
+    locationPreview.textContent = 'Waiting for your device location.';
+    const coordinates = await getCurrentUserCoordinates();
+    if (!coordinates) {
+      currentLocationAccuracy = null;
+      locationStatus.textContent = 'Could not access your current location.';
+      locationPreview.textContent = 'Allow location access and retry, or move the pin to your property.';
+      locationNextButton.disabled = true;
+      useCurrentLocationButton.disabled = false;
+      return;
+    }
+    currentLocationAccuracy = coordinates.accuracy;
+    const point = [coordinates.latitude, coordinates.longitude];
+    leafletMap?.setView(point, MAP_ZOOM);
+    leafletMarker?.setLatLng(point);
+    syncLocationFromMarker();
+    useCurrentLocationButton.disabled = false;
+  });
 
   addPropertyButton?.addEventListener('click', () => {
     propertyModal.hidden = false;
@@ -872,9 +1033,15 @@ export async function renderMyListing(root = document.querySelector('#app')) {
     });
   });
 
+  reviewListingButton?.addEventListener('click', () => {
+    if (!validateStep(3)) return;
+    renderListingReview();
+    showFormStep(4);
+  });
+
   // Leaflet map interaction is handled internally by the map library.
 
-  const ITEMS_PER_PAGE = 10;
+  const ITEMS_PER_PAGE = 5;
 
   const getPagedProperties = (items = []) => {
     const totalPages = Math.max(1, Math.ceil(items.length / ITEMS_PER_PAGE));
@@ -886,18 +1053,16 @@ export async function renderMyListing(root = document.querySelector('#app')) {
   paginationButtons.forEach((button) => {
     button.addEventListener('click', () => {
       const page = button.dataset.page;
+      const totalPages = Math.max(1, Math.ceil(getFilteredPropertyRows().length / ITEMS_PER_PAGE));
       if (page === 'prev') {
         activePage = Math.max(1, activePage - 1);
       } else if (page === 'next') {
-        activePage = Math.min(Math.max(1, Math.ceil(allPropertyRows.length / ITEMS_PER_PAGE)), activePage + 1);
+        activePage = Math.min(totalPages, activePage + 1);
       } else {
         activePage = Number(page);
       }
-
-      const totalPages = Math.max(1, Math.ceil(allPropertyRows.length / ITEMS_PER_PAGE));
       activePage = Math.min(Math.max(1, activePage), totalPages);
-      renderRows(getPagedProperties(allPropertyRows));
-      paginationButtons.forEach((pageButton) => pageButton.classList.toggle('active', String(pageButton.dataset.page) === String(activePage)));
+      applyPropertyTableState();
     });
   });
 
@@ -957,9 +1122,13 @@ export async function renderMyListing(root = document.querySelector('#app')) {
 
   propertyForm?.addEventListener('submit', async (event) => {
     event.preventDefault();
-    if (!validateStep(3)) return;
+    if (currentFormStep !== 4 || !validateStep(3)) return;
     const formData = new FormData(propertyForm);
     formData.set('monthlyRent', String(formData.get('monthlyRent') ?? '').replace(/,/g, ''));
+    if (formData.get('roomType') === 'other') {
+      formData.set('roomType', customRoomTypeInput.value.trim());
+    }
+    formData.delete('customRoomType');
     const editingPropertyId = propertyForm.dataset.editingPropertyId;
     const isEditing = !!editingPropertyId;
     
@@ -969,6 +1138,9 @@ export async function renderMyListing(root = document.querySelector('#app')) {
       
       formData.delete('images');
       formData.delete('image');
+      const ownershipProofFile = ownershipProofInput.files[0];
+      if (ownershipProofFile) formData.set('ownershipProof', ownershipProofFile);
+      else formData.delete('ownershipProof');
       const newPhotos = selectedPhotos.filter((photo) => !photo.existing);
       const uploadResults = await Promise.allSettled(newPhotos.map((photo) => photo.uploadPromise));
       if (uploadResults.some((result) => result.status === 'rejected' || !result.value?.data?.imageUrl)) {
@@ -1056,6 +1228,13 @@ export async function renderMyListing(root = document.querySelector('#app')) {
   const applyPropertyTableState = () => {
     const filteredRows = getFilteredPropertyRows();
     const pagedRows = getPagedProperties(filteredRows);
+    const totalPages = Math.max(1, Math.ceil(filteredRows.length / ITEMS_PER_PAGE));
+    root.querySelector('.pagination-page').textContent = String(activePage);
+    paginationButtons.forEach((button) => {
+      button.disabled = button.dataset.page === 'prev'
+        ? activePage <= 1
+        : activePage >= totalPages || filteredRows.length === 0;
+    });
     renderRows(pagedRows);
   };
 
@@ -1349,10 +1528,22 @@ export async function renderMyListing(root = document.querySelector('#app')) {
     // Populate the form with existing property data
     const form = propertyForm;
     form.elements.title.value = propertyData.title || '';
-    form.elements.roomType.value = normalizePropertyTypeValue(propertyData.room_type || propertyData.property_type || '');
+    const savedRoomType = String(propertyData.room_type || propertyData.property_type || '').trim();
+    const normalizedRoomType = normalizePropertyTypeValue(savedRoomType);
+    const standardRoomTypes = ['bedspace', 'private_room', 'entire_unit'];
+    if (standardRoomTypes.includes(normalizedRoomType)) {
+      form.elements.roomType.value = normalizedRoomType;
+      customRoomTypeInput.value = '';
+    } else if (savedRoomType) {
+      form.elements.roomType.value = 'other';
+      customRoomTypeInput.value = savedRoomType;
+    } else {
+      form.elements.roomType.value = '';
+      customRoomTypeInput.value = '';
+    }
+    syncCustomRoomType();
     form.elements.monthlyRent.value = formatMonthlyRent(propertyData.monthly_rent || '');
-    form.elements.maxOccupants.value = propertyData.max_occupants || '';
-    form.elements.availableSlots.value = propertyData.available_slots || '';
+    form.elements.totalSlots.value = propertyData.total_slots || '1';
     form.elements.genderPreference.value = propertyData.gender_preference || '';
     form.elements.address.value = propertyData.address || '';
     form.elements.municipality.value = propertyData.municipality || '';
@@ -1360,6 +1551,11 @@ export async function renderMyListing(root = document.querySelector('#app')) {
     form.elements.latitude.value = propertyData.latitude || '';
     form.elements.longitude.value = propertyData.longitude || '';
     form.elements.description.value = propertyData.description || '';
+    form.dataset.hasOwnershipProof = String(propertyData.has_ownership_proof === true || Number(propertyData.has_ownership_proof) === 1);
+    form.dataset.originalAddress = propertyData.address || '';
+    form.dataset.originalMunicipality = propertyData.municipality || '';
+    form.dataset.originalBarangay = propertyData.barangay || '';
+    ownershipProofInput.required = form.dataset.hasOwnershipProof !== 'true';
     
     // Set amenities
     const amenitiesCheckboxes = form.querySelectorAll('input[name="amenities"]');
@@ -1373,6 +1569,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
     const submitBtn = form.querySelector('button[type="submit"]');
     modalHeader.textContent = 'Edit Property Listing';
     submitBtn.textContent = 'Update Listing';
+    reviewListingButton.textContent = 'Review Changes';
     form.dataset.editingPropertyId = propertyData.id;
     
     // Show modal and start from step 1
@@ -1383,6 +1580,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
   const showPropertyDetails = (propertyData) => {
     const galleryImages = normalizePropertyImages(propertyData);
     const photos = galleryImages.length ? galleryImages : [DEFAULT_IMAGE_PLACEHOLDER];
+    const availableSlots = Math.max(0, Number(propertyData.available_slots ?? propertyData.total_slots ?? 0));
     const owner = user();
     const ownerName = propertyData.owner_name
       || propertyData.owner?.name
@@ -1418,8 +1616,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
             <div class="property-details-facts">
               <div class="details-section"><span class="details-label"><i class="bi bi-geo-alt-fill" aria-hidden="true"></i>Location</span><p>${escape([propertyData.address, propertyData.barangay, propertyData.municipality].filter(Boolean).join(', ') || 'No address')}</p></div>
               <div class="details-section"><span class="details-label"><i class="bi bi-house-fill" aria-hidden="true"></i>Room Type</span><p>${escape(normalizePropertyTypeLabel(propertyData.room_type || propertyData.property_type || 'N/A')) || 'N/A'}</p></div>
-              <div class="details-section"><span class="details-label"><i class="bi bi-people-fill" aria-hidden="true"></i>Occupancy</span><p>${propertyData.max_occupants != null ? `Up to ${escape(propertyData.max_occupants)} tenants` : 'N/A'}</p></div>
-              <div class="details-section"><span class="details-label"><i class="bi bi-door-open-fill" aria-hidden="true"></i>Available Slots</span><p>${propertyData.available_slots ?? 'N/A'}</p></div>
+              <div class="details-section"><span class="details-label"><i class="bi bi-door-open-fill" aria-hidden="true"></i>Availability</span><p>${propertyData.total_slots != null ? (availableSlots > 0 ? `${availableSlots} slot${availableSlots === 1 ? '' : 's'} available` : 'No slots available') : 'N/A'}</p></div>
               <div class="details-section"><span class="details-label"><i class="bi bi-gender-ambiguous" aria-hidden="true"></i>Gender Preference</span><p>${escape(String(propertyData.gender_preference || 'Any').replaceAll('_', ' '))}</p></div>
               <div class="details-section"><span class="details-label"><i class="bi bi-person-fill" aria-hidden="true"></i>Owner</span><p>${escape(ownerName)}</p></div>
               <div class="details-section details-amenities"><span class="details-label"><i class="bi bi-stars" aria-hidden="true"></i>Amenities</span><div class="amenities-list">${renderAmenitiesChips(propertyData) || '<span>None</span>'}</div></div>

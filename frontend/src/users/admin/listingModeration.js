@@ -1,25 +1,209 @@
-import { ensureAdminSidebarStyles, loadAdminStylesheet, renderAdminSidebar } from './sidebarAdmin.js';
+import { ensureAdminSidebarStyles, loadAdminStylesheet, renderAdminDateMeta, renderAdminSidebar } from './sidebarAdmin.js';
 import { applyAdminPrivacy } from './privacy.js';
-import { createModal, openModal as openUiModal, successDialog } from '../../components/modal.js';
+import { confirmDialog, createModal, openModal as openUiModal, successDialog } from '../../components/modal.js';
 import { showToast } from '../../components/toast.js';
 import { withMediaAccessToken } from '../../services/mediaAccess.js';
 
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const headers = () => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
 const esc = (value = '') => { const e = document.createElement('span'); e.textContent = value; return e.innerHTML; };
-const formatRoomType = (value = '') => ({
+const ROOM_TYPE_LABELS = {
   bedspace: 'Bedspace',
   private_room: 'Solo Room',
   'private room': 'Solo Room',
+  solo_room: 'Solo Room',
   'solo room': 'Solo Room',
   entire_unit: 'Studio Unit',
   'entire unit': 'Studio Unit',
-  'studio unit': 'Studio Unit'
-}[String(value ?? '').trim().toLowerCase()] ?? 'Unknown');
+  studio_unit: 'Studio Unit',
+  'studio unit': 'Studio Unit',
+  bed_space: 'Bedspace',
+  shared_room: 'Bedspace'
+};
+const formatRoomType = (value = '') => {
+  const type = String(value ?? '').trim();
+  const normalized = type.toLowerCase();
+  return ROOM_TYPE_LABELS[normalized]
+    ?? (type.replace(/[_-]+/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase()) || 'Not specified');
+};
+
+let pdfjsPromise;
+const loadPdfJs = () => {
+  if (!pdfjsPromise) {
+    pdfjsPromise = import('../../../node_modules/pdfjs-dist/build/pdf.mjs').then((pdfjs) => {
+      pdfjs.GlobalWorkerOptions.workerSrc = new URL('../../../node_modules/pdfjs-dist/build/pdf.worker.mjs', import.meta.url).href;
+      return pdfjs;
+    });
+  }
+  return pdfjsPromise;
+};
+
+const createPdfProofViewer = (fileUrl, filename) => {
+  const element = document.createElement('div');
+  element.className = 'ownership-proof-pdf-viewer';
+  element.innerHTML = `
+    <aside class="ownership-proof-pdf-sidebar" aria-label="PDF pages">
+      <div class="ownership-proof-pdf-thumbnails"></div>
+    </aside>
+    <section class="ownership-proof-pdf-main">
+      <div class="ownership-proof-pdf-toolbar" role="toolbar" aria-label="PDF controls">
+        <button type="button" class="pdf-toggle-pages" aria-label="Toggle page thumbnails" aria-expanded="true" title="Toggle page thumbnails"><i class="bi bi-layout-sidebar" aria-hidden="true"></i></button>
+        <div class="pdf-page-controls">
+          <span>Page</span>
+          <input class="pdf-current-page" type="number" min="1" value="1" aria-label="Current page">
+          <span>/ <span class="pdf-page-count">0</span></span>
+          <button type="button" class="pdf-previous-page" aria-label="Previous page" title="Previous page"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+          <button type="button" class="pdf-next-page" aria-label="Next page" title="Next page"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+        </div>
+        <span class="pdf-toolbar-divider" aria-hidden="true"></span>
+        <button type="button" class="pdf-zoom-out" aria-label="Zoom out" title="Zoom out"><i class="bi bi-dash-lg" aria-hidden="true"></i></button>
+        <output class="pdf-zoom-level" aria-live="polite">100%</output>
+        <button type="button" class="pdf-zoom-in" aria-label="Zoom in" title="Zoom in"><i class="bi bi-plus-lg" aria-hidden="true"></i></button>
+        <button type="button" class="pdf-fit-page" aria-label="Fit page" title="Fit page"><i class="bi bi-arrows-angle-contract" aria-hidden="true"></i></button>
+        <span class="pdf-toolbar-spacer"></span>
+        <button type="button" class="pdf-print" aria-label="Print PDF" title="Print PDF"><i class="bi bi-printer" aria-hidden="true"></i></button>
+        <a class="pdf-download" href="${fileUrl}" download="${esc(filename)}" aria-label="Download PDF" title="Download PDF"><i class="bi bi-download" aria-hidden="true"></i></a>
+      </div>
+      <div class="ownership-proof-pdf-viewport" aria-label="PDF document page">
+        <p class="ownership-proof-pdf-status" role="status">Loading PDF…</p>
+        <canvas class="ownership-proof-pdf-canvas" aria-label="PDF page"></canvas>
+      </div>
+    </section>`;
+
+  const sidebar = element.querySelector('.ownership-proof-pdf-sidebar');
+  const thumbnails = element.querySelector('.ownership-proof-pdf-thumbnails');
+  const viewport = element.querySelector('.ownership-proof-pdf-viewport');
+  const canvas = element.querySelector('.ownership-proof-pdf-canvas');
+  const status = element.querySelector('.ownership-proof-pdf-status');
+  const pageInput = element.querySelector('.pdf-current-page');
+  const pageCount = element.querySelector('.pdf-page-count');
+  const zoomLevel = element.querySelector('.pdf-zoom-level');
+  const previousButton = element.querySelector('.pdf-previous-page');
+  const nextButton = element.querySelector('.pdf-next-page');
+  const zoomOutButton = element.querySelector('.pdf-zoom-out');
+  const zoomInButton = element.querySelector('.pdf-zoom-in');
+  const fitButton = element.querySelector('.pdf-fit-page');
+  const togglePagesButton = element.querySelector('.pdf-toggle-pages');
+  let pdfDocument;
+  let currentPage = 1;
+  let zoom = 1;
+  let renderTask;
+  let destroyed = false;
+
+  const syncControls = () => {
+    pageInput.value = String(currentPage);
+    pageInput.max = String(pdfDocument.numPages);
+    pageCount.textContent = String(pdfDocument.numPages);
+    previousButton.disabled = currentPage <= 1;
+    nextButton.disabled = currentPage >= pdfDocument.numPages;
+    zoomOutButton.disabled = zoom <= 0.5;
+    zoomInButton.disabled = zoom >= 3;
+    zoomLevel.textContent = `${Math.round(zoom * 100)}%`;
+  };
+
+  const renderCurrentPage = async () => {
+    if (!pdfDocument || destroyed) return;
+    renderTask?.cancel();
+    const page = await pdfDocument.getPage(currentPage);
+    const baseViewport = page.getViewport({ scale: 1 });
+    const fitScale = Math.min(1, Math.max(0.35, (viewport.clientWidth - 48) / baseViewport.width));
+    const scale = fitScale * 1.333 * zoom;
+    const pageViewport = page.getViewport({ scale });
+    const outputScale = window.devicePixelRatio || 1;
+    canvas.width = Math.ceil(pageViewport.width * outputScale);
+    canvas.height = Math.ceil(pageViewport.height * outputScale);
+    canvas.style.width = `${Math.ceil(pageViewport.width)}px`;
+    canvas.style.height = `${Math.ceil(pageViewport.height)}px`;
+    viewport.scrollTo({ top: 0, left: 0 });
+    status.hidden = true;
+    const task = page.render({
+      canvas,
+      viewport: pageViewport,
+      transform: outputScale === 1 ? null : [outputScale, 0, 0, outputScale, 0, 0]
+    });
+    renderTask = task;
+    try {
+      await task.promise;
+    } catch (error) {
+      if (error.name !== 'RenderingCancelledException') throw error;
+    }
+    if (!destroyed) syncControls();
+  };
+
+  const renderThumbnails = async () => {
+    for (let pageNumber = 1; pageNumber <= pdfDocument.numPages && !destroyed; pageNumber += 1) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'ownership-proof-pdf-thumbnail';
+      button.setAttribute('aria-label', `Go to page ${pageNumber}`);
+      button.setAttribute('aria-current', String(pageNumber === currentPage));
+      const thumbnailCanvas = document.createElement('canvas');
+      const label = document.createElement('span');
+      label.textContent = String(pageNumber);
+      button.append(thumbnailCanvas, label);
+      button.addEventListener('click', () => {
+        currentPage = pageNumber;
+        thumbnails.querySelectorAll('button').forEach((item) => item.setAttribute('aria-current', String(item === button)));
+        renderCurrentPage().catch((error) => { status.hidden = false; status.textContent = error.message; });
+      });
+      thumbnails.append(button);
+      const page = await pdfDocument.getPage(pageNumber);
+      const baseViewport = page.getViewport({ scale: 1 });
+      const scale = Math.min(112 / baseViewport.width, 140 / baseViewport.height);
+      const thumbnailViewport = page.getViewport({ scale });
+      thumbnailCanvas.width = Math.ceil(thumbnailViewport.width);
+      thumbnailCanvas.height = Math.ceil(thumbnailViewport.height);
+      await page.render({ canvas: thumbnailCanvas, viewport: thumbnailViewport }).promise;
+    }
+  };
+
+  pageInput.addEventListener('change', () => {
+    currentPage = Math.min(pdfDocument.numPages, Math.max(1, Number(pageInput.value) || 1));
+    thumbnails.querySelectorAll('button').forEach((button, index) => button.setAttribute('aria-current', String(index + 1 === currentPage)));
+    renderCurrentPage().catch((error) => { status.hidden = false; status.textContent = error.message; });
+  });
+  previousButton.addEventListener('click', () => {
+    if (currentPage > 1) currentPage -= 1;
+    thumbnails.querySelectorAll('button').forEach((button, index) => button.setAttribute('aria-current', String(index + 1 === currentPage)));
+    renderCurrentPage().catch((error) => { status.hidden = false; status.textContent = error.message; });
+  });
+  nextButton.addEventListener('click', () => {
+    if (currentPage < pdfDocument.numPages) currentPage += 1;
+    thumbnails.querySelectorAll('button').forEach((button, index) => button.setAttribute('aria-current', String(index + 1 === currentPage)));
+    renderCurrentPage().catch((error) => { status.hidden = false; status.textContent = error.message; });
+  });
+  zoomOutButton.addEventListener('click', () => { zoom = Math.max(0.5, zoom - 0.25); renderCurrentPage(); });
+  zoomInButton.addEventListener('click', () => { zoom = Math.min(3, zoom + 0.25); renderCurrentPage(); });
+  fitButton.addEventListener('click', () => { zoom = 1; renderCurrentPage(); });
+  togglePagesButton.addEventListener('click', () => {
+    const isOpen = !element.classList.toggle('pages-hidden');
+    togglePagesButton.setAttribute('aria-expanded', String(isOpen));
+    renderCurrentPage();
+  });
+  element.querySelector('.pdf-print').addEventListener('click', () => {
+    const printWindow = window.open(fileUrl, '_blank', 'noopener');
+    printWindow?.addEventListener('load', () => printWindow.print(), { once: true });
+  });
+
+  return {
+    element,
+    async load() {
+      const pdfjs = await loadPdfJs();
+      pdfDocument = await pdfjs.getDocument({ url: fileUrl }).promise;
+      await renderCurrentPage();
+      renderThumbnails().catch((error) => { status.hidden = false; status.textContent = error.message; });
+    },
+    async destroy() {
+      destroyed = true;
+      renderTask?.cancel();
+      await pdfDocument?.destroy();
+    }
+  };
+};
 
 function css() {
   const stylesheet = new URL('./style/listingModeration.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'moderation-photo-viewer-reference-3');
+  stylesheet.searchParams.set('v', 'moderation-ownership-proof-1');
   return loadAdminStylesheet('moderation', stylesheet);
 }
 
@@ -42,6 +226,7 @@ export async function renderListingModeration(root = document.querySelector('#ap
               <h1>Listing Moderation: ${initialLabel}</h1>
               <p>Manage and review property listings submitted by users.</p>
             </div>
+            ${renderAdminDateMeta()}
           </header>
 
           <section class="moderation-content">
@@ -70,7 +255,6 @@ export async function renderListingModeration(root = document.querySelector('#ap
               <section class="table-shell">
                 <div class="table-heading">
                   <div class="table-heading-copy">
-                    <span class="table-heading-icon" aria-hidden="true">⌂</span>
                     <div><h2 id="listing-card-title">${initialLabel}</h2><p id="listing-card-subtitle">Showing ${initialLabel.toLowerCase()}.</p></div>
                   </div>
                   <span id="listing-total" class="listing-total">0 total</span>
@@ -84,11 +268,18 @@ export async function renderListingModeration(root = document.querySelector('#ap
                       <th>Type</th>
                       <th>Rent (PHP)</th>
                       <th>Submitted Date</th>
-                      <th>Actions</th>
+                      <th>View</th>
                     </tr>
                   </thead>
                   <tbody id="moderation-rows"></tbody>
                 </table>
+                <nav class="moderation-pagination" aria-label="Listing moderation pagination">
+                  <span class="moderation-pagination-info" aria-live="polite">Showing 0 to 0 of 0 listings</span>
+                  <div>
+                    <button type="button" data-page-previous aria-label="Previous page" disabled>Previous</button>
+                    <button type="button" data-page-next aria-label="Next page" disabled>Next</button>
+                  </div>
+                </nav>
               </section>
 
               <aside id="detail-panel" class="detail-panel">
@@ -101,48 +292,93 @@ export async function renderListingModeration(root = document.querySelector('#ap
                   <div class="thumb"></div>
                 </div>
                 <div class="detail-body">
-                  <h2 id="detail-name">Select a listing</h2>
-                  <p id="detail-address">No property selected.</p>
-                  <p class="detail-meta detail-location">📍 <span id="detail-location">Waiting for backend data…</span></p>
-                  <p class="detail-meta detail-owner">👤 <span id="detail-owner">Owner details will appear here.</span></p>
-                  <p class="detail-meta detail-status"><span class="status-dot" aria-hidden="true"></span><span id="detail-status">Status pending review</span></p>
-                  <div class="detail-extra" id="detail-extra"></div>
+                  <div class="detail-heading">
+                    <h2 id="detail-name">Select a listing</h2>
+                    <span class="detail-status"><span class="status-dot" aria-hidden="true"></span><span id="detail-status">Status pending review</span></span>
+                  </div>
+                  <div class="detail-location-row">
+                    <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
+                    <div><p id="detail-address">No property selected.</p><span id="detail-location">Waiting for backend data…</span></div>
+                  </div>
+                  <div class="detail-owner-row"><i class="bi bi-person-fill" aria-hidden="true"></i><span id="detail-owner">Owner details will appear here.</span></div>
+                  <dl class="detail-extra" id="detail-extra"></dl>
                   <div class="detail-actions">
                       <button type="button" class="secondary owner-contact">Owner Contact</button>
-                    <button type="button" class="primary approve">Approve</button>
+                    <button type="button" class="primary approve">Review &amp; Approve</button>
                     <button type="button" class="danger reject">Reject</button>
-                    <button type="button" class="primary view-listing hidden">View Listing</button>
+                    <button type="button" class="primary view-listing hidden">View Full Listing</button>
                   </div>
                 </div>
               </aside>
             </div>
           </section>
 
+          <div class="approval-review-modal" hidden>
+            <div class="approval-review-overlay" data-close-approval-review></div>
+            <section class="approval-review-card" role="dialog" aria-modal="true" aria-labelledby="approval-review-title">
+              <header class="approval-review-header">
+                <div><span class="approval-review-icon"><i class="bi bi-shield-check" aria-hidden="true"></i></span><h2 id="approval-review-title">Review before approval</h2></div>
+                <button type="button" class="approval-review-close" aria-label="Close approval review">×</button>
+              </header>
+              <div class="approval-review-content">
+                <p class="approval-review-intro">Check the listing details and ownership proof before publishing.</p>
+                <dl class="approval-review-facts">
+                  <div><dt>Property</dt><dd data-approval-review="title"></dd></div>
+                  <div><dt>Owner</dt><dd data-approval-review="owner"></dd></div>
+                  <div><dt>Address</dt><dd data-approval-review="address"></dd></div>
+                  <div><dt>Type</dt><dd data-approval-review="type"></dd></div>
+                  <div><dt>Monthly rent</dt><dd data-approval-review="rent"></dd></div>
+                  <div><dt>Availability</dt><dd data-approval-review="availability"></dd></div>
+                </dl>
+                <section class="ownership-proof-review">
+                  <h3>Ownership or authorization proof</h3>
+                  <p class="ownership-proof-review-message"></p>
+                  <div class="ownership-proof-preview-card" hidden></div>
+                  <button type="button" class="ownership-proof-open">Review proof</button>
+                </section>
+              </div>
+              <footer class="approval-review-actions">
+                <button type="button" class="approval-review-cancel">Cancel</button>
+                <button type="button" class="approval-review-confirm" disabled>Confirm Approval</button>
+              </footer>
+            </section>
+          </div>
+
           <div id="listing-view-modal" class="listing-view-modal" hidden>
             <div class="listing-view-card">
-              <button type="button" class="modal-close" aria-label="Close listing details">×</button>
-              <div class="modal-header">
-                <div>
-                  <p class="eyebrow">Property details</p>
-                  <h2 id="modal-title">Listing details</h2>
-                </div>
-                <p id="modal-status" class="modal-status-text"></p>
+              <div class="listing-view-header">
+                <h2><span class="listing-view-header-icon" aria-hidden="true"><i class="bi bi-house-door-fill"></i></span>Property Details</h2>
+                <button type="button" class="modal-close" aria-label="Close listing details">×</button>
               </div>
-              <div class="modal-grid">
-                <div class="modal-hero" id="modal-hero"></div>
-                <div class="modal-info">
-                  <p id="modal-address"></p>
-                  <p id="modal-location"></p>
-                  <p id="modal-owner"></p>
-                  <p id="modal-type"></p>
-                  <p id="modal-rent"></p>
-                  <p id="modal-submitted"></p>
-                  <p id="modal-occupants"></p>
-                  <p id="modal-gender"></p>
-                  <p id="modal-description"></p>
-                  <div id="modal-amenities" class="amenity-list"></div>
-                </div>
+              <div class="listing-view-content">
+                <section class="listing-view-gallery" aria-label="Property photos">
+                  <div class="listing-view-gallery-stage">
+                    <img id="modal-hero" alt="Property photo">
+                    <span id="modal-photo-counter" class="listing-view-photo-counter" aria-live="polite"></span>
+                    <button type="button" id="modal-photo-previous" class="listing-view-gallery-nav previous" aria-label="Previous photo"><i class="bi bi-chevron-left" aria-hidden="true"></i></button>
+                    <button type="button" id="modal-photo-next" class="listing-view-gallery-nav next" aria-label="Next photo"><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+                  </div>
+                  <div id="modal-photo-thumbnails" class="listing-view-thumbnails" role="group" aria-label="Property photo thumbnails"></div>
+                </section>
+                <section class="listing-view-information">
+                  <div class="listing-view-heading">
+                    <div><h3 id="modal-title">Listing details</h3><strong id="modal-rent"></strong></div>
+                    <span id="modal-status" class="modal-status-text"></span>
+                  </div>
+                  <dl class="listing-view-facts">
+                    <div><dt><i class="bi bi-geo-alt-fill" aria-hidden="true"></i>Address</dt><dd id="modal-address"></dd></div>
+                    <div><dt><i class="bi bi-pin-map-fill" aria-hidden="true"></i>Location</dt><dd id="modal-location"></dd></div>
+                    <div><dt><i class="bi bi-house-fill" aria-hidden="true"></i>Property type</dt><dd id="modal-type"></dd></div>
+                    <div><dt><i class="bi bi-person-fill" aria-hidden="true"></i>Owner</dt><dd id="modal-owner"></dd></div>
+                    <div><dt><i class="bi bi-door-open-fill" aria-hidden="true"></i>Availability</dt><dd id="modal-availability"></dd></div>
+                    <div><dt><i class="bi bi-gender-ambiguous" aria-hidden="true"></i>Gender preference</dt><dd id="modal-gender"></dd></div>
+                    <div><dt><i class="bi bi-calendar3" aria-hidden="true"></i>Submitted</dt><dd id="modal-submitted"></dd></div>
+                  </dl>
+                  <section class="listing-view-amenities"><h4>Amenities</h4><div id="modal-amenities" class="amenity-list"></div></section>
+                  <section class="listing-view-description"><h4>Description</h4><p id="modal-description"></p></section>
+                </section>
               </div>
+              <div class="listing-view-footer"><button type="button" class="btn-secondary close-details">Close</button></div>
             </div>
           </div>
           <div id="approval-success-modal" class="approval-success-modal" hidden>
@@ -175,6 +411,15 @@ export async function renderListingModeration(root = document.querySelector('#ap
   const detailStatus = root.querySelector('#detail-status');
   const detailExtra = root.querySelector('#detail-extra');
   const detailPhotos = root.querySelector('#detail-photos');
+  const ownershipProofReview = root.querySelector('.ownership-proof-review');
+  const ownershipProofMessage = root.querySelector('.ownership-proof-review-message');
+  const ownershipProofPreviewCard = root.querySelector('.ownership-proof-preview-card');
+  const ownershipProofOpenButton = root.querySelector('.ownership-proof-open');
+  const approvalReviewModal = root.querySelector('.approval-review-modal');
+  const approvalReviewCloseButton = root.querySelector('.approval-review-close');
+  const approvalReviewCancelButton = root.querySelector('.approval-review-cancel');
+  const approvalReviewConfirmButton = root.querySelector('.approval-review-confirm');
+  const approvalReviewFields = Object.fromEntries([...root.querySelectorAll('[data-approval-review]')].map((field) => [field.dataset.approvalReview, field]));
   const approveButton = root.querySelector('.detail-actions .approve');
   const rejectButton = root.querySelector('.detail-actions .reject');
   const viewButton = root.querySelector('.detail-actions .view-listing');
@@ -183,20 +428,29 @@ export async function renderListingModeration(root = document.querySelector('#ap
   const listingCardTitle = root.querySelector('#listing-card-title');
   const listingCardSubtitle = root.querySelector('#listing-card-subtitle');
   const listingTotal = root.querySelector('#listing-total');
+  const paginationInfo = root.querySelector('.moderation-pagination-info');
+  const previousPageButton = root.querySelector('[data-page-previous]');
+  const nextPageButton = root.querySelector('[data-page-next]');
+  const pageSize = 5;
   const modal = root.querySelector('#listing-view-modal');
   const approvalSuccessModal = root.querySelector('#approval-success-modal');
   const approvalSuccessOkButton = root.querySelector('.approval-success-ok');
   const modalClose = root.querySelector('.modal-close');
+  const modalFooterClose = root.querySelector('.listing-view-footer .close-details');
   const modalTitle = root.querySelector('#modal-title');
   const modalStatusText = root.querySelector('#modal-status');
   const modalHero = root.querySelector('#modal-hero');
+  const modalPhotoCounter = root.querySelector('#modal-photo-counter');
+  const modalPhotoPrevious = root.querySelector('#modal-photo-previous');
+  const modalPhotoNext = root.querySelector('#modal-photo-next');
+  const modalPhotoThumbnails = root.querySelector('#modal-photo-thumbnails');
   const modalAddress = root.querySelector('#modal-address');
   const modalLocation = root.querySelector('#modal-location');
   const modalOwner = root.querySelector('#modal-owner');
   const modalType = root.querySelector('#modal-type');
   const modalRent = root.querySelector('#modal-rent');
   const modalSubmitted = root.querySelector('#modal-submitted');
-  const modalOccupants = root.querySelector('#modal-occupants');
+  const modalAvailability = root.querySelector('#modal-availability');
   const modalGender = root.querySelector('#modal-gender');
   const modalDescription = root.querySelector('#modal-description');
   const modalAmenities = root.querySelector('#modal-amenities');
@@ -214,6 +468,12 @@ export async function renderListingModeration(root = document.querySelector('#ap
   let currentStatus = initialStatus;
   let rows = [];
   let selected = null;
+  let currentPage = 1;
+  let reviewedProofPropertyId = null;
+  let ownershipProofPropertyId = null;
+  let ownershipProofFileUrl = null;
+  let ownershipProofMimeType = '';
+  let ownershipProofFilename = '';
 
   const apiBase = API.replace(/\/api\/v1\/?$/, '');
   const resolveImageUrl = (value = '') => {
@@ -234,6 +494,224 @@ export async function renderListingModeration(root = document.querySelector('#ap
   const getThumbStyles = (row) => {
     const image = resolveImageUrl(row.image_url);
     return image ? `style="background-image:url('${image}');background-position:center;background-size:cover;background-repeat:no-repeat"` : '';
+  };
+
+  let modalPhotoUrls = [];
+  let modalPhotoIndex = 0;
+  const renderListingModalGallery = () => {
+    const imageUrl = modalPhotoUrls[modalPhotoIndex];
+    modalHero.hidden = !imageUrl;
+    if (imageUrl) {
+      modalHero.src = imageUrl;
+      modalHero.alt = `${selected?.title || 'Property'} photo ${modalPhotoIndex + 1}`;
+    } else {
+      modalHero.removeAttribute('src');
+      modalHero.alt = 'No property photos available';
+    }
+    modalPhotoCounter.hidden = !imageUrl;
+    modalPhotoCounter.textContent = imageUrl ? `${modalPhotoIndex + 1} / ${modalPhotoUrls.length}` : '';
+    modalPhotoPrevious.hidden = modalPhotoUrls.length < 2;
+    modalPhotoNext.hidden = modalPhotoUrls.length < 2;
+    modalPhotoThumbnails.hidden = modalPhotoUrls.length < 2;
+    modalPhotoThumbnails.replaceChildren(...modalPhotoUrls.map((url, index) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `listing-view-thumbnail${index === modalPhotoIndex ? ' active' : ''}`;
+      button.setAttribute('aria-label', `View photo ${index + 1}`);
+      button.setAttribute('aria-current', String(index === modalPhotoIndex));
+      const image = document.createElement('img');
+      image.src = url;
+      image.alt = '';
+      image.loading = 'lazy';
+      button.append(image);
+      button.addEventListener('click', () => {
+        modalPhotoIndex = index;
+        renderListingModalGallery();
+      });
+      return button;
+    }));
+  };
+
+  const clearOwnershipProofPreview = () => {
+    if (ownershipProofFileUrl) URL.revokeObjectURL(ownershipProofFileUrl);
+    ownershipProofPropertyId = null;
+    ownershipProofFileUrl = null;
+    ownershipProofMimeType = '';
+    ownershipProofFilename = '';
+    ownershipProofPreviewCard.replaceChildren();
+    ownershipProofPreviewCard.hidden = true;
+    ownershipProofOpenButton.hidden = false;
+    ownershipProofOpenButton.disabled = false;
+    reviewedProofPropertyId = null;
+  };
+
+  const openOwnershipProof = async () => {
+    const propertyId = selected?.id;
+    if (!selected || !selected.has_ownership_proof || ownershipProofPropertyId !== propertyId || !ownershipProofFileUrl) return;
+
+    const fileUrl = ownershipProofFileUrl;
+    const preview = document.createElement('div');
+    preview.className = 'ownership-proof-preview';
+    let imageZoomControls = null;
+    let pdfViewer = null;
+    if (ownershipProofMimeType.startsWith('image/')) {
+      const stage = document.createElement('div');
+      stage.className = 'ownership-proof-image-stage';
+      const image = document.createElement('img');
+      image.src = fileUrl;
+      image.alt = 'Proof of ownership or authorization';
+      stage.append(image);
+
+      const controls = document.createElement('div');
+      controls.className = 'ownership-proof-image-controls';
+      controls.setAttribute('role', 'group');
+      controls.setAttribute('aria-label', 'Image zoom controls');
+      const printButton = document.createElement('button');
+      printButton.type = 'button';
+      printButton.setAttribute('aria-label', 'Print image');
+      printButton.title = 'Print image';
+      printButton.innerHTML = '<i class="bi bi-printer" aria-hidden="true"></i>';
+      const toolbarDivider = document.createElement('span');
+      toolbarDivider.className = 'ownership-proof-toolbar-divider';
+      toolbarDivider.setAttribute('aria-hidden', 'true');
+      const zoomOutButton = document.createElement('button');
+      zoomOutButton.type = 'button';
+      zoomOutButton.setAttribute('aria-label', 'Zoom out');
+      zoomOutButton.title = 'Zoom out';
+      zoomOutButton.innerHTML = '<i class="bi bi-zoom-out" aria-hidden="true"></i>';
+      const fitButton = document.createElement('button');
+      fitButton.type = 'button';
+      fitButton.setAttribute('aria-label', 'Fit image');
+      fitButton.title = 'Fit image';
+      fitButton.innerHTML = '<i class="bi bi-arrows-angle-contract" aria-hidden="true"></i>';
+      const zoomInButton = document.createElement('button');
+      zoomInButton.type = 'button';
+      zoomInButton.setAttribute('aria-label', 'Zoom in');
+      zoomInButton.title = 'Zoom in';
+      zoomInButton.innerHTML = '<i class="bi bi-zoom-in" aria-hidden="true"></i>';
+      const zoomLevel = document.createElement('output');
+      zoomLevel.textContent = '100%';
+      controls.append(printButton, toolbarDivider, zoomOutButton, zoomLevel, zoomInButton, fitButton);
+      preview.append(controls, stage);
+
+      imageZoomControls = { image, stage, printButton, zoomOutButton, fitButton, zoomInButton, zoomLevel };
+    } else {
+      pdfViewer = createPdfProofViewer(fileUrl, ownershipProofFilename);
+      preview.append(pdfViewer.element);
+    }
+    const proofModal = createModal({ title: 'Review ownership proof', content: preview });
+    proofModal.classList.add('ownership-proof-modal');
+    const isImageProof = Boolean(imageZoomControls);
+    proofModal.classList.add(isImageProof ? 'ownership-proof-image-modal' : 'ownership-proof-document-modal');
+    proofModal.querySelector('.ui-modal__header h2').textContent = ownershipProofFilename;
+    const proofIcon = document.createElement('span');
+    proofIcon.className = isImageProof ? 'ownership-proof-image-icon' : 'ownership-proof-file-viewer-icon';
+    proofIcon.setAttribute('aria-hidden', 'true');
+    proofIcon.innerHTML = isImageProof
+      ? '<i class="bi bi-image-fill"></i>'
+      : '<i class="bi bi-file-earmark-pdf-fill"></i>';
+    proofModal.querySelector('.ui-modal__header h2').before(proofIcon);
+    await openUiModal(proofModal);
+    document.documentElement.classList.add('ownership-proof-viewer-open');
+    proofModal.addEventListener('close', () => {
+      document.documentElement.classList.remove('ownership-proof-viewer-open');
+      void pdfViewer?.destroy();
+    }, { once: true });
+    let proofLoaded = Boolean(imageZoomControls);
+    if (imageZoomControls) {
+      const { image, stage, printButton, zoomOutButton, fitButton, zoomInButton, zoomLevel } = imageZoomControls;
+      let zoom = 1;
+      const applyZoom = (nextZoom) => {
+        zoom = Math.min(3, Math.max(1, nextZoom));
+        if (image.naturalWidth && stage.clientWidth && stage.clientHeight) {
+          const fitScale = Math.min(stage.clientWidth / image.naturalWidth, stage.clientHeight / image.naturalHeight, 1.25);
+          image.style.width = `${Math.round(image.naturalWidth * fitScale * zoom)}px`;
+          image.classList.toggle('is-zoomed', zoom > 1);
+        }
+        zoomLevel.textContent = `${Math.round(zoom * 100)}%`;
+        zoomOutButton.disabled = zoom <= 1;
+        zoomInButton.disabled = zoom >= 3;
+      };
+      zoomOutButton.addEventListener('click', () => applyZoom(zoom - 0.25));
+      fitButton.addEventListener('click', () => applyZoom(1));
+      zoomInButton.addEventListener('click', () => applyZoom(zoom + 0.25));
+      printButton.addEventListener('click', () => window.print());
+      image.addEventListener('load', () => applyZoom(zoom), { once: true });
+      if (image.complete) applyZoom(zoom);
+    }
+    if (pdfViewer) {
+      const status = pdfViewer.element.querySelector('.ownership-proof-pdf-status');
+      try {
+        await pdfViewer.load();
+        proofLoaded = true;
+      } catch (error) {
+        status.hidden = false;
+        status.textContent = `Unable to render this PDF: ${error.message}`;
+      }
+    }
+    if (selected?.id === propertyId && proofLoaded) {
+      reviewedProofPropertyId = propertyId;
+      ownershipProofMessage.textContent = 'Proof opened. Confirm below to complete the approval.';
+      updateDetailActions();
+    }
+  };
+
+  const loadOwnershipProof = async () => {
+    if (!selected || !selected.has_ownership_proof) return;
+    const propertyId = selected.id;
+    ownershipProofOpenButton.disabled = true;
+    ownershipProofMessage.textContent = 'Loading proof preview…';
+    try {
+      const detailsResponse = await fetch(`${API}/properties/${encodeURIComponent(propertyId)}/ownership-document`, { headers: headers() });
+      const details = await detailsResponse.json().catch(() => ({}));
+      if (!detailsResponse.ok) throw new Error(details.message || 'Unable to load ownership proof.');
+      const fileResponse = await fetch(`${API}/media/${encodeURIComponent(details.data.id)}`, {
+        headers: { Authorization: headers().Authorization }
+      });
+      if (!fileResponse.ok) throw new Error('Unable to open ownership proof.');
+      const blob = await fileResponse.blob();
+      if (selected?.id !== propertyId) return;
+
+      clearOwnershipProofPreview();
+      ownershipProofPropertyId = propertyId;
+      ownershipProofFileUrl = URL.createObjectURL(blob);
+      ownershipProofMimeType = details.data.mimeType || blob.type;
+      ownershipProofFilename = details.data.filename || 'Ownership proof';
+
+      const previewButton = document.createElement('button');
+      previewButton.type = 'button';
+      previewButton.className = 'ownership-proof-preview-trigger';
+      previewButton.setAttribute('aria-label', `Open ${ownershipProofFilename}`);
+      if (ownershipProofMimeType.startsWith('image/')) {
+        const thumbnail = document.createElement('img');
+        thumbnail.src = ownershipProofFileUrl;
+        thumbnail.alt = '';
+        previewButton.append(thumbnail);
+      } else {
+        const fileIcon = document.createElement('span');
+        fileIcon.className = 'ownership-proof-file-icon';
+        fileIcon.innerHTML = '<i class="bi bi-file-earmark-pdf-fill" aria-hidden="true"></i>';
+        previewButton.append(fileIcon);
+      }
+      const fileInfo = document.createElement('span');
+      fileInfo.className = 'ownership-proof-file-info';
+      const filename = document.createElement('strong');
+      filename.textContent = ownershipProofFilename;
+      const instruction = document.createElement('small');
+      instruction.textContent = ownershipProofMimeType.startsWith('image/') ? 'Click to view image' : 'Click to open PDF';
+      fileInfo.append(filename, instruction);
+      previewButton.append(fileInfo);
+      previewButton.addEventListener('click', openOwnershipProof);
+      ownershipProofPreviewCard.replaceChildren(previewButton);
+      ownershipProofPreviewCard.hidden = false;
+      ownershipProofOpenButton.hidden = true;
+      ownershipProofMessage.textContent = 'Preview ready. Select the file to open it.';
+      updateDetailActions();
+    } catch (error) {
+      ownershipProofMessage.textContent = error.message;
+    } finally {
+      if (selected?.id === propertyId) ownershipProofOpenButton.disabled = false;
+    }
   };
 
   const openPhotoViewer = (row) => {
@@ -353,6 +831,7 @@ export async function renderListingModeration(root = document.querySelector('#ap
 
   const setActiveTab = (status) => {
     currentStatus = status;
+    currentPage = 1;
     const nextSearch = new URLSearchParams(window.DORMHIVE_ROUTE_SEARCH || '');
     nextSearch.set('status', status);
     history.replaceState({}, '', `#/admin/listingModeration?${nextSearch}`);
@@ -368,22 +847,40 @@ export async function renderListingModeration(root = document.querySelector('#ap
   const updateDetailActions = () => {
     const isPending = selected?.status === 'pending';
     const isApprovedOrRejected = selected?.status === 'approved' || selected?.status === 'rejected';
+    const hasProof = selected?.has_ownership_proof === true || Number(selected?.has_ownership_proof) === 1;
+    const hasReviewedProof = hasProof && reviewedProofPropertyId === selected?.id;
+    const hasPreview = hasProof && ownershipProofPropertyId === selected?.id && Boolean(ownershipProofFileUrl);
     approveButton?.toggleAttribute('hidden', !isPending);
     rejectButton?.toggleAttribute('hidden', !isPending);
+    ownershipProofOpenButton.hidden = !hasProof || hasPreview;
+    ownershipProofPreviewCard.hidden = !hasPreview;
+    ownershipProofMessage.textContent = hasProof
+      ? hasReviewedProof
+        ? 'Proof reviewed. You can confirm approval.'
+        : hasPreview
+          ? 'Proof is ready to open if you want to review it before confirming.'
+          : 'You can review the ownership proof before confirming approval.'
+      : 'No ownership or authorization proof is attached. This listing can be rejected but cannot be approved.';
+    approveButton.disabled = !isPending;
+    approvalReviewConfirmButton.disabled = !isPending || !hasProof;
+    rejectButton.disabled = !isPending;
     viewButton?.classList.toggle('hidden', !isApprovedOrRejected);
     ownerContactButton?.classList.toggle('hidden', !selected);
     if (isApprovedOrRejected && selected) {
-      viewButton.textContent = 'View Listing';
+      viewButton.textContent = 'View Full Listing';
     }
   };
 
   const clearSelection = () => {
+    approvalReviewModal.hidden = true;
     selected = null;
+    clearOwnershipProofPreview();
     detailName.textContent = 'Select a listing';
     detailAddress.textContent = 'No property selected.';
     detailLocation.textContent = 'Waiting for backend data…';
     detailOwner.textContent = 'Owner details will appear here.';
     detailStatus.textContent = 'Status pending review';
+    detailStatus.parentElement.className = 'detail-status status-pending';
     detailExtra.innerHTML = '';
     detailPhotos.innerHTML = `
       <div class="thumb"></div>
@@ -397,16 +894,31 @@ export async function renderListingModeration(root = document.querySelector('#ap
 
   const syncDetails = (row) => {
     if (!row) return clearSelection();
+    clearOwnershipProofPreview();
     selected = row;
     detailName.textContent = row.title || 'Untitled property';
     detailAddress.textContent = formatMeta(row) || 'Address unavailable';
     detailLocation.textContent = [row.municipality, row.barangay].filter(Boolean).join(', ') || 'Location unavailable';
     detailOwner.textContent = `Owner: ${row.owner_name || row.owner_id || 'Unknown owner'}`;
-    detailStatus.textContent = String(row.status || 'pending').replaceAll('_', ' ');
+    const status = String(row.status || 'pending').toLowerCase().replace(/[^a-z0-9_-]/g, '');
+    detailStatus.textContent = status.replaceAll('_', ' ');
+    detailStatus.parentElement.className = `detail-status status-${status}`;
+    const totalSlots = Number(row.total_slots ?? 0);
+    const availableSlots = Math.max(0, Number(row.available_slots ?? totalSlots));
+    const availability = row.total_slots !== null && row.total_slots !== undefined
+      ? (availableSlots > 0 ? `${availableSlots} slot${availableSlots === 1 ? '' : 's'} available` : 'No slots available')
+      : 'Not provided';
+    approvalReviewFields.title.textContent = row.title || 'Untitled property';
+    approvalReviewFields.owner.textContent = row.owner_name || row.owner_id || 'Unknown owner';
+    approvalReviewFields.address.textContent = formatMeta(row) || 'Address unavailable';
+    approvalReviewFields.type.textContent = formatRoomType(row.room_type);
+    approvalReviewFields.rent.textContent = `${formatCurrency(row.monthly_rent)} / month`;
+    approvalReviewFields.availability.textContent = availability;
     detailExtra.innerHTML = `
-      <p data-label="Type" data-privacy-mask="detail">${formatRoomType(row.room_type)}</p>
-      <p data-label="Rent" data-privacy-mask="stat">${esc(formatCurrency(row.monthly_rent))}</p>
-      <p data-label="Submitted">${esc(formatDate(row.created_at))}</p>`;
+      <div><dt>Type</dt><dd data-privacy-mask="detail">${formatRoomType(row.room_type)}</dd></div>
+      <div><dt>Rent</dt><dd data-privacy-mask="stat">${esc(formatCurrency(row.monthly_rent))}</dd></div>
+      <div><dt>Availability</dt><dd data-privacy-mask="stat">${esc(availability)}</dd></div>
+      <div><dt>Submitted</dt><dd>${esc(formatDate(row.created_at))}</dd></div>`;
     applyAdminPrivacy(root);
     const imageUrls = getPropertyImages(row);
     const visibleImages = imageUrls.slice(0, 6);
@@ -437,9 +949,31 @@ export async function renderListingModeration(root = document.querySelector('#ap
       const matchesType = filter === 'all' || String(row.room_type || '').toLowerCase() === filter.toLowerCase();
       return matchesQuery && matchesType;
     });
+    const totalPages = Math.max(1, Math.ceil(visibleRows.length / pageSize));
+    currentPage = Math.min(Math.max(1, currentPage), totalPages);
+    const startIndex = (currentPage - 1) * pageSize;
+    const pageRows = visibleRows.slice(startIndex, startIndex + pageSize);
+    const rangeStart = visibleRows.length ? startIndex + 1 : 0;
+    const rangeEnd = Math.min(startIndex + pageSize, visibleRows.length);
+    paginationInfo.textContent = `Showing ${rangeStart} to ${rangeEnd} of ${visibleRows.length} listings`;
+    previousPageButton.disabled = currentPage <= 1;
+    nextPageButton.disabled = currentPage >= totalPages || visibleRows.length === 0;
+
+    if (!pageRows.some((row) => row.id === selected?.id)) {
+      if (pageRows.length) {
+        selected = pageRows[0];
+        syncDetails(selected);
+      } else {
+        selected = null;
+        clearSelection();
+      }
+    }
 
     tableShell.classList.toggle('is-empty', visibleRows.length === 0);
-    tbody.innerHTML = visibleRows.map((row) => `
+    const emptyMessage = query || filter !== 'all'
+      ? 'No matching listings found.'
+      : `No ${statusLabels[currentStatus].toLowerCase()} available for this tab.`;
+    tbody.innerHTML = pageRows.map((row) => `
       <tr class="listing-summary-row${selected?.id === row.id ? ' selected' : ''}" data-id="${row.id}">
         <td data-label="Thumbnail"><div class="thumbnail" ${getThumbStyles(row)}></div></td>
         <td data-label="Property" data-privacy-mask="detail">${esc(row.title || 'Untitled property')}</td>
@@ -447,8 +981,8 @@ export async function renderListingModeration(root = document.querySelector('#ap
         <td data-label="Type" data-privacy-mask="detail">${formatRoomType(row.room_type)}</td>
         <td data-label="Rent" data-privacy-mask="stat">${esc(formatCurrency(row.monthly_rent))}</td>
         <td data-label="Submitted">${esc(formatDate(row.created_at))}</td>
-        <td class="action-icons"><button type="button" aria-label="View details">🔎</button></td>
-      </tr>`).join('') || '<tr><td colspan="7" class="empty-row">No matching listings found.</td></tr>';
+        <td class="action-icons"><button type="button" aria-label="View full listing" title="View full listing"><i class="bi bi-eye" aria-hidden="true"></i></button></td>
+      </tr>`).join('') || `<tr><td colspan="7" class="empty-row">${emptyMessage}</td></tr>`;
 
     applyAdminPrivacy(root);
     syncRowSelection();
@@ -458,6 +992,14 @@ export async function renderListingModeration(root = document.querySelector('#ap
         event.stopPropagation();
         const row = rows.find((item) => item.id === Number(rowEl.dataset.id));
         if (row) openPhotoViewer(row);
+      });
+      rowEl.querySelector('.action-icons button')?.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const row = rows.find((item) => item.id === Number(rowEl.dataset.id));
+        if (!row) return;
+        syncDetails(row);
+        syncRowSelection();
+        openModal();
       });
       rowEl.addEventListener('click', (event) => {
         if (event.target.closest('button')) return;
@@ -482,10 +1024,10 @@ export async function renderListingModeration(root = document.querySelector('#ap
       listingCardSubtitle.textContent = `Showing ${rows.length} ${statusLabels[currentStatus].toLowerCase()}.`;
       listingTotal.textContent = `${rows.length} total`;
       if (!rows.length) {
-        tableShell.classList.add('is-empty');
+        currentPage = 1;
         statusLabel.textContent = `No ${statusLabels[currentStatus].toLowerCase()} found.`;
-        tbody.innerHTML = '<tr><td colspan="7" class="empty-row">No listings available for this tab.</td></tr>';
-        clearSelection();
+        selected = null;
+        renderRows();
         return;
       }
       statusLabel.textContent = `Showing ${rows.length} ${statusLabels[currentStatus].toLowerCase()}.`;
@@ -563,8 +1105,20 @@ export async function renderListingModeration(root = document.querySelector('#ap
     }
   };
 
+  const openApprovalReview = () => {
+    if (!selected || selected.status !== 'pending') return;
+    updateDetailActions();
+    approvalReviewModal.hidden = false;
+    approvalReviewCloseButton.focus();
+  };
+
+  const closeApprovalReview = () => {
+    approvalReviewModal.hidden = true;
+    approveButton.focus();
+  };
+
   const openRejectDialog = async () => {
-    if (!selected) return;
+    if (!selected || selected.status !== 'pending') return;
     const rejectDialog = createModal({
       title: 'Listing Rejection',
       content: `<form class="moderation-reject-form">
@@ -628,26 +1182,31 @@ export async function renderListingModeration(root = document.querySelector('#ap
     modalTitle.textContent = selected.title || 'Untitled property';
     modalStatusText.textContent = String(selected.status || 'pending').replaceAll('_', ' ');
     modalStatusText.className = `modal-status-text status-${selected.status}`;
-    modalAddress.textContent = `Address: ${formatMeta(selected) || 'Unavailable'}`;
-    modalLocation.textContent = `Location: ${[selected.municipality, selected.barangay].filter(Boolean).join(', ') || 'Unavailable'}`;
-    modalOwner.textContent = `Owner: ${selected.owner_name || selected.owner_id || 'Unknown owner'}`;
-    modalType.textContent = `Type: ${formatRoomType(selected.room_type)}`;
-    modalRent.textContent = `Rent: ${formatCurrency(selected.monthly_rent)}`;
-    modalSubmitted.textContent = `Submitted: ${formatDate(selected.created_at)}`;
-    modalOccupants.textContent = selected.max_occupants ? `Max occupants: ${esc(String(selected.max_occupants))}` : '';
-    modalGender.textContent = selected.gender_preference ? `Gender preference: ${esc(String(selected.gender_preference).replaceAll('_', ' '))}` : '';
-    modalDescription.textContent = selected.description ? `Description: ${esc(selected.description)}` : 'No description provided.';
+    modalAddress.textContent = formatMeta(selected) || 'Unavailable';
+    modalLocation.textContent = [selected.municipality, selected.barangay].filter(Boolean).join(', ') || 'Unavailable';
+    modalOwner.textContent = selected.owner_name || selected.owner_id || 'Unknown owner';
+    modalType.textContent = formatRoomType(selected.room_type);
+    modalRent.textContent = `${formatCurrency(selected.monthly_rent)} / month`;
+    modalSubmitted.textContent = formatDate(selected.created_at);
+    const hasSlotCount = selected.total_slots !== null && selected.total_slots !== undefined;
+    const availableSlots = Math.max(0, Number(selected.available_slots ?? selected.total_slots ?? 0));
+    modalAvailability.textContent = hasSlotCount
+      ? (availableSlots > 0 ? `${availableSlots} slot${availableSlots === 1 ? '' : 's'} available` : 'No slots available')
+      : 'Not specified';
+    modalGender.textContent = selected.gender_preference ? String(selected.gender_preference).replaceAll('_', ' ') : 'Any';
+    modalDescription.textContent = selected.description || 'No description provided.';
     modalAddress.setAttribute('data-privacy-mask', 'detail');
     modalLocation.setAttribute('data-privacy-mask', 'detail');
     modalOwner.setAttribute('data-privacy-mask', 'name');
     modalType.setAttribute('data-privacy-mask', 'detail');
     modalRent.setAttribute('data-privacy-mask', 'stat');
-    modalOccupants.setAttribute('data-privacy-mask', 'stat');
+    modalAvailability.setAttribute('data-privacy-mask', 'stat');
     modalGender.setAttribute('data-privacy-mask', 'detail');
     modalDescription.setAttribute('data-privacy-mask', 'detail');
     applyAdminPrivacy(modal);
-    const image = resolveImageUrl(selected.image_url);
-    modalHero.style.backgroundImage = image ? `url('${image}')` : 'linear-gradient(135deg,#d7efe5,#f3f6f4)';
+    modalPhotoUrls = getPropertyImages(selected);
+    modalPhotoIndex = 0;
+    renderListingModalGallery();
     const rawAmenities = selected.amenities;
     const amenities = rawAmenities && Array.isArray(rawAmenities)
       ? rawAmenities
@@ -759,7 +1318,21 @@ export async function renderListingModeration(root = document.querySelector('#ap
   tabs.forEach((button) => {
     button.addEventListener('click', () => setActiveTab(button.dataset.status));
   });
-  approveButton?.addEventListener('click', () => updatePropertyStatus('approved'));
+  ownershipProofOpenButton.addEventListener('click', loadOwnershipProof);
+  approveButton?.addEventListener('click', openApprovalReview);
+  approvalReviewCloseButton.addEventListener('click', closeApprovalReview);
+  approvalReviewCancelButton.addEventListener('click', closeApprovalReview);
+  approvalReviewModal.querySelector('[data-close-approval-review]').addEventListener('click', closeApprovalReview);
+  approvalReviewModal.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeApprovalReview();
+  });
+  approvalReviewConfirmButton.addEventListener('click', async () => {
+    if (!selected || selected.status !== 'pending' || !(selected.has_ownership_proof === true || Number(selected.has_ownership_proof) === 1)) return;
+    approvalReviewConfirmButton.disabled = true;
+    const approved = await updatePropertyStatus('approved');
+    if (approved) closeApprovalReview();
+    else approvalReviewConfirmButton.disabled = false;
+  });
   rejectButton?.addEventListener('click', openRejectDialog);
   viewButton?.addEventListener('click', openModal);
   ownerContactButton?.addEventListener('click', async () => {
@@ -772,27 +1345,37 @@ export async function renderListingModeration(root = document.querySelector('#ap
 
     const subject = `DormHive listing: ${selected.title || 'Property listing'}`;
     const body = `Hello ${selected.owner_name || 'Owner'},\n\nI am contacting you about your DormHive listing "${selected.title || 'Property listing'}".`;
-    const mailtoLink = `mailto:${encodeURIComponent(ownerEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const gmailUrl = new URL('https://mail.google.com/mail/');
+    gmailUrl.searchParams.set('view', 'cm');
+    gmailUrl.searchParams.set('fs', '1');
+    gmailUrl.searchParams.set('to', ownerEmail);
+    gmailUrl.searchParams.set('su', subject);
+    gmailUrl.searchParams.set('body', body);
 
-    try {
-      window.location.href = mailtoLink;
-      setTimeout(() => {
-        if (navigator.clipboard?.writeText) {
-          navigator.clipboard.writeText(ownerEmail).catch(() => {});
-        }
-      }, 250);
-    } catch {
-      if (navigator.clipboard?.writeText) {
-        try {
-          await navigator.clipboard.writeText(ownerEmail);
-          showToast({ message: `Owner email copied: ${ownerEmail}`, type: 'success' });
-          return;
-        } catch {}
-      }
-      showToast({ message: 'Unable to open email client. Please copy the owner email manually.', type: 'error' });
-    }
+    const gmailLink = document.createElement('a');
+    gmailLink.href = gmailUrl.toString();
+    gmailLink.target = '_blank';
+    gmailLink.rel = 'noopener noreferrer';
+    gmailLink.hidden = true;
+    document.body.append(gmailLink);
+    gmailLink.click();
+    gmailLink.remove();
   });
   modalClose?.addEventListener('click', closeModal);
+  modalFooterClose?.addEventListener('click', closeModal);
+  modalPhotoPrevious.addEventListener('click', () => {
+    if (!modalPhotoUrls.length) return;
+    modalPhotoIndex = (modalPhotoIndex - 1 + modalPhotoUrls.length) % modalPhotoUrls.length;
+    renderListingModalGallery();
+  });
+  modalPhotoNext.addEventListener('click', () => {
+    if (!modalPhotoUrls.length) return;
+    modalPhotoIndex = (modalPhotoIndex + 1) % modalPhotoUrls.length;
+    renderListingModalGallery();
+  });
+  modalHero.addEventListener('click', () => {
+    if (selected && modalPhotoUrls.length) openPhotoViewer(selected, modalPhotoIndex);
+  });
   modal?.addEventListener('click', (event) => {
     if (event.target === modal) closeModal();
   });
@@ -805,7 +1388,23 @@ export async function renderListingModeration(root = document.querySelector('#ap
     if (imageUrls.length) openPhotoPreview(imageUrls, Math.max(0, tileIndex));
   });
 
-  searchInput.addEventListener('input', renderRows);
-  typeFilter.addEventListener('change', renderRows);
+  typeFilter.addEventListener('change', () => {
+    currentPage = 1;
+    renderRows();
+  });
+  searchInput.addEventListener('input', () => {
+    currentPage = 1;
+    renderRows();
+  });
+  previousPageButton.addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage -= 1;
+      renderRows();
+    }
+  });
+  nextPageButton.addEventListener('click', () => {
+    currentPage += 1;
+    renderRows();
+  });
   load();
 }

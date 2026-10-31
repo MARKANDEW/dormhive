@@ -24,7 +24,7 @@ const renderAvatarMarkup = () => '';
 
 function css() {
   const stylesheet = new URL('./style/inquiries.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'mobile-inquiry-aligned-grid-5');
+  stylesheet.searchParams.set('v', 'inquiry-focus-neutral-1');
   return loadOwnerStylesheet('inquiries', stylesheet);
 }
 
@@ -107,6 +107,13 @@ export async function renderInquiries(root = document.querySelector('#app')) {
 
                 <div class="list-footer">
                   <div id="pagination-summary" class="pagination-summary">Showing 0 to 0 of 0 inquiries</div>
+                  <nav class="pagination" aria-label="Inquiry pagination">
+                    <button type="button" data-page="prev" aria-label="Previous page">‹</button>
+                    <button type="button" data-page="1">1</button>
+                    <button type="button" data-page="2">2</button>
+                    <button type="button" data-page="3">3</button>
+                    <button type="button" data-page="next" aria-label="Next page">›</button>
+                  </nav>
                 </div>
               </section>
 
@@ -187,7 +194,7 @@ export async function renderInquiries(root = document.querySelector('#app')) {
     statusFilter: 'all',
     propertyFilter: 'all',
     page: 1,
-    pageSize: 8
+    pageSize: 5
   };
 
   const tbody = root.querySelector('#inquiries-rows');
@@ -257,7 +264,9 @@ export async function renderInquiries(root = document.querySelector('#app')) {
     const totalPages = Math.max(1, Math.ceil(visible.length / state.pageSize));
     if (state.page > totalPages) state.page = totalPages;
 
-    const pageNumbers = [1, 2, 3].map((n) => (n <= totalPages ? n : null)).filter((n) => n !== null);
+    const visiblePageCount = Math.min(3, totalPages);
+    const firstPage = Math.max(1, Math.min(state.page - 1, totalPages - visiblePageCount + 1));
+    const pageNumbers = Array.from({ length: visiblePageCount }, (_value, index) => firstPage + index);
     paginationButtons.forEach((button) => {
       const pageValue = button.dataset.page;
       if (pageValue === 'prev') button.disabled = state.page <= 1;
@@ -395,7 +404,8 @@ export async function renderInquiries(root = document.querySelector('#app')) {
     const totalPages = Math.max(1, Math.ceil(visible.length / state.pageSize));
     if (state.page > totalPages) state.page = totalPages;
 
-    const pageItems = visible;
+    const startIndex = (state.page - 1) * state.pageSize;
+    const pageItems = visible.slice(startIndex, startIndex + state.pageSize);
 
     if (!tbody) return;
 

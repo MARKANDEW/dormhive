@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS media_files (
   property_id INT NULL,
   message_id INT NULL,
   ticket_message_id INT NULL,
+  is_private TINYINT(1) NOT NULL DEFAULT 0,
   original_filename VARCHAR(255) NOT NULL,
   mime_type VARCHAR(127) NOT NULL,
   file_size INT UNSIGNED NOT NULL,
@@ -41,3 +42,5 @@ CREATE TABLE IF NOT EXISTS media_files (
   INDEX idx_media_message (message_id),
   INDEX idx_media_ticket_message (ticket_message_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE media_files ADD COLUMN IF NOT EXISTS is_private TINYINT(1) NOT NULL DEFAULT 0;

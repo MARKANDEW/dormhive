@@ -1,5 +1,4 @@
 const API_BASE_URL = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
-import { bindOAuthButtons, oauthButtonsMarkup } from './oauth.js';
 import { showToast } from '../components/toast.js';
 import { openLegalModal } from './legal.js';
 import { navigate } from '../../router.js';
@@ -47,12 +46,6 @@ export async function renderRegister(root = document.querySelector('#app')) {
             <div class="input-box"><input id="password" name="password" type="password" placeholder="Password" required minlength="8"><i class='bx bxs-lock-alt'></i></div>
             <div class="forgot-link"><a href="#/forgot-password">Forgot Password?</a></div>
             <button class="btn auth-submit" type="submit">Login</button>
-            <div class="social-divider" aria-label="Or continue with">
-              <span class="social-divider-line" aria-hidden="true"></span>
-              <span class="social-divider-text">or</span>
-              <span class="social-divider-line" aria-hidden="true"></span>
-            </div>
-            ${oauthButtonsMarkup()}
           </div>
         </form>
       </div>
@@ -82,8 +75,13 @@ export async function renderRegister(root = document.querySelector('#app')) {
             <div class="input-box"><select id="role" name="role" required><option value="tenant">I want to</option><option value="tenant">Find a rental</option><option value="owner">List a property</option></select></div>
             <div class="input-box"><input id="password_r" name="password" type="password" placeholder="Password" required minlength="8"><button class="password-toggle" type="button" aria-label="Show password" aria-pressed="false"><i class='bx bx-show' aria-hidden="true"></i></button></div>
             <div class="input-box"><input id="confirm_password" name="confirmPassword" type="password" placeholder="Confirm password" required minlength="8"><button class="password-toggle" type="button" aria-label="Show password" aria-pressed="false"><i class='bx bx-show' aria-hidden="true"></i></button></div>
+            <div class="identity-upload">
+              <label for="identity-document">Upload a valid ID <span aria-hidden="true">*</span></label>
+              <input id="identity-document" name="identityDocument" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf" required>
+              <small>Government-issued or another valid ID, up to 5 MB. Only admins can view it for account verification.</small>
+            </div>
             <label class="checkbox-label"><input name="terms" type="checkbox" required> I agree to the <a href="#/terms">Terms and conditions</a>.</label>
-            <button class="btn auth-submit" type="submit">Register</button>
+            <button class="btn auth-submit" type="submit">Submit for review</button>
           </div>
         </form>
       </div>
@@ -121,8 +119,7 @@ export async function renderRegister(root = document.querySelector('#app')) {
   const message = root.querySelector('.auth-message');
   const submitButton = root.querySelector('.auth-submit');
   const phoneInput = root.querySelector('#phone_r');
-  bindOAuthButtons(root);
-
+  const identityDocumentInput = root.querySelector('#identity-document');
   root.querySelectorAll('.checkbox-label a[href="#/terms"], .checkbox-label a[href="#/privacy"]').forEach((link) => {
     link.addEventListener('click', (event) => {
       event.preventDefault();
@@ -215,28 +212,31 @@ export async function renderRegister(root = document.querySelector('#app')) {
       phoneInput.focus();
       return;
     }
+    const identityDocument = identityDocumentInput.files[0];
+    if (!identityDocument || identityDocument.size > 5 * 1024 * 1024) {
+      showMessage(message, 'Choose an ID file that is no larger than 5 MB.');
+      identityDocumentInput.focus();
+      return;
+    }
 
     const { terms, confirmPassword: _confirmPassword, ...payload } = formData;
     payload.phone = toServerPhoneValue(payload.phone);
+    const requestData = new FormData();
+    Object.entries(payload).forEach(([key, value]) => requestData.append(key, value));
 
     submitButton.disabled = true;
-    submitButton.textContent = 'Creating account…';
+    submitButton.textContent = 'Submitting…';
     if (message) message.hidden = true;
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const response = await fetch(`${API_BASE_URL}/auth/register`, { method: 'POST', body: requestData });
       const body = await readApiResponse(response);
       if (!response.ok) throw new Error(getApiErrorMessage(body, 'Unable to create your account.'));
-      if (body?.user?.role === 'owner') {
-        localStorage.setItem('dormhive.owner.onboardingEmail', body.user.email);
-      }
-      showToast({ message: 'Account created successfully!', type: 'success' });
+      showToast({ message: 'Application submitted. Check your email after admin review.', type: 'success' });
       navigate('/login', true);
     } catch (error) {
       showMessage(message, error.message);
       submitButton.disabled = false;
-      submitButton.textContent = 'Register';
+      submitButton.textContent = 'Submit for review';
     }
   });
 }
-
-

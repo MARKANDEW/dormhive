@@ -60,7 +60,16 @@ export function ensureAdminSidebarStyles() {
     logoStyle.textContent = '.admin-logo-icon path:first-of-type { filter: none !important; }';
     document.head.append(logoStyle);
   }
-  return loadAdminStylesheet('shared', new URL('./style/sidebarAdmin.css', import.meta.url));
+  const stylesheet = new URL('./style/sidebarAdmin.css', import.meta.url);
+  stylesheet.searchParams.set('v', 'admin-neutral-search-focus-1');
+  return loadAdminStylesheet('shared', stylesheet);
+}
+
+export function renderAdminDateMeta() {
+  const now = new Date();
+  const dateValue = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  const dateLabel = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return `<div class="admin-date-meta"><time class="admin-date-meta__date" datetime="${dateValue}"><i class="bi bi-calendar3" aria-hidden="true"></i><span>${dateLabel}</span></time><span class="admin-date-meta__updated"><i aria-hidden="true"></i>Updated just now</span></div>`;
 }
 
 export function renderAdminSidebar(active = 'dashboardAdmin') {

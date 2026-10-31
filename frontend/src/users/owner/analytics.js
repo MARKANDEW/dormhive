@@ -7,7 +7,7 @@ const escapeHtml = (value = '') => { const element = document.createElement('spa
 
 function css() {
   const stylesheet = new URL('./style/analytics.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'owner-analytics-donut-side-by-side-1');
+  stylesheet.searchParams.set('v', 'owner-analytics-top-listings-1');
   return loadOwnerStylesheet('analytics', stylesheet);
 }
 
@@ -36,9 +36,12 @@ export async function renderAnalytics(root = document.querySelector('#app')) {
                 </div>
               </section>
               <section class="chart listing-performance">
-                <div class="section-heading">
-                  <h2>Listing performance</h2>
-                  <p>See how your properties are performing.</p>
+                <div class="section-heading listing-heading">
+                  <div>
+                    <h2>Listing performance</h2>
+                    <p>Top 5 by bookings and inquiries.</p>
+                  </div>
+                  <a class="listing-view-all" href="#/owner/myListing">View all listings</a>
                 </div>
                 <div class="listing-table"></div>
               </section>
@@ -93,13 +96,23 @@ export async function renderAnalytics(root = document.querySelector('#app')) {
       .map(([name, value, className]) => `<div class="legend-row"><span><i class="legend-dot ${className}"></i>${name}</span><strong>${value}</strong><small>${Math.round((value / chartTotal) * 100)}%</small></div>`)
       .join('');
 
+    const listingMetrics = listings.map((property) => {
+      const propertyBookings = ownerBookings.filter((booking) => Number(booking.property_id) === Number(property.id));
+      return {
+        property,
+        inquiries: propertyBookings.filter((booking) => booking.status === 'pending').length,
+        bookings: propertyBookings.filter((booking) => booking.status === 'approved').length
+      };
+    }).sort((left, right) =>
+      (right.inquiries + right.bookings) - (left.inquiries + left.bookings)
+      || right.bookings - left.bookings
+      || right.inquiries - left.inquiries
+      || String(left.property.title || '').localeCompare(String(right.property.title || ''))
+    );
     root.querySelector('.listing-table').innerHTML = `
       <div class="listing-table-head"><span>Property</span><span>Inquiries</span><span>Bookings</span></div>
-      ${listings.map((property) => {
-        const propertyBookings = ownerBookings.filter((booking) => Number(booking.property_id) === Number(property.id));
-        const propertyInquiries = propertyBookings.filter((booking) => booking.status === 'pending').length;
-        const propertyApproved = propertyBookings.filter((booking) => booking.status === 'approved').length;
-        return `<div class="listing-table-row"><strong>${escapeHtml(property.title || 'Untitled property')}</strong><span>${propertyInquiries}</span><span>${propertyApproved}</span></div>`;
+      ${listingMetrics.slice(0, 5).map(({ property, inquiries, bookings }) => {
+        return `<div class="listing-table-row"><strong>${escapeHtml(property.title || 'Untitled property')}</strong><span>${inquiries}</span><span>${bookings}</span></div>`;
       }).join('') || '<div class="listing-empty">No listings yet.</div>'}`;
 
     const activity = [
@@ -121,7 +134,12 @@ export async function renderAnalytics(root = document.querySelector('#app')) {
       }),
       ...pending.map((booking) => ({ icon: '•', type: 'inquiry', text: `New booking request for ${booking.property_title || 'your property'}.`, date: booking.created_at }))
     ].sort((a, b) => Date.parse(b.date || 0) - Date.parse(a.date || 0)).slice(0, 4);
-    root.querySelector('.activity-list').innerHTML = activity.map((item) => `<div class="activity-row"><i class="activity-icon ${item.type}">${item.icon}</i><span>${escapeHtml(item.text)}</span><time>${item.date ? new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently'}</time></div>`).join('') || '<div class="listing-empty">No recent activity.</div>';
+    root.querySelector('.activity-list').innerHTML = activity.map((item) => {
+      const icon = item.type === 'published'
+        ? '<i class="bi bi-house-check-fill" aria-hidden="true"></i>'
+        : escapeHtml(item.icon);
+      return `<div class="activity-row"><span class="activity-icon ${item.type}" aria-hidden="true">${icon}</span><span>${escapeHtml(item.text)}</span><time>${item.date ? new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently'}</time></div>`;
+    }).join('') || '<div class="listing-empty">No recent activity.</div>';
 
     root.querySelector('.status').hidden = true;
     await updateListingCountsInSidebar();

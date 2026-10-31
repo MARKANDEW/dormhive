@@ -10,6 +10,23 @@ globalThis.localStorage = {
 };
 
 const { withMediaAccessToken } = await import('../../../frontend/src/services/mediaAccess.js');
+const { canAccessPrivateMedia, canAccessVerificationDocument } = await import('../models/Media.js');
+
+test('verification documents are accessible only to admins', () => {
+  const document = { id: 42, verification_document_id: 42 };
+  assert.equal(canAccessVerificationDocument(document, { id: 7, role: 'tenant' }), false);
+  assert.equal(canAccessVerificationDocument(document, { id: 42, role: 'owner' }), false);
+  assert.equal(canAccessVerificationDocument(document, { id: 99, role: 'admin' }), true);
+  assert.equal(canAccessVerificationDocument({ id: 43, verification_document_id: null }, { id: 7, role: 'tenant' }), true);
+});
+
+test('private property documents are accessible only to admins', () => {
+  const proof = { id: 73, is_private: 1 };
+  assert.equal(canAccessPrivateMedia(proof, { id: 42, role: 'owner' }), false);
+  assert.equal(canAccessPrivateMedia(proof, { id: 84, role: 'tenant' }), false);
+  assert.equal(canAccessPrivateMedia(proof, { id: 7, role: 'admin' }), true);
+  assert.equal(canAccessPrivateMedia({ id: 74, is_private: 0 }, { id: 42, role: 'owner' }), true);
+});
 
 test('adds access tokens only to same-origin database media URLs', () => {
   assert.equal(

@@ -3,17 +3,18 @@ import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import {
   create,
-  createPasswordResetOtpChallenge,
   createPasswordResetToken,
   consumePasswordResetToken,
   findByEmail,
-  findByPhone,
-  getPasswordResetOtpChallenge,
-  incrementPasswordResetOtpAttempt,
-  markPasswordResetOtpVerified,
   recordLogin,
+  revokePasswordResetToken,
+  remove,
+  setVerificationDocument,
   updatePassword
 } from '../models/User.js';
+import * as mediaFiles from '../models/Media.js';
+import { validateUpload } from '../utils/fileValidation.js';
+import { isEmailConfigured, sendPasswordResetEmail } from '../services/email.js';
 
 function tokenFor(user) {
   return jwt.sign({ sub: user.id, role: user.role }, process.env.JWT_ACCESS_SECRET, { expiresIn: process.env.JWT_ACCESS_EXPIRES_IN ?? '15m' });
@@ -100,10 +101,10 @@ export async function oauthCallback(request, response) {
     const profile = await exchangeOAuthCode(provider, request.query.code);
     let user = await findByEmail(String(profile.email).toLowerCase());
     if (!user) {
-      const firstName = profile.given_name ?? profile.first_name ?? '';
-      const lastName = profile.family_name ?? profile.last_name ?? '';
-      user = await create({ name: profile.name ?? `${firstName} ${lastName}`.trim(), first_name: firstName, last_name: lastName, email: String(profile.email).toLowerCase(), passwordHash: await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12), phone: null, role: state.role });
+      throw new Error('Create your account using the registration form and upload an ID for verification before signing in.');
     }
+    if (user.verification_status === 'pending') throw new Error('Your account is awaiting admin verification. We will email you when it has been reviewed.');
+    if (user.verification_status === 'rejected') throw new Error('Your account verification was rejected. Please check your email for details.');
     if (user.status !== 'active') throw new Error('This account is not active.');
     user = await recordLogin(user.id);
     return response.redirect(frontendCallback({ mode: state.mode, accessToken: tokenFor(user) }));
@@ -131,6 +132,11 @@ function isValidPhone(value) {
 export async function register(request, response, next) {
   try {
     const { first_name, last_name, name, email, password, role = 'tenant', phone } = request.body;
+    if (!request.file) return response.status(422).json({ message: 'Upload a clear photo or PDF of a government-issued or other valid ID.' });
+    const document = validateUpload(request.file);
+    if (!['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(document.mimeType)) {
+      return response.status(422).json({ message: 'ID documents must be a JPEG, PNG, WEBP, or PDF file.' });
+    }
     const normalizedPhone = typeof phone === 'string' ? phone.trim() : phone;
     if (!['tenant', 'owner'].includes(role)) return response.status(422).json({ message: 'Role must be tenant or owner.' });
     if (!normalizedPhone || !isValidPhilippinePhoneNumber(normalizedPhone)) {
@@ -148,9 +154,26 @@ export async function register(request, response, next) {
       email: email.toLowerCase(),
       passwordHash: await bcrypt.hash(password, 12),
       phone: normalizedPhone ? String(normalizedPhone).trim() : null,
-      role
+      role,
+      status: 'pending',
+      verificationStatus: 'pending'
     });
-    response.status(201).json({ user, accessToken: tokenFor(user) });
+    try {
+      const storedDocument = await mediaFiles.create({
+        uploadedBy: user.id,
+        filename: document.filename,
+        mimeType: document.mimeType,
+        buffer: request.file.buffer
+      });
+      const pendingUser = await setVerificationDocument(user.id, storedDocument.id);
+      response.status(201).json({
+        user: pendingUser,
+        message: 'Your account is submitted for verification. You can sign in after an admin reviews your ID. We will email you with the decision.'
+      });
+    } catch (error) {
+      await remove(user.id);
+      throw error;
+    }
   } catch (error) { next(error); }
 }
 
@@ -161,6 +184,12 @@ export function loginRejection(user, passwordMatches) {
       status: 403,
       message: 'This account has been archived and can’t sign in. Contact DormHive support if you think this is a mistake.'
     };
+  }
+  if (user.verification_status === 'pending' || user.status === 'pending') {
+    return { status: 403, message: 'Your account is awaiting admin verification. We will email you when it has been reviewed.' };
+  }
+  if (user.verification_status === 'rejected') {
+    return { status: 403, message: 'Your account verification was rejected. Please check your email for details or contact DormHive support.' };
   }
   if (user.status === 'suspended') {
     return { status: 403, message: 'Your account has been suspended. Please contact the administrator for assistance.' };
@@ -183,89 +212,35 @@ export async function login(request, response, next) {
 
 export function logout(_request, response) { response.status(204).end(); }
 
-const passwordResetNotice = 'If an active account matches that number, a verification code has been sent.';
-
-function twilioVerifyConfiguration() {
-  const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_VERIFY_SERVICE_SID } = process.env;
-  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_VERIFY_SERVICE_SID) return null;
-  return { accountSid: TWILIO_ACCOUNT_SID, authToken: TWILIO_AUTH_TOKEN, serviceSid: TWILIO_VERIFY_SERVICE_SID };
+export function passwordResetEmailStatus(_request, response) {
+  response.set('Cache-Control', 'no-store');
+  response.json({ available: isEmailConfigured() });
 }
 
-async function callTwilioVerify(path, values) {
-  const config = twilioVerifyConfiguration();
-  if (!config) {
-    const error = new Error('SMS verification is not configured. Please contact support.');
-    error.statusCode = 503;
-    throw error;
-  }
-  const endpoint = `https://verify.twilio.com/v2/Services/${encodeURIComponent(config.serviceSid)}/${path}`;
-  let result;
+export async function requestPasswordResetEmail(request, response, next) {
   try {
-    result = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        Authorization: `Basic ${Buffer.from(`${config.accountSid}:${config.authToken}`).toString('base64')}`,
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: new URLSearchParams(values)
-    });
-  } catch {
-    const error = new Error('SMS verification is temporarily unavailable. Please try again.');
-    error.statusCode = 502;
-    throw error;
-  }
-  const payload = await result.json().catch(() => ({}));
-  if (!result.ok) {
-    const error = new Error('SMS verification is temporarily unavailable. Please try again.');
-    error.statusCode = 502;
-    throw error;
-  }
-  return payload;
-}
-
-export async function requestPasswordResetOtp(request, response, next) {
-  try {
-    const phone = normalizePhilippinePhoneNumber(String(request.body.phone ?? ''));
-    if (!phone) return response.status(422).json({ message: 'Enter a valid Philippine mobile number.' });
-    const user = await findByPhone(phone);
-    if (!user || user.status !== 'active') return response.json({ message: passwordResetNotice, expiresInSeconds: 300, resendAfterSeconds: 60 });
-
-    const currentChallenge = await getPasswordResetOtpChallenge(phone);
-    if (currentChallenge && Number(currentChallenge.resend_in_seconds) > 0) {
-      return response.status(429).json({ message: 'Please wait before requesting another code.', resendAfterSeconds: Number(currentChallenge.resend_in_seconds) });
+    if (!isEmailConfigured()) {
+      return response.status(503).json({ message: 'Password recovery is unavailable. Please contact support.' });
+    }
+    const email = String(request.body.email ?? '').trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(email)) return response.status(422).json({ message: 'Enter a valid email address.' });
+    const user = await findByEmail(email);
+    if (!user || user.status !== 'active') {
+      return response.json({ message: 'If an active account matches that email, a reset link has been sent.' });
     }
 
-    const verification = await callTwilioVerify('Verifications', { To: phone, Channel: 'sms' });
-    await createPasswordResetOtpChallenge({ userId: user.id, phone, verificationSid: verification.sid });
-    response.json({ message: passwordResetNotice, expiresInSeconds: 300, resendAfterSeconds: 60 });
-  } catch (error) { next(error); }
-}
-
-export async function verifyPasswordResetOtp(request, response, next) {
-  try {
-    const phone = normalizePhilippinePhoneNumber(String(request.body.phone ?? ''));
-    const code = String(request.body.code ?? '').trim();
-    if (!phone || !/^\d{6}$/.test(code)) return response.status(422).json({ message: 'Enter a valid mobile number and 6-digit code.' });
-    const challenge = await getPasswordResetOtpChallenge(phone);
-    if (!challenge || Number(challenge.expires_in_seconds) <= 0 || challenge.verified_at) {
-      return response.status(400).json({ message: 'This code is invalid or expired. Request a new code to continue.' });
+    const token = await createPasswordResetToken(user.id);
+    const clientUrl = (process.env.CLIENT_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+    const resetUrl = `${clientUrl}/#/reset-password?token=${encodeURIComponent(token)}`;
+    try {
+      const result = await sendPasswordResetEmail({ email: user.email, name: user.name, resetUrl });
+      if (!result.sent) throw new Error('SMTP is not configured.');
+    } catch (error) {
+      await revokePasswordResetToken(token);
+      console.error('Unable to send password reset email.', error.message);
+      return response.status(503).json({ message: 'Password recovery is unavailable. Please contact support.' });
     }
-    if (Number(challenge.attempts) >= 5) return response.status(429).json({ message: 'Too many incorrect codes. Request a new code to try again.' });
-    const attempt = await incrementPasswordResetOtpAttempt(phone);
-    if (attempt === null) return response.status(429).json({ message: 'Too many incorrect codes. Request a new code to try again.' });
-
-    const verification = await callTwilioVerify('VerificationCheck', { VerificationSid: challenge.verification_sid, Code: code });
-    if (verification.status !== 'approved') {
-      const attemptsRemaining = Math.max(0, 5 - Number(attempt));
-      return response.status(attemptsRemaining ? 400 : 429).json({
-        message: attemptsRemaining ? `That code is incorrect. ${attemptsRemaining} attempts remaining.` : 'Too many incorrect codes. Request a new code to try again.'
-      });
-    }
-    if (!await markPasswordResetOtpVerified(phone)) {
-      return response.status(400).json({ message: 'This code is invalid or expired. Request a new code to continue.' });
-    }
-    const resetToken = await createPasswordResetToken(challenge.user_id);
-    response.json({ message: 'Mobile number verified.', resetToken, expiresInSeconds: 600 });
+    response.json({ message: 'If an active account matches that email, a reset link has been sent.' });
   } catch (error) { next(error); }
 }
 

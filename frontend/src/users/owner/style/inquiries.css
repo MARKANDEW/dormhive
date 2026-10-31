@@ -106,6 +106,17 @@ textarea {
   font-size: 1rem;
 }
 
+.search-box:focus-within {
+  border-color: #9aa9a3;
+}
+
+.search-box input:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
 .search-box input::placeholder {
   color: #7b8885;
 }
@@ -674,8 +685,8 @@ textarea {
 }
 
 .pagination button.active {
-  background: var(--dormhive-gold);
-  border-color: var(--dormhive-gold);
+  background: var(--dormhive-green);
+  border-color: var(--dormhive-green);
   color: #fff;
 }
 
@@ -1496,8 +1507,8 @@ textarea {
 }
 
 .pagination button.active {
-  background: var(--dormhive-gold);
-  border-color: var(--dormhive-gold);
+  background: var(--dormhive-green);
+  border-color: var(--dormhive-green);
   color: #fff;
 }
 

@@ -7,7 +7,7 @@ export async function authenticate(request, response, next) {
   try {
     const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     const user = await findById(payload.sub);
-    if (!user || user.status !== 'active') return response.status(401).json({ message: 'Your session is no longer valid.' });
+    if (!user || user.status !== 'active' || user.verification_status !== 'approved') return response.status(401).json({ message: 'Your session is no longer valid.' });
     request.user = user;
     return next();
   } catch {
@@ -30,7 +30,7 @@ export async function authenticateMedia(request, response, next) {
   }
   try {
     const user = await findById(payload.sub);
-    if (!user || user.status !== 'active') return response.status(401).end();
+    if (!user || user.status !== 'active' || user.verification_status !== 'approved') return response.status(401).end();
     request.user = user;
     return next();
   } catch (error) {
@@ -46,7 +46,7 @@ export async function optionalAuthenticate(request, response, next) {
   try {
     const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     const user = await findById(payload.sub);
-    if (!user || user.status !== 'active') return next();
+    if (!user || user.status !== 'active' || user.verification_status !== 'approved') return next();
     request.user = user;
     return next();
   } catch {

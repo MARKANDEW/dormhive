@@ -11,6 +11,17 @@ const apiBase = API.replace(/\/api\/v1\/?$/, '');
 const session = () => { try { return JSON.parse(localStorage.getItem('dormhive.user')) ?? {}; } catch { return {}; } };
 const auth = () => ({ Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
 const escape = (value = '') => { const el = document.createElement('span'); el.textContent = value; return el.innerHTML; };
+const propertyCoordinates = (property = {}) => {
+  const latitudeValue = property.latitude ?? property.lat;
+  const longitudeValue = property.longitude ?? property.lng;
+  if (latitudeValue === '' || latitudeValue === null || latitudeValue === undefined
+    || longitudeValue === '' || longitudeValue === null || longitudeValue === undefined) return null;
+  const latitude = Number(latitudeValue);
+  const longitude = Number(longitudeValue);
+  if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90
+    || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) return null;
+  return [latitude, longitude];
+};
 const resolveAvatarUrl = (value = '') => {
   const url = String(value || '').trim();
   if (!url) return '';
@@ -100,7 +111,7 @@ function clearTenantRouteStyles() {
 
 function css() {
   const stylesheet = new URL('./style/dashboardOwner.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'owner-photo-viewer-reference-8');
+  stylesheet.searchParams.set('v', 'owner-search-popup-readable-1');
   return loadOwnerStylesheet('dashboard', stylesheet);
 }
 async function get(path) { const response = await fetch(`${API}${path}`, { headers: auth() }); const body = await readApiResponse(response); if (!response.ok) throw new Error(getApiErrorMessage(body, 'Unable to load this information.')); return body; }
@@ -252,6 +263,8 @@ async function showOwnerPropertyDetails(property) {
   const title = String(property.title || property.property_title || 'Property');
   const propertyType = String(property.room_type || property.property_type || 'N/A').replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
   const location = [property.address, property.barangay, property.municipality, property.city, property.province].filter(Boolean).join(', ') || 'No address';
+  const totalSlots = Math.max(0, Number(property.total_slots ?? 0));
+  const availableSlots = Math.max(0, Number(property.available_slots ?? totalSlots));
   const owner = session();
   const ownerName = property.owner_name || property.owner?.name || [owner.first_name, owner.last_name].filter(Boolean).join(' ') || owner.name || 'N/A';
   let amenities = property.amenities;
@@ -296,8 +309,7 @@ async function showOwnerPropertyDetails(property) {
           <div class="property-details-facts">
             <div class="details-section"><span class="details-label"><i class="bi bi-geo-alt-fill" aria-hidden="true"></i>Location</span><p>${escape(location)}</p></div>
             <div class="details-section"><span class="details-label"><i class="bi bi-house-fill" aria-hidden="true"></i>Room Type</span><p>${escape(propertyType)}</p></div>
-            <div class="details-section"><span class="details-label"><i class="bi bi-people-fill" aria-hidden="true"></i>Occupancy</span><p>${property.max_occupants != null ? `Up to ${escape(property.max_occupants)} tenants` : 'N/A'}</p></div>
-            <div class="details-section"><span class="details-label"><i class="bi bi-door-open-fill" aria-hidden="true"></i>Available Slots</span><p>${escape(property.available_slots ?? 'N/A')}</p></div>
+            <div class="details-section"><span class="details-label"><i class="bi bi-door-open-fill" aria-hidden="true"></i>Availability</span><p>${totalSlots > 0 ? (availableSlots > 0 ? `${availableSlots} slot${availableSlots === 1 ? '' : 's'} available` : 'No slots available') : 'N/A'}</p></div>
             <div class="details-section"><span class="details-label"><i class="bi bi-gender-ambiguous" aria-hidden="true"></i>Gender Preference</span><p>${escape(String(property.gender_preference || 'Any').replaceAll('_', ' '))}</p></div>
             <div class="details-section"><span class="details-label"><i class="bi bi-person-fill" aria-hidden="true"></i>Owner</span><p>${escape(ownerName)}</p></div>
             <div class="details-section details-amenities"><span class="details-label"><i class="bi bi-stars" aria-hidden="true"></i>Amenities</span><div class="amenities-list">${amenityMarkup || '<span>None</span>'}</div></div>
@@ -360,7 +372,8 @@ async function showFullMapModal(properties = []) {
       <p id="map-status"></p>
     </div>
   `;
-  const modal = createModal({ title: 'Full Map & Heatmap', content: mapHtml, closeLabel: 'Close', closeOnBackdrop: false });
+  const modal = createModal({ title: 'Listings Map', content: mapHtml, closeLabel: 'Close', closeOnBackdrop: false });
+  modal.classList.add('owner-full-map-modal');
   
   // Store map reference for cleanup
   let mapInstance = null;
@@ -411,7 +424,7 @@ async function showFullMapModal(properties = []) {
       
       // Force dimensions
       mapContainer.style.width = '100%';
-      mapContainer.style.height = '500px';
+      mapContainer.style.height = '100%';
       mapContainer.style.display = 'block';
       
       // Initialize map
@@ -433,30 +446,26 @@ async function showFullMapModal(properties = []) {
       if (properties && properties.length > 0) {
         const markerCoords = [];
         
-        properties.forEach(prop => {
-          let lat = Number(prop.latitude ?? prop.lat ?? NaN);
-          let lng = Number(prop.longitude ?? prop.lng ?? NaN);
-          
-          // If coordinates are missing, use default Manila coordinates with small offset
-          if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-            // Use default Manila location with random small offset for clustering
-            const offset = (markerCount * 0.001);
-            lat = 14.5995 + offset;
-            lng = 120.9842 + offset;
-          }
-          
-          if (Number.isFinite(lat) && Number.isFinite(lng)) {
-            const marker = window.L.marker([lat, lng]).addTo(mapInstance);
+        properties.forEach((prop) => {
+          const coordinates = propertyCoordinates(prop);
+          if (coordinates) {
+            const [lat, lng] = coordinates;
+            const marker = window.L.marker(coordinates).addTo(mapInstance);
             const title = String(prop.title || 'Property');
             const rent = Number(prop.monthly_rent ?? 0).toLocaleString();
             marker.bindPopup(`<strong>${escape(title)}</strong><br>₱${rent}/mo`);
-            markerCoords.push([lat, lng]);
+            markerCoords.push(coordinates);
             markerCount++;
           }
         });
         
         console.log(`Added ${markerCount} markers to map`);
-        if (statusEl) statusEl.textContent = `Map loaded with ${markerCount} properties`;
+        if (statusEl) {
+          const missingCoordinates = properties.length - markerCount;
+          statusEl.textContent = markerCount
+            ? `${markerCount} properties mapped${missingCoordinates ? `; ${missingCoordinates} hidden without valid coordinates` : ''}.`
+            : 'No properties have valid map coordinates.';
+        }
         
         // Fit map to bounds if we have markers
         if (markerCoords.length > 1) {
@@ -644,7 +653,7 @@ export async function renderDashboardOwner(root = document.querySelector('#app')
                     </form>
                   </div>
                 </div>
-                <button class="panel-button">View Full Map & Heatmap</button>
+                <button class="panel-button">View Listings Map</button>
               </div>
               <div class="map-frame-wrap"><div id="tenant-map" class="leaflet-map" style="height:20rem;border-radius:0.5rem"></div></div>
             </article>
@@ -807,11 +816,32 @@ export async function renderDashboardOwner(root = document.querySelector('#app')
   let reportData = { properties: [], bookings: [], metrics: { occupancy: 0 } };
   let ownerMap = null;
   let searchMarker = null;
+  let ownerMapCoordinates = [];
 
   const locationSearch = root.querySelector('.map-location-search');
   const locationSearchToggle = root.querySelector('.map-location-search-toggle');
   const locationSearchForm = root.querySelector('.map-location-search-form');
   const locationSearchInput = root.querySelector('.map-location-search-input');
+
+  const clearSearchedLocation = () => {
+    if (!ownerMap) return;
+    if (searchMarker) {
+      ownerMap.removeLayer(searchMarker);
+      searchMarker = null;
+    }
+    ownerMap.closePopup();
+    if (ownerMapCoordinates.length > 1) {
+      ownerMap.fitBounds(window.L.latLngBounds(ownerMapCoordinates).pad(0.2));
+    } else if (ownerMapCoordinates.length === 1) {
+      ownerMap.setView(ownerMapCoordinates[0], 14);
+    } else {
+      ownerMap.setView([14.5995, 120.9842], 12);
+    }
+  };
+
+  locationSearchInput.addEventListener('input', () => {
+    if (!locationSearchInput.value.trim()) clearSearchedLocation();
+  });
 
   locationSearchToggle.disabled = true;
   locationSearchToggle.addEventListener('click', () => {
@@ -857,8 +887,18 @@ export async function renderDashboardOwner(root = document.querySelector('#app')
       const coordinates = [Number(result.lat), Number(result.lon)];
       if (!coordinates.every(Number.isFinite)) throw new Error('The location result is invalid.');
       if (searchMarker) ownerMap.removeLayer(searchMarker);
-      searchMarker = window.L.marker(coordinates).addTo(ownerMap);
-      searchMarker.bindPopup(escape(result.display_name || query)).openPopup();
+      searchMarker = window.L.marker(coordinates, {
+        icon: window.L.divIcon({
+          className: 'owner-search-location-marker',
+          html: '<span></span>',
+          iconSize: [28, 28],
+          iconAnchor: [14, 14]
+        })
+      }).addTo(ownerMap);
+      const address = result.address || {};
+      const locationLabel = result.name || address.city || address.town || address.village || address.suburb || query;
+      const popupContent = `<div class="owner-search-popup"><span class="owner-search-popup__label">Searched area</span><strong class="owner-search-popup__place">${escape(locationLabel)}</strong></div>`;
+      searchMarker.bindPopup(popupContent, { minWidth: 240, maxWidth: 280, className: 'owner-search-location-popup' }).openPopup();
       ownerMap.setView(coordinates, 15);
     } catch (error) {
       showToast({ message: error.message || 'Could not search this location.', type: 'error' });
@@ -867,7 +907,7 @@ export async function renderDashboardOwner(root = document.querySelector('#app')
     }
   });
   
-  // Add event listener for View Full Map & Heatmap button
+  // Add event listener for the listings map button
   root.querySelector('.panel-button').addEventListener('click', async () => {
     try {
       // Fetch properties if not already loaded
@@ -947,8 +987,8 @@ export async function renderDashboardOwner(root = document.querySelector('#app')
     const pendingRequests = requests.filter((item) => item.status === 'pending');
     const activeListings = approvedListings.length;
     const inquiryCount = requests.length;
-    const totalUnits = approvedListings.reduce((total, item) => total + Math.max(0, Number(item.max_occupants ?? item.available_slots ?? 0)), 0);
-    const occupiedUnits = approved.reduce((total, item) => total + Math.max(1, Number(item.occupants ?? 1)), 0);
+    const totalUnits = approvedListings.reduce((total, item) => total + Math.max(0, Number(item.total_slots ?? 0)), 0);
+    const occupiedUnits = approved.length;
     const occupancy = totalUnits ? Math.min(100, Math.round((occupiedUnits / totalUnits) * 100)) : 0;
     const projectedRevenue = approved.reduce((total, item) => total + Number(item.monthly_rent ?? 0), 0);
     
@@ -1016,24 +1056,16 @@ export async function renderDashboardOwner(root = document.querySelector('#app')
           // Add markers
           const markers = [];
           let markerCount = 0;
-          items.forEach((prop, index) => {
-            let lat = Number(prop.latitude ?? prop.lat ?? NaN);
-            let lng = Number(prop.longitude ?? prop.lng ?? NaN);
-            
-            // If coordinates are missing, use default Manila coordinates with small offset
-            if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-              const offset = (markerCount * 0.001);
-              lat = 14.5995 + offset;
-              lng = 120.9842 + offset;
-            }
-            
-            if (Number.isFinite(lat) && Number.isFinite(lng)) {
-              const marker = window.L.marker([lat, lng]).addTo(map);
+          items.forEach((prop) => {
+            const coordinates = propertyCoordinates(prop);
+            if (coordinates) {
+              const marker = window.L.marker(coordinates).addTo(map);
               marker.bindPopup(buildOwnerPropertyPopup(prop));
-              markers.push([lat, lng]);
+              markers.push(coordinates);
               markerCount++;
             }
           });
+          ownerMapCoordinates = markers;
 
           mapPanel.addEventListener('click', (event) => {
             const detailsButton = event.target.closest('.map-property-details');

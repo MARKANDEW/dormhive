@@ -1,6 +1,7 @@
 const icons = {
   menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
   grid: '<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>',
+  home: '<path d="m3.5 10 8.5-7 8.5 7"/><path d="M5.5 9v11h13V9M9 20v-6h6v6"/>',
   chat: '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H9l-5 4v-14.5Z"/>',
   calendar: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/>',
   gear: '<path d="M5 7h14M5 12h14M5 17h14"/><circle cx="9" cy="7" r="1.8"/><circle cx="15" cy="12" r="1.8"/><circle cx="10" cy="17" r="1.8"/>',
@@ -70,6 +71,7 @@ export function ensureTenantSidebarStyles() {
 export function renderTenantSidebar(activePage = 'dashboardTenant') {
   const links = [
     ['dashboardTenant', 'Dashboard', 'grid'],
+    ['featuredListings', 'Featured Listings', 'home'],
     ['message', 'Messages', 'chat'],
     ['booking', 'Bookings', 'calendar'],
     ['setting', 'Settings', 'gear']

@@ -4,13 +4,23 @@ import { getUserAvatarUrl, refreshTenantUserSession } from './setting.js';
 import { createModal, openModal, successDialog } from '../../components/modal.js';
 import { api as apiClient, getApiErrorMessage, readApiResponse } from '../../services/api.js';
 import { markNotificationRead } from '../../services/notificationSystem.js';
-import { parseViewingTime, viewingTimeFields } from './viewingTime.js';
 import { withMediaAccessToken } from '../../services/mediaAccess.js';
 import { buildInitialsAvatarSvg, getAvatarInitials } from '../../services/avatar.js';
+
+function parseViewingTime(value = '') {
+  const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(String(value).trim());
+  if (!match) return value ? null : '';
+  const totalMinutes = Number(match[1]) * 60 + Number(match[2]);
+  const isAvailable = (totalMinutes >= 480 && totalMinutes <= 660)
+    || (totalMinutes >= 720 && totalMinutes <= 960)
+    || (totalMinutes >= 1020 && totalMinutes <= 1140);
+  return isAvailable ? `${match[1]}:${match[2]}` : null;
+}
 
 const API_URL = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const apiBase = API_URL.replace(/\/api\/v1\/?$/, '');
 const MAX_LISTING_PRICE = 1000000;
+const TENANT_SEARCH_RADIUS_KM = 1;
 const DEFAULT_IMAGE_PLACEHOLDER = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 300"><rect width="500" height="300" fill="#ecf5ef"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#4a7160" font-family="Inter,Arial,sans-serif" font-size="28">No image available</text></svg>');
 const resolveImageUrl = (value = '') => {
   const url = String(value || '').trim();
@@ -85,8 +95,6 @@ function openTenantPhotoViewer(property, clickedImage = null) {
   const nextButton = viewer.querySelector('.photo-viewer-next');
   const renderPhoto = (nextIndex = photoIndex) => {
     photoIndex = (nextIndex + photos.length) % photos.length;
-    viewerImage.src = photos[photoIndex];
-    viewerImage.alt = `${title} photo ${photoIndex + 1}`;
     previousButton.hidden = photos.length < 2;
     nextButton.hidden = photos.length < 2;
     thumbnailButtons.forEach((button, index) => {
@@ -139,28 +147,20 @@ const resolveEffectiveOccupancy = (property = {}) => {
   const toFiniteNumber = (value) => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value))
     ? Number(value)
     : null;
-  const maxOccupants = toFiniteNumber(property.max_occupants) ?? 0;
-  const rawAvailableSlots = toFiniteNumber(property.available_slots);
-  const reportedOccupied = toFiniteNumber(property.occupied_units ?? property.occupied ?? property.occupied_count);
-  const occupiedUnits = reportedOccupied !== null
-    ? Math.max(0, reportedOccupied)
-    : (maxOccupants > 0 && rawAvailableSlots !== null
-      ? Math.max(0, maxOccupants - rawAvailableSlots)
-      : 0);
-  const availableSlots = maxOccupants > 0
-    ? Math.max(0, maxOccupants - occupiedUnits)
-    : Math.max(0, rawAvailableSlots ?? 0);
+  const rawAvailableSlots = toFiniteNumber(property.available_slots ?? property.total_slots);
+  const availableSlots = Math.max(0, rawAvailableSlots ?? 0);
+  const totalSlots = Math.max(0, toFiniteNumber(property.total_slots) ?? availableSlots);
+  const occupiedSlots = Math.max(0, totalSlots - availableSlots);
   return {
-    maxOccupants,
-    occupiedUnits,
-    availableSlots
+    availableSlots,
+    totalSlots,
+    occupiedSlots
   };
 };
 const isPropertyVisibleToTenant = (property = {}) => {
-  const { maxOccupants, occupiedUnits, availableSlots } = resolveEffectiveOccupancy(property);
-  const hasCapacityReached = Number.isFinite(maxOccupants) && maxOccupants > 0 && occupiedUnits >= maxOccupants;
+  const { availableSlots } = resolveEffectiveOccupancy(property);
   const hasNoAvailableSlots = Number.isFinite(availableSlots) && availableSlots <= 0;
-  return !(hasCapacityReached || hasNoAvailableSlots);
+  return !hasNoAvailableSlots;
 };
 function tenantFullName(user = {}) {
   const firstName = String(user.first_name ?? user.firstName ?? '').trim();
@@ -182,7 +182,7 @@ function loadStyle() {
   const stylePromises = [];
 
   const dashboardStylesheet = new URL('./style/dashboardTenant.css', import.meta.url);
-  dashboardStylesheet.searchParams.set('v', 'tenant-approved-schedule-notice-3');
+  dashboardStylesheet.searchParams.set('v', 'tenant-search-focus-neutral-1');
   stylePromises.push(loadTenantStylesheet('dashboard', dashboardStylesheet));
 
   if (!document.querySelector('[data-tenant-style="notifications"]')) {
@@ -263,6 +263,47 @@ function loadStyle() {
         gap: 0.5rem;
         min-height: 0;
       }
+      .nearby-map-controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+      }
+      .nearby-map-controls button,
+      .nearby-map-controls label,
+      .nearby-map-controls select {
+        min-height: 40px;
+        border: 1px solid #d6e3dc;
+        border-radius: 0.5rem;
+        background: #fff;
+        color: #24483f;
+        font: inherit;
+        font-size: 0.82rem;
+      }
+      .nearby-map-controls button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0 0.8rem;
+        color: #11765f;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .nearby-map-controls button:disabled { opacity: 0.65; cursor: wait; }
+      .nearby-map-controls label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        padding-left: 0.75rem;
+        color: #526b63;
+        font-weight: 700;
+      }
+      .nearby-map-controls select {
+        min-height: 38px;
+        padding: 0 0.6rem;
+        border: 0;
+        color: #183a33;
+      }
       .full-map-container .leaflet-map {
         width: 100% !important;
         height: 500px !important;
@@ -278,6 +319,10 @@ function loadStyle() {
         font-size: 0.85rem;
         color: #6d8179;
         text-align: center;
+      }
+      @media (max-width: 600px) {
+        .nearby-map-controls { align-items: stretch; }
+        .nearby-map-controls button, .nearby-map-controls label { flex: 1 1 auto; justify-content: center; }
       }
       .ui-modal:has(.full-map-container) {
         position: fixed;
@@ -301,6 +346,41 @@ function loadStyle() {
       }
       .ui-modal:has(.full-map-container) .ui-modal__footer {
         flex-shrink: 0;
+      }
+      .ui-modal.tenant-nearby-listings-modal {
+        width: min(96vw, 1200px);
+        height: 94vh;
+        height: 94dvh;
+        max-height: 94vh;
+        max-height: 94dvh;
+      }
+      .ui-modal.tenant-nearby-listings-modal .ui-modal__body {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+        max-height: none;
+        overflow: hidden;
+      }
+      .tenant-nearby-listings-modal .full-map-container {
+        flex: 1;
+        min-height: 0;
+      }
+      .tenant-nearby-listings-modal .full-map-container .leaflet-map {
+        flex: 1;
+        height: 100% !important;
+        min-height: 0 !important;
+      }
+      .ui-modal.tenant-nearby-listings-modal .ui-modal__footer {
+        display: none;
+      }
+      @media (max-width: 600px) {
+        .ui-modal.tenant-nearby-listings-modal {
+          width: calc(100vw - 0.5rem);
+          height: calc(100vh - 0.5rem);
+          height: calc(100dvh - 0.5rem);
+          max-height: calc(100vh - 0.5rem);
+          max-height: calc(100dvh - 0.5rem);
+        }
       }
     `;
     document.head.append(style);
@@ -407,9 +487,8 @@ function renderAmenitiesChips(item = {}) {
 function propertyDetailsMarkup(property) {
   const address = [property.address, property.barangay, property.municipality].filter(Boolean).join(', ');
   const amenities = normalizeAmenities(property);
-  const { maxOccupants, occupiedUnits, availableSlots } = resolveEffectiveOccupancy(property);
+  const { availableSlots } = resolveEffectiveOccupancy(property);
   const resolvedAvailable = Math.max(0, availableSlots);
-  const resolvedOccupied = Math.max(0, occupiedUnits);
   const images = normalizePropertyImages(property);
   const galleryImages = images.length ? images : [DEFAULT_IMAGE_PLACEHOLDER];
   const galleryThumbnails = galleryImages.map((image, index) => `
@@ -429,39 +508,29 @@ function propertyDetailsMarkup(property) {
         <div class="property-detail-thumbnails" role="group" aria-label="Property photo thumbnails">${galleryThumbnails}</div>
       </div>
       <div class="property-detail-modal-info">
-        <div class="property-detail-modal-heading">
-          <h3>${esc(property.title || 'Property')}</h3>
-          <strong>${money(property.monthly_rent)} / month</strong>
-        </div>
-        <div class="property-detail-group property-detail-location">
-          <span class="property-detail-label">Location</span>
-          <strong>${esc(address || 'Not specified')}</strong>
-        </div>
-        <div class="property-detail-group property-detail-facts">
-          <p><span>Room type</span><strong>${esc(normalizeRoomType(property.room_type) || 'Not specified')}</strong></p>
-          <p><span>Occupancy</span><strong>${esc(maxOccupants ? `${resolvedOccupied} / ${maxOccupants} occupied` : 'Not specified')}</strong></p>
-          <p><span>Available slots</span><strong>${esc(maxOccupants ? String(resolvedAvailable) : 'Not specified')}</strong></p>
-          <p><span>Gender preference</span><strong>${esc(normalizeGenderPreference(property.gender_preference) || 'Not specified')}</strong></p>
-          <p><span>Owner</span><strong>${esc(property.owner_name || 'Not specified')}</strong></p>
-          <p><span>Amenities</span><strong>${esc(amenities.length ? amenities.map((item) => AMENITY_LABELS[item] ?? item.replace(/_/g, ' ')).join(', ') : 'None listed')}</strong></p>
-        </div>
-        <div class="property-detail-group property-detail-description">
-          <span class="property-detail-label">Description</span>
-          <p>${esc(property.description || 'No description provided.')}</p>
-        </div>
+        <div class="property-detail-price"><strong>${money(property.monthly_rent)}</strong><span>/ month</span></div>
+        <p class="property-detail-location"><i class="bi bi-geo-alt" aria-hidden="true"></i>${esc(address || 'Not specified')}</p>
+        <dl class="property-detail-facts">
+          <div><dt>Room type</dt><dd>${esc(normalizeRoomType(property.room_type) || 'Not specified')}</dd></div>
+          <div><dt>Availability</dt><dd>${esc(property.total_slots != null ? (resolvedAvailable ? `${resolvedAvailable} slot${resolvedAvailable === 1 ? '' : 's'} available` : 'No slots available') : 'Not specified')}</dd></div>
+          <div><dt>Gender preference</dt><dd>${esc(normalizeGenderPreference(property.gender_preference) || 'Co-ed')}</dd></div>
+          <div><dt>Owner</dt><dd>${esc(property.owner_name || 'Not specified')}</dd></div>
+        </dl>
+        <div class="property-detail-amenities"><h3>Amenities</h3>${amenities.length ? `<ul>${renderAmenitiesChips(property)}</ul>` : '<p>None listed.</p>'}</div>
+        <div class="property-detail-description"><h3>About this property</h3><p>${esc(property.description || 'No description provided.')}</p></div>
       </div>
     </div>
     <form class="dashboard-request-form">
-      <div class="dashboard-request-heading"><h3>Book a Viewing / Send a Request</h3></div>
+      <div class="dashboard-request-heading"><h3>Rental Request Details</h3></div>
       <div class="dashboard-request-fields">
         <label>Move-in Date<input type="date" name="moveInDate" required /></label>
         <label>Move-out Date
           <input type="date" name="moveOutDate" />
           <span class="dashboard-indefinite-move-out"><input type="checkbox" name="isIndefiniteMoveOut" /><span>Indefinite / No planned move-out date</span></span>
         </label>
-        <label>Occupants<input type="number" name="occupants" min="1" value="1" required /></label>
+        <label>Occupants (people)<input type="number" name="occupants" min="1" step="1" value="1" required /></label>
         <label>Viewing Date<input type="date" name="viewingDate" /></label>
-        <label>Viewing Time${viewingTimeFields({ idPrefix: 'property-viewing-time' })}</label>
+        <label>Viewing Time<input type="time" name="viewingTime" value="08:00" min="08:00" max="19:00" step="1800" lang="en-US" /></label>
       </div>
       <div class="dashboard-request-actions">
         <button type="button" class="dashboard-chat-owner">Chat Owner</button>
@@ -481,16 +550,27 @@ function loadPropertyDetailsStyle() {
   const style = document.createElement('style');
   style.dataset.tenantStyle = 'property-details';
   style.textContent = `
+    .tenant-property-detail-modal {
+      background: #fff;
+    }
+    .tenant-property-detail-modal::backdrop {
+      background: rgb(15 23 42 / 48%);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    body.tenant-property-details-open #app {
+      filter: blur(5px);
+    }
     .ui-modal:has(.property-detail-modal-content) { position: fixed; inset: 0; margin: auto; width: min(94vw, 1120px); max-height: calc(100vh - 2rem); }
-    .ui-modal:has(.property-detail-modal-content) .ui-modal__header { padding: 1rem 1.5rem; border-color: #e2ece8; }
+    .ui-modal:has(.property-detail-modal-content) .ui-modal__header { padding: 1rem 1.25rem; border-color: #e2ece8; }
     .ui-modal:has(.property-detail-modal-content) .ui-modal__header h2 { color: #173b35; font-size: 1.05rem; font-weight: 750; }
     .ui-modal:has(.property-detail-modal-content) .ui-modal__header button { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: 50%; color: #365d54; font-size: 1.5rem; }
     .ui-modal:has(.property-detail-modal-content) .ui-modal__header button:hover { background: #edf6f2; }
-    .ui-modal:has(.property-detail-modal-content) .ui-modal__body { padding: 1.4rem 1.5rem; }
-    .ui-modal:has(.property-detail-modal-content) .ui-modal__footer { padding: .85rem 1.5rem; border-color: #e2ece8; }
-    .tenant-property-detail-modal .ui-modal__footer button { min-width: 5.25rem; background: #edf3f1; color: #31554c; }
-    .tenant-property-detail-modal .ui-modal__footer button:hover { background: #e0ebe7; }
-    .property-detail-modal-content { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 1.75rem; align-items: start; }
+    .ui-modal:has(.property-detail-modal-content) .ui-modal__body { padding: 20px; }
+    .ui-modal:has(.property-detail-modal-content) .ui-modal__footer { padding: 1rem 1.25rem; border-color: #e2ece8; }
+    .tenant-property-detail-modal .ui-modal__footer button { min-width: 5.25rem; background: #159879; color: #fff; }
+    .tenant-property-detail-modal .ui-modal__footer button:hover { background: #107e65; }
+    .property-detail-modal-content { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 24px; align-items: start; }
     .property-detail-gallery { min-width: 0; touch-action: pan-y; }
     .property-detail-gallery-stage { position: relative; height: 300px; overflow: hidden; border-radius: .75rem; background: #eaf1ee; }
     .property-detail-modal-image { display: block; width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
@@ -499,22 +579,26 @@ function loadPropertyDetailsStyle() {
     .property-detail-gallery-nav:hover { background: rgb(18 36 32 / 88%); }
     .property-detail-gallery-previous { left: .7rem; }
     .property-detail-gallery-next { right: .7rem; }
-    .property-detail-thumbnails { display: grid; grid-auto-columns: minmax(3.5rem, 1fr); grid-auto-flow: column; gap: .55rem; margin-top: .65rem; overflow-x: auto; }
-    .property-detail-thumbnail { min-width: 0; height: 64px; padding: 0; overflow: hidden; border: 2px solid transparent; border-radius: .45rem; background: #eaf1ee; cursor: pointer; }
+    .property-detail-thumbnails { display: flex; height: 64px; gap: 8px; margin-top: 8px; padding: 0 1px 6px; overflow-x: auto; overflow-y: hidden; }
+    .property-detail-thumbnail { flex: 0 0 64px; width: 64px; height: 48px; padding: 0; overflow: hidden; border: 2px solid transparent; border-radius: 4px; background: #e8f0ed; cursor: pointer; }
     .property-detail-thumbnail img { display: block; width: 100%; height: 100%; object-fit: cover; }
     .property-detail-thumbnail.is-active { border-color: #159879; }
     .property-detail-thumbnail:focus-visible, .property-detail-gallery-nav:focus-visible { outline: 2px solid #159879; outline-offset: 2px; }
-    .property-detail-modal-info { display: grid; gap: .8rem; min-width: 0; color: #193a34; }
-    .property-detail-modal-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: .85rem; }
-    .property-detail-modal-heading h3 { margin: 0; color: #173b35; font-size: 1.3rem; line-height: 1.25; overflow-wrap: anywhere; }
-    .property-detail-modal-heading strong { flex: 0 0 auto; padding: .4rem .65rem; border-radius: 999px; background: #e7f5ef; color: #087f63; font-size: .9rem; white-space: nowrap; }
-    .property-detail-group { min-width: 0; padding: .8rem .9rem; border: 1px solid #e4ede9; border-radius: .55rem; background: #fbfdfc; }
-    .property-detail-label, .property-detail-facts span { display: block; margin-bottom: .25rem; color: #71847d; font-size: .67rem; font-weight: 750; text-transform: uppercase; }
-    .property-detail-location strong { display: block; color: #24483f; font-size: .88rem; line-height: 1.45; overflow-wrap: anywhere; }
-    .property-detail-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem 1rem; }
-    .property-detail-facts p { min-width: 0; margin: 0; }
-    .property-detail-facts strong { display: block; color: #24483f; font-size: .82rem; line-height: 1.4; overflow-wrap: anywhere; }
-    .property-detail-description p { margin: 0; color: #4d655d; font-size: .84rem; line-height: 1.5; white-space: pre-line; }
+    .property-detail-modal-info { min-width: 0; color: #193a34; }
+    .property-detail-price { display: flex; align-items: baseline; gap: 6px; padding-bottom: 14px; border-bottom: 1px solid #e6eeea; }
+    .property-detail-price strong { color: #153d32; font-size: 24px; }
+    .property-detail-price span { color: #74837d; font-size: 13px; }
+    .property-detail-location { display: flex; align-items: flex-start; gap: 7px; margin: 14px 0; color: #53675f; font-size: 13px; line-height: 1.5; }
+    .property-detail-location i { color: #168365; }
+    .property-detail-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0; padding: 14px 0; border-top: 1px solid #e6eeea; border-bottom: 1px solid #e6eeea; }
+    .property-detail-facts div { min-width: 0; }
+    .property-detail-facts dt { margin-bottom: 4px; color: #74837d; font-size: 11px; }
+    .property-detail-facts dd { margin: 0; color: #203b33; font-size: 13px; font-weight: 700; overflow-wrap: anywhere; }
+    .property-detail-amenities, .property-detail-description { margin-top: 15px; }
+    .property-detail-amenities h3, .property-detail-description h3 { margin: 0 0 7px; color: #24473d; font-size: 13px; font-weight: 750; }
+    .property-detail-amenities ul { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+    .property-detail-amenities .amenity-chip { padding: 5px 8px; border-radius: 4px; background: #eef6f2; color: #28654f; font-size: 11px; text-transform: capitalize; }
+    .property-detail-amenities p, .property-detail-description p { margin: 0; color: #64756e; font-size: 12px; line-height: 1.55; white-space: pre-line; }
     .property-photo-viewer { position: fixed; inset: 0; display: grid; grid-template-rows: minmax(0, 1fr) 64px; width: 100vw; height: 100vh; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; overflow: hidden; border: 0; background: #34363b; }
     .property-photo-viewer::backdrop { background: #25272b; }
     .property-photo-viewer__stage { position: relative; display: grid; place-items: center; min-height: 0; padding: .75rem 4.5rem 0; overflow: hidden; background: #37393e; }
@@ -535,8 +619,9 @@ function loadPropertyDetailsStyle() {
     .dashboard-request-fields { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .75rem; align-items: start; }
     .dashboard-request-fields label { display: grid; gap: .35rem; min-width: 0; color: #526b63; font-size: .73rem; font-weight: 700; }
     .dashboard-request-fields input:not([type="checkbox"]), .dashboard-request-fields select { width: 100%; min-width: 0; height: 42px; padding: 0 .65rem; border: 1px solid #d4e0db; border-radius: .45rem; background: #fff; color: #183a33; font: inherit; font-size: .82rem; }
-    .dashboard-request-fields .viewing-time-select { min-width: 0; }
+    .dashboard-request-fields input[name="viewingTime"]::-webkit-calendar-picker-indicator { display: none; }
     .dashboard-request-fields input:focus-visible, .dashboard-request-fields select:focus-visible { outline: 2px solid #1aa87a; outline-offset: 2px; }
+    .dashboard-request-fields input[name="viewingTime"]:focus-visible { border-color: #9aa9a3; outline: none; }
     .dashboard-request-fields .dashboard-indefinite-move-out { display: flex; align-items: flex-start; gap: .4rem; margin-top: .15rem; color: #61756e; font-size: .68rem; font-weight: 500; line-height: 1.3; }
     .dashboard-request-fields .dashboard-indefinite-move-out input[type="checkbox"] { flex: 0 0 15px; width: 15px; height: 15px; margin: .05rem 0 0; padding: 0; accent-color: #13856a; }
     .dashboard-request-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .9rem; }
@@ -556,8 +641,6 @@ function loadPropertyDetailsStyle() {
       .ui-modal:has(.property-detail-modal-content) .ui-modal__header { padding: .8rem 1rem; }
       .ui-modal:has(.property-detail-modal-content) .ui-modal__body { padding: 1rem; }
       .ui-modal:has(.property-detail-modal-content) .ui-modal__footer { padding: .7rem 1rem; }
-      .property-detail-modal-heading { flex-direction: column; gap: .45rem; }
-      .property-detail-modal-heading strong { white-space: normal; }
       .property-detail-gallery-stage { height: 220px; }
       .property-detail-thumbnail { height: 54px; }
       .property-detail-facts { gap: .65rem; }
@@ -578,10 +661,10 @@ function mapQueryFor(item) {
 function listingCard(item, index) {
   const place = esc(locationText(item));
   const roomType = esc(normalizeRoomType(item.room_type));
-  const { maxOccupants, occupiedUnits, availableSlots } = resolveEffectiveOccupancy(item);
-  const occupancyLabel = maxOccupants > 0
-    ? (availableSlots <= 0 ? 'Fully Occupied' : `${occupiedUnits} / ${maxOccupants} occupied · ${availableSlots} left`)
-    : 'Occupancy info unavailable';
+  const { totalSlots, occupiedSlots } = resolveEffectiveOccupancy(item);
+  const occupancyLabel = totalSlots > 0
+    ? `${occupiedSlots} / ${totalSlots} slots occupied`
+    : 'Availability info unavailable';
   const badge = item.status === 'approved' ? 'Verified' : (item.status || 'Active');
   const walkDistance = (0.6 + index * 0.25).toFixed(1);
   const image = normalizePropertyImage(item);
@@ -647,7 +730,7 @@ async function ensureLeafletLoaded() {
 }
 
 // Show full-screen map modal with nearby listings
-async function showNearbyListingsModal(properties = []) {
+async function showNearbyListingsModal(properties = [], { onViewDetails } = {}) {
   // Load Leaflet libraries first
   try {
     await ensureLeafletLoaded();
@@ -661,11 +744,16 @@ async function showNearbyListingsModal(properties = []) {
   
   const mapHtml = `
     <div class="full-map-container">
+      <div class="nearby-map-controls">
+        <button id="nearby-map-locate" type="button"><i class="bi bi-crosshair" aria-hidden="true"></i><span>Use my location</span></button>
+        <label>Radius<select id="nearby-map-radius" aria-label="Nearby search radius"><option value="1">1 km</option><option value="3">3 km</option><option value="5" selected>5 km</option><option value="10">10 km</option></select></label>
+      </div>
       <div id="tenant-nearby-map" class="leaflet-map"></div>
-      <p id="nearby-map-status"></p>
+      <p id="nearby-map-status" role="status" aria-live="polite"></p>
     </div>
   `;
   const modal = createModal({ title: 'Nearby Verified Listings', content: mapHtml, closeLabel: 'Close', closeOnBackdrop: false });
+  modal.classList.add('tenant-nearby-listings-modal');
   
   // Store map reference for cleanup
   let mapInstance = null;
@@ -691,6 +779,31 @@ async function showNearbyListingsModal(properties = []) {
   
   // Clean up the map when the dialog is closed with its close controls.
   modal.addEventListener('close', cleanupMap);
+  modal.addEventListener('click', (event) => {
+    const photo = event.target.closest('.map-property-photo');
+    const detailsButton = event.target.closest('.map-property-details');
+    const directionsButton = event.target.closest('.map-property-directions');
+    const propertyId = photo?.dataset.propertyId || detailsButton?.dataset.propertyId || directionsButton?.dataset.propertyId;
+    if (!propertyId) return;
+    const property = properties.find((item) => String(item.id) === String(propertyId));
+    if (!property) return;
+
+    if (photo) {
+      const clickedImage = photo.currentSrc || photo.src;
+      cleanupMap();
+      modal.close();
+      openTenantPhotoViewer(property, clickedImage);
+    } else if (detailsButton) {
+      cleanupMap();
+      modal.close();
+      onViewDetails?.(property);
+    } else if (directionsButton) {
+      const latitude = Number(property.latitude ?? property.lat);
+      const longitude = Number(property.longitude ?? property.lng);
+      const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
+      window.open(mapsUrl, '_blank', 'noopener,noreferrer');
+    }
+  });
   
   openModal(modal);
   
@@ -699,6 +812,8 @@ async function showNearbyListingsModal(properties = []) {
     try {
       const mapContainer = modal.querySelector('#tenant-nearby-map');
       const statusEl = modal.querySelector('#nearby-map-status');
+      const locateButton = modal.querySelector('#nearby-map-locate');
+      const radiusSelect = modal.querySelector('#nearby-map-radius');
       
       if (!mapContainer) {
         console.error('Map container not found in modal');
@@ -717,11 +832,10 @@ async function showNearbyListingsModal(properties = []) {
       
       // Force dimensions
       mapContainer.style.width = '100%';
-      mapContainer.style.height = '500px';
+      mapContainer.style.height = '100%';
       mapContainer.style.display = 'block';
       
-      // Initialize map
-      mapInstance = window.L.map(mapContainer, { 
+      mapInstance = window.L.map(mapContainer, {
         attributionControl: true,
         zoomControl: true 
       }).setView([14.5995, 120.9842], 12);
@@ -733,48 +847,132 @@ async function showNearbyListingsModal(properties = []) {
         maxZoom: 19,
         attribution: '© OpenStreetMap contributors'
       }).addTo(mapInstance);
-      
-      // Add markers for properties
-      let markerCount = 0;
-      if (properties && properties.length > 0) {
-        const markerCoords = [];
-        
-        properties.forEach(prop => {
-          let lat = Number(prop.latitude ?? prop.lat ?? NaN);
-          let lng = Number(prop.longitude ?? prop.lng ?? NaN);
-          
-          // If coordinates are missing, use default Manila coordinates with small offset
-          if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-            lat = 14.5995 + (markerCount * 0.001);
-            lng = 120.9842 + (markerCount * 0.001);
-          }
-          
-          if (Number.isFinite(lat) && Number.isFinite(lng)) {
-            markerCoords.push([lat, lng]);
-            const title = esc(prop.title || 'Property');
-            const rent = esc(`₱${Number(prop.monthly_rent ?? 0).toLocaleString()}`);
-            const location = esc([prop.barangay, prop.municipality].filter(Boolean).join(', ') || 'Manila');
-            
-            window.L.marker([lat, lng]).addTo(mapInstance)
-              .bindPopup(`<strong>${title}</strong><br>${location}<br>${rent}/mo`);
-            markerCount++;
-          }
+
+      const listingMarkers = [];
+      let userLocation = null;
+      let userMarker = null;
+      let radiusCircle = null;
+      const distanceInKm = (first, second) => {
+        const radians = (degrees) => degrees * Math.PI / 180;
+        const latitudeDelta = radians(second.latitude - first.latitude);
+        const longitudeDelta = radians(second.longitude - first.longitude);
+        const firstLatitude = radians(first.latitude);
+        const secondLatitude = radians(second.latitude);
+        const arc = Math.sin(latitudeDelta / 2) ** 2
+          + Math.cos(firstLatitude) * Math.cos(secondLatitude) * Math.sin(longitudeDelta / 2) ** 2;
+        return 6371 * 2 * Math.atan2(Math.sqrt(arc), Math.sqrt(1 - arc));
+      };
+
+      (properties || []).forEach((property) => {
+        const latitudeValue = property.latitude ?? property.lat;
+        const longitudeValue = property.longitude ?? property.lng;
+        if (latitudeValue === '' || latitudeValue === null || latitudeValue === undefined
+          || longitudeValue === '' || longitudeValue === null || longitudeValue === undefined) return;
+        const latitude = Number(latitudeValue);
+        const longitude = Number(longitudeValue);
+        if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90
+          || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) return;
+
+        const title = esc(property.title || 'Property');
+        const location = esc([property.barangay, property.city, property.municipality, property.province].filter(Boolean).join(', ') || 'Location not specified');
+        const images = normalizePropertyImages(property);
+        const image = images[0] || DEFAULT_IMAGE_PLACEHOLDER;
+        const totalPhotos = Math.max(images.length, 1);
+        const popupContent = `
+          <div class="map-property-popup">
+            <div class="map-property-card">
+              <div class="map-property-image">
+                <img class="map-property-photo" data-property-id="${esc(property.id ?? '')}" src="${esc(image)}" alt="${title}" />
+                <span class="map-property-image-badge">1/${totalPhotos}</span>
+              </div>
+              <div class="map-property-body">
+                <h3>${title}</h3>
+                <div class="map-property-location"><span aria-hidden="true">📍</span> ${location}</div>
+                <div class="map-property-price">${money(property.monthly_rent)} <span>/ month</span></div>
+                <div class="map-property-actions">
+                  <button type="button" class="map-property-details" data-property-id="${esc(property.id ?? '')}">View Details</button>
+                  <button type="button" class="map-property-directions" data-property-id="${esc(property.id ?? '')}">Get Directions</button>
+                </div>
+              </div>
+            </div>
+          </div>`;
+        const marker = window.L.marker([latitude, longitude]).addTo(mapInstance)
+          .bindPopup(popupContent);
+        listingMarkers.push({ marker, latitude, longitude });
+      });
+
+      if (listingMarkers.length > 1) {
+        mapInstance.fitBounds(window.L.latLngBounds(listingMarkers.map(({ latitude, longitude }) => [latitude, longitude])), { padding: [40, 40] });
+      } else if (listingMarkers.length === 1) {
+        mapInstance.setView([listingMarkers[0].latitude, listingMarkers[0].longitude], 13);
+      }
+
+      const updateNearbyRadius = () => {
+        if (!userLocation || !radiusSelect) return;
+        const radiusInKm = Number(radiusSelect.value);
+        if (radiusCircle) radiusCircle.remove();
+        radiusCircle = window.L.circle([userLocation.latitude, userLocation.longitude], {
+          radius: radiusInKm * 1000,
+          color: '#1976d2',
+          weight: 2,
+          fillColor: '#58a9e8',
+          fillOpacity: 0.16
+        }).addTo(mapInstance);
+        const nearbyCount = listingMarkers.filter(({ latitude, longitude }) =>
+          distanceInKm(userLocation, { latitude, longitude }) <= radiusInKm
+        ).length;
+        listingMarkers.forEach(({ marker, latitude, longitude }) => {
+          const isNearby = distanceInKm(userLocation, { latitude, longitude }) <= radiusInKm;
+          marker.setOpacity(isNearby ? 1 : 0.3);
         });
-        
-        console.log(`Added ${markerCount} markers to map`);
-        if (statusEl) statusEl.textContent = `Map loaded with ${markerCount} nearby verified listings`;
-        
-        // Fit map to bounds if we have markers
-        if (markerCoords.length > 1) {
-          try {
-            const bounds = window.L.latLngBounds(markerCoords);
-            mapInstance.fitBounds(bounds, { padding: [50, 50] });
-          } catch (e) {
-            console.log('Error fitting bounds:', e);
-          }
+        mapInstance.fitBounds(radiusCircle.getBounds(), { padding: [32, 32], maxZoom: 15 });
+        if (statusEl) {
+          const listingLabel = listingMarkers.length === 1 ? 'listing' : 'listings';
+          statusEl.textContent = `${nearbyCount} of ${listingMarkers.length} mapped ${listingLabel} within ${radiusInKm} km of your location.`;
         }
-      } else {
-        if (statusEl) statusEl.textContent = 'No verified listings to display';
+      };
+
+      radiusSelect?.addEventListener('change', updateNearbyRadius);
+      locateButton?.addEventListener('click', () => {
+        if (!navigator.geolocation) {
+          if (statusEl) statusEl.textContent = 'Location services are not available in this browser.';
+          return;
+        }
+        locateButton.disabled = true;
+        locateButton.querySelector('span').textContent = 'Finding your location...';
+        if (statusEl) statusEl.textContent = 'Waiting for location permission...';
+        navigator.geolocation.getCurrentPosition((position) => {
+          userLocation = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          };
+          userMarker?.remove();
+          userMarker = window.L.circleMarker([userLocation.latitude, userLocation.longitude], {
+            radius: 9,
+            color: '#fff',
+            weight: 3,
+            fillColor: '#126fc1',
+            fillOpacity: 1
+          }).addTo(mapInstance).bindPopup('<strong>Your location</strong>');
+          updateNearbyRadius();
+          locateButton.disabled = false;
+          locateButton.querySelector('span').textContent = 'Update my location';
+        }, (error) => {
+          const message = error.code === 1
+            ? 'Location permission denied. Allow access in your browser to show your location.'
+            : error.code === 3
+              ? 'Location request timed out. Try again.'
+              : 'Could not determine your location. Try again.';
+          if (statusEl) statusEl.textContent = message;
+          locateButton.disabled = false;
+          locateButton.querySelector('span').textContent = 'Use my location';
+        }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
+      });
+
+      if (statusEl) {
+        statusEl.textContent = listingMarkers.length
+          ? `${listingMarkers.length} listings have map coordinates. Use “Use my location” to see what is nearby.`
+          : 'No listing coordinates are available. Use “Use my location” to center the map on you.';
       }
       
       // Trigger map resize to ensure it displays properly
@@ -854,7 +1052,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
             <h1>Discover places near campus.</h1>
             <p>Explore approved dorms and apartments that fit your lifestyle.</p>
           </div>
-          <button class="near" type="button">${icon('target')} Nearby verified listings</button>
+          <div class="near" role="status" aria-live="polite">${icon('target')} Nearby verified listings</div>
         </section>
 
         <section class="layout">
@@ -1140,11 +1338,6 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
     if (!mapPanel) return;
     if (mapPanel.__leafletMapManager) updateLeafletMarkers(mapPanel, items);
 
-    const nearButton = root.querySelector('.near');
-    const focusItem = items.find((item) => item.municipality || item.barangay || item.address) ?? state.all[0];
-    if (nearButton && focusItem?.municipality) {
-      nearButton.innerHTML = `${icon('target')} Nearby verified listings in ${esc(focusItem.municipality)}`;
-    }
   };
 
   const selectedRoomFilters = () => Array.from(root.querySelectorAll('input[name="room"]:checked')).map((input) => input.value.toLowerCase());
@@ -1162,6 +1355,10 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
 
     const modal = createModal({ title: property.title || 'Property Details', content: '', closeLabel: 'Close', closeOnBackdrop: false });
     modal.classList.add('tenant-property-detail-modal');
+    document.body.classList.add('tenant-property-details-open');
+    const clearPageBlur = () => document.body.classList.remove('tenant-property-details-open');
+    modal.addEventListener('close', clearPageBlur, { once: true });
+    window.addEventListener('hashchange', clearPageBlur, { once: true });
     modal.querySelector('.ui-modal__body').innerHTML = propertyDetailsMarkup(property);
     const gallery = modal.querySelector('.property-detail-gallery');
     if (gallery) {
@@ -1330,7 +1527,10 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
     const moveIn = form.querySelector('[name="moveInDate"]');
     const moveOut = form.querySelector('[name="moveOutDate"]');
     const indefiniteMoveOut = form.querySelector('[name="isIndefiniteMoveOut"]');
+    const viewingDateInput = form.querySelector('[name="viewingDate"]');
+    const viewingTimeInput = form.querySelector('[name="viewingTime"]');
     moveIn.min = new Date().toISOString().split('T')[0];
+    viewingDateInput.min = new Date().toISOString().split('T')[0];
     const updateMoveOutMinimum = () => {
       if (!moveIn.value) {
         moveOut.removeAttribute('min');
@@ -1342,6 +1542,10 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
     };
     updateMoveOutMinimum();
     moveIn.addEventListener('change', updateMoveOutMinimum);
+    viewingDateInput.addEventListener('change', () => {
+      status.textContent = '';
+    });
+    viewingTimeInput.addEventListener('change', () => { status.textContent = ''; });
     indefiniteMoveOut.addEventListener('change', () => {
       moveOut.disabled = indefiniteMoveOut.checked;
       if (indefiniteMoveOut.checked) moveOut.value = '';
@@ -1361,14 +1565,14 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
       }
       const formData = new FormData(form);
       const viewingDate = String(formData.get('viewingDate') ?? '').trim();
-      const timeInput = form.querySelector('#property-viewing-time');
-      const viewingTime = parseViewingTime(timeInput.value);
+      const rawViewingTime = viewingTimeInput.value.trim();
+      const viewingTime = viewingDate && rawViewingTime ? parseViewingTime(rawViewingTime) : '';
       if (viewingTime === null) {
-        status.textContent = 'Select a viewing time between 8 AM and 7 PM.';
+        status.textContent = 'Choose a time between 8 AM and 7 PM during available hours.';
         return;
       }
       if (Boolean(viewingDate) !== Boolean(viewingTime)) {
-        status.textContent = 'Select both a viewing date and time, or leave both blank.';
+        status.textContent = 'Choose both a viewing date and time, or leave both blank.';
         return;
       }
       const submitButton = form.querySelector('.dashboard-send-request');
@@ -1403,7 +1607,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
       const location = locationText(item);
       const roomType = normalizeRoomType(item.room_type);
       const gender = normalizeGenderPreference(item.gender_preference);
-      const maxOccupants = Number(item.max_occupants || 1);
+      const availableSlots = Number(item.available_slots ?? item.total_slots ?? 0);
       const images = normalizePropertyImages(item);
       const galleryImages = images.length ? images : [DEFAULT_IMAGE_PLACEHOLDER];
       const walkDistance = (0.6 + index * 0.25).toFixed(1);
@@ -1425,7 +1629,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
           <div class="listing-body">
             <p class="place">${icon('pin')}${esc(location)}</p>
             <h3>${esc(item.title || 'Available dorm space')}</h3>
-            <p class="meta">${esc(roomType)} &bull; Up to ${maxOccupants} tenants</p>
+            <p class="meta">${esc(roomType)} &bull; ${availableSlots} slot${availableSlots === 1 ? '' : 's'} available</p>
             <p class="meta"><strong>Gender:</strong> ${esc(gender)}</p>
             <div class="amenity-summary">${amenitySummary}</div>
             <div class="price"><strong>${money(item.monthly_rent)}</strong><small>/ month</small><span>${icon('walk')}${walkDistance} km</span></div>
@@ -1558,7 +1762,8 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
     setMobileFiltersOpen(false);
   });
   search.addEventListener('input', renderCards);
-  const focusSearchedLocation = async () => {
+  let searchRequestId = 0;
+  const focusSearchedLocation = async (requestId = searchRequestId) => {
     const query = search.value.trim();
     if (!query || !mapPanel?.__leafletMapManager) return;
     if (mapStatus) mapStatus.textContent = `Finding ${query}...`;
@@ -1568,6 +1773,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
       });
       if (!response.ok) throw new Error('Location search failed.');
       const results = await response.json();
+      if (requestId !== searchRequestId || search.value.trim() !== query) return;
       const result = results[0];
       if (!result) {
         if (mapStatus) mapStatus.textContent = `No map location found for ${query}.`;
@@ -1576,29 +1782,36 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
       mapPanel.__leafletMapManager.setSearchLocation({
         latitude: Number(result.lat),
         longitude: Number(result.lon),
-        label: result.display_name || query,
-        showMarker: false
+        label: query,
+        radiusInKm: TENANT_SEARCH_RADIUS_KM
       });
       if (mapStatus) {
-        const nearbyCount = mapPanel.__leafletMapManager.countNearbyItems();
+        const nearbyCount = mapPanel.__leafletMapManager.countNearbyItems(TENANT_SEARCH_RADIUS_KM);
         const propertyLabel = nearbyCount === 1 ? 'property' : 'properties';
-        mapStatus.textContent = `${nearbyCount} ${propertyLabel} within 8 km of ${query}.`;
+        mapStatus.textContent = `${nearbyCount} ${propertyLabel} within ${TENANT_SEARCH_RADIUS_KM} km of ${query}.`;
       }
     } catch (error) {
-      if (mapStatus) mapStatus.textContent = error.message;
+      if (requestId === searchRequestId && mapStatus) mapStatus.textContent = error.message;
     }
   };
   let searchTimer;
   search.addEventListener('input', () => {
     renderCards();
     clearTimeout(searchTimer);
-    if (search.value.trim()) searchTimer = setTimeout(focusSearchedLocation, 600);
+    const query = search.value.trim();
+    const requestId = ++searchRequestId;
+    if (!query) {
+      mapPanel?.__leafletMapManager?.clearSearchLocation();
+      return;
+    }
+    searchTimer = setTimeout(() => focusSearchedLocation(requestId), 600);
   });
   search.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter') return;
     event.preventDefault();
+    clearTimeout(searchTimer);
     renderCards();
-    focusSearchedLocation();
+    focusSearchedLocation(++searchRequestId);
   });
 
   // Add event listener for View nearby listings button
@@ -1611,24 +1824,12 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
       .toLowerCase()
       .includes(query));
   };
-  const nearButton = root.querySelector('.near');
-  if (nearButton) {
-    nearButton.addEventListener('click', async () => {
-      try {
-        await showNearbyListingsModal(getNearbySearchResults());
-      } catch (error) {
-        console.error('Nearby listings modal error:', error);
-        alert('Could not open nearby listings map.');
-      }
-    });
-  }
-
   // Add event listener for View nearby listings button in map panel
   const mapPanelButton = root.querySelector('.map-panel .panel-button');
   if (mapPanelButton) {
     mapPanelButton.addEventListener('click', async () => {
       try {
-        await showNearbyListingsModal(getNearbySearchResults());
+        await showNearbyListingsModal(getNearbySearchResults(), { onViewDetails: openPropertyDetails });
       } catch (error) {
         console.error('Nearby listings modal error:', error);
         alert('Could not open nearby listings map.');

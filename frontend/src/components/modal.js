@@ -3,7 +3,7 @@ function style() {
 	if (stylesheetPromise) return stylesheetPromise;
 	let link = document.querySelector('[data-component-style="modal"]');
 	const href = new URL('./style/modal.css', import.meta.url);
-	href.searchParams.set('v', 'centered-confirm-2');
+	href.searchParams.set('v', 'centered-confirm-4');
 	if (!link) {
 		link = document.createElement('link');
 		link.rel = 'stylesheet';
@@ -60,13 +60,14 @@ export function openModal(modal) {
 	});
 }
 
-export async function confirmDialog({ title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel' }) {
+export async function confirmDialog({ title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel', iconName = 'archive', variant = 'danger' }) {
 	const content = document.createElement('div');
 	content.className = 'ui-confirm-dialog__content';
 	const icon = document.createElement('span');
 	icon.className = 'ui-confirm-dialog__icon';
 	icon.setAttribute('aria-hidden', 'true');
-	icon.innerHTML = '<i class="bi bi-archive"></i>';
+	const iconClasses = { archive: 'bi-archive', approve: 'bi-check-lg', reject: 'bi-x-lg' };
+	icon.innerHTML = `<i class="bi ${iconClasses[iconName] ?? iconClasses.archive}"></i>`;
 	const description = document.createElement('p');
 	description.textContent = message;
 	content.append(icon, description);
@@ -81,7 +82,7 @@ export async function confirmDialog({ title, message, confirmLabel = 'Confirm', 
 		closeLabel: escapeHtml(cancelLabel),
 		footerMarkup: confirmButton.outerHTML
 	});
-	modal.classList.add('ui-confirm-dialog');
+	modal.classList.add('ui-confirm-dialog', `ui-confirm-dialog--${variant}`);
 
 	const result = new Promise((resolve) => {
 		modal.addEventListener('close', () => resolve(modal.returnValue === 'confirm'), { once: true });
@@ -92,7 +93,7 @@ export async function confirmDialog({ title, message, confirmLabel = 'Confirm', 
 	return result;
 }
 
-export async function successDialog(message) {
+export async function successDialog(message, title = 'Success!') {
 	const content = document.createElement('div');
 	content.className = 'ui-success-dialog__content';
 	const icon = document.createElement('span');
@@ -103,8 +104,36 @@ export async function successDialog(message) {
 	description.textContent = message;
 	content.append(icon, description);
 
-	const modal = createModal({ title: 'Success!', content, closeLabel: 'OK', closeOnBackdrop: false });
+	const modal = createModal({ title: escapeHtml(title), content, closeLabel: 'OK', closeOnBackdrop: false });
 	modal.classList.add('ui-success-dialog');
+	const closed = new Promise((resolve) => {
+		const finish = () => {
+			window.removeEventListener('hashchange', finish);
+			resolve();
+		};
+		modal.addEventListener('close', finish, { once: true });
+		modal.addEventListener('cancel', finish, { once: true });
+		modal.querySelector('.ui-modal__footer [data-modal-close]')?.addEventListener('click', finish, { once: true });
+		window.addEventListener('hashchange', finish, { once: true });
+	});
+	await openModal(modal);
+	modal.querySelector('.ui-modal__footer [data-modal-close]')?.focus();
+	await closed;
+}
+
+export async function warningDialog(title, message) {
+	const content = document.createElement('div');
+	content.className = 'ui-warning-dialog__content';
+	const icon = document.createElement('span');
+	icon.className = 'ui-warning-dialog__icon';
+	icon.setAttribute('aria-hidden', 'true');
+	icon.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i>';
+	const description = document.createElement('p');
+	description.textContent = message;
+	content.append(icon, description);
+
+	const modal = createModal({ title: escapeHtml(title), content, closeLabel: 'OK', closeOnBackdrop: false });
+	modal.classList.add('ui-warning-dialog');
 	const closed = new Promise((resolve) => {
 		const finish = () => {
 			window.removeEventListener('hashchange', finish);

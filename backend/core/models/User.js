@@ -2,7 +2,7 @@ import { query } from '../config/database.js';
 import crypto from 'node:crypto';
 
 // Return a computed `name` while exposing first_name and last_name when available
-const publicFields = "id, COALESCE(NULLIF(TRIM(CONCAT_WS(' ', first_name, last_name)), ''), name) AS name, first_name, last_name, email, phone, avatar_url, role, status, archived_status, archived_at, last_login_at, last_active_at, created_at, updated_at";
+const publicFields = "id, COALESCE(NULLIF(TRIM(CONCAT_WS(' ', first_name, last_name)), ''), name) AS name, first_name, last_name, email, phone, avatar_url, role, status, verification_status, archived_status, archived_at, last_login_at, last_active_at, created_at, updated_at";
 
 export async function findByEmail(email) {
   const rows = await query(`SELECT ${publicFields}, password_hash FROM users WHERE email = ? LIMIT 1`, [email]);
@@ -29,20 +29,61 @@ export async function findByIdWithPassword(id) {
   return rows[0] ?? null;
 }
 
-export async function create({ name, first_name, last_name, email, passwordHash, phone, role }) {
+export async function create({ name, first_name, last_name, email, passwordHash, phone, role, status = 'active', verificationStatus = 'approved' }) {
   // store both legacy `name` and the individual name parts
-  const result = await query("INSERT INTO users (name, first_name, last_name, email, password_hash, phone, role, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'active')", [name ?? (first_name || last_name ? `${first_name ?? ''} ${last_name ?? ''}`.trim() : null), first_name ?? null, last_name ?? null, email, passwordHash, phone, role]);
+  const result = await query('INSERT INTO users (name, first_name, last_name, email, password_hash, phone, role, status, verification_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [name ?? (first_name || last_name ? `${first_name ?? ''} ${last_name ?? ''}`.trim() : null), first_name ?? null, last_name ?? null, email, passwordHash, phone, role, status, verificationStatus]);
   return findById(result.insertId);
 }
 
-export async function list({ page, limit, search, archivedOnly = false }) {
+export async function setVerificationDocument(id, documentId) {
+  await query('UPDATE users SET verification_document_id = ? WHERE id = ?', [documentId, id]);
+  return findById(id);
+}
+
+export async function findVerificationDocument(id) {
+  const rows = await query(
+    `SELECT m.id, m.original_filename, m.mime_type
+     FROM users u
+     JOIN media_files m ON m.id = u.verification_document_id AND m.uploaded_by = u.id
+     WHERE u.id = ? AND u.verification_status = 'pending' LIMIT 1`,
+    [id]
+  );
+  return rows[0] ?? null;
+}
+
+export async function reviewVerification(id, verificationStatus) {
+  const nextStatus = verificationStatus === 'approved' ? 'active' : 'suspended';
+  const result = await query(
+    `UPDATE users
+     SET verification_status = ?, status = ?
+     WHERE id = ? AND verification_status = 'pending' AND verification_document_id IS NOT NULL`,
+    [verificationStatus, nextStatus, id]
+  );
+  return result.affectedRows === 1;
+}
+
+export async function clearVerificationDocument(id, documentId) {
+  await query('UPDATE users SET verification_document_id = NULL WHERE id = ? AND verification_document_id = ?', [id, documentId]);
+}
+
+export async function list({ page, limit, search, archivedOnly = false, verificationStatus = null }) {
   const offset = (page - 1) * limit;
   const term = `%${search}%`;
   const archiveFilter = archivedOnly ? "status = 'archived'" : "status != 'archived'";
   const searchFilter = '(name LIKE ? OR email LIKE ?)';
-  const rows = await query(`SELECT ${publicFields} FROM users WHERE ${archiveFilter} AND ${searchFilter} ORDER BY created_at DESC LIMIT ? OFFSET ?`, [term, term, limit, offset]);
-  const total = await query(`SELECT COUNT(*) AS count FROM users WHERE ${archiveFilter} AND ${searchFilter}`, [term, term]);
-  return { rows, total: total[0].count };
+  const verificationFilter = verificationStatus ? ' AND verification_status = ?' : '';
+  const filters = `${archiveFilter} AND ${searchFilter}${verificationFilter}`;
+  const values = verificationStatus ? [term, term, verificationStatus] : [term, term];
+  const rows = await query(`SELECT ${publicFields} FROM users WHERE ${filters} ORDER BY created_at DESC LIMIT ? OFFSET ?`, [...values, limit, offset]);
+  const total = await query(`SELECT COUNT(*) AS count FROM users WHERE ${filters}`, values);
+  const verificationCounts = await query(
+    `SELECT verification_status AS status, COUNT(*) AS count
+     FROM users WHERE ${archiveFilter} AND ${searchFilter} GROUP BY verification_status`,
+    [term, term]
+  );
+  const counts = { pending: 0, approved: 0, rejected: 0 };
+  verificationCounts.forEach(({ status, count }) => { counts[status] = Number(count); });
+  return { rows, total: Number(total[0].count), counts };
 }
 
 export async function update(id, { name, first_name, last_name, phone, avatar_url, status, role }) {
@@ -66,9 +107,16 @@ export async function recordLogin(id) {
 }
 
 async function ensurePasswordResetTable() {
+  const columns = await query('SHOW COLUMNS FROM users');
+  const idColumn = columns.find((column) => column.Field === 'id');
+  const userIdType = String(idColumn?.Type ?? '').toLowerCase();
+  if (!/^(tinyint|smallint|mediumint|int|bigint)(\(\d+\))?( unsigned)?$/.test(userIdType)) {
+    throw new Error(`Unsupported users.id type for password reset foreign key: ${userIdType || 'missing'}`);
+  }
+  const foreignKeyType = userIdType.replace(/\(\d+\)/, '');
   await query(`CREATE TABLE IF NOT EXISTS password_reset_tokens (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
+    user_id ${foreignKeyType} NOT NULL,
     token_hash CHAR(64) NOT NULL UNIQUE,
     expires_at DATETIME NOT NULL,
     used_at DATETIME NULL,
@@ -77,60 +125,6 @@ async function ensurePasswordResetTable() {
     INDEX idx_password_reset_user (user_id),
     INDEX idx_password_reset_expiry (expires_at)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
-}
-
-let passwordResetOtpTableReady = false;
-
-async function ensurePasswordResetOtpTable() {
-  if (passwordResetOtpTableReady) return;
-  await query(`CREATE TABLE IF NOT EXISTS password_reset_otps (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    phone_e164 VARCHAR(16) NOT NULL UNIQUE,
-    verification_sid VARCHAR(64) NOT NULL,
-    attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
-    expires_at DATETIME NOT NULL,
-    resend_after DATETIME NOT NULL,
-    verified_at DATETIME NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_password_reset_otp_expiry (expires_at)
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
-  passwordResetOtpTableReady = true;
-}
-
-export async function getPasswordResetOtpChallenge(phone) {
-  await ensurePasswordResetOtpTable();
-  const rows = await query(`SELECT user_id, phone_e164, verification_sid, attempts, expires_at, resend_after, verified_at,
-    GREATEST(TIMESTAMPDIFF(SECOND, NOW(), expires_at), 0) AS expires_in_seconds,
-    GREATEST(TIMESTAMPDIFF(SECOND, NOW(), resend_after), 0) AS resend_in_seconds
-    FROM password_reset_otps WHERE phone_e164 = ? LIMIT 1`, [phone]);
-  return rows[0] ?? null;
-}
-
-export async function createPasswordResetOtpChallenge({ userId, phone, verificationSid }) {
-  await ensurePasswordResetOtpTable();
-  await query('DELETE FROM password_reset_otps WHERE expires_at < NOW() OR verified_at IS NOT NULL');
-  await query(`INSERT INTO password_reset_otps (user_id, phone_e164, verification_sid, attempts, expires_at, resend_after)
-    VALUES (?, ?, ?, 0, DATE_ADD(NOW(), INTERVAL 5 MINUTE), DATE_ADD(NOW(), INTERVAL 60 SECOND))
-    ON DUPLICATE KEY UPDATE user_id = VALUES(user_id), verification_sid = VALUES(verification_sid), attempts = 0,
-      expires_at = VALUES(expires_at), resend_after = VALUES(resend_after), verified_at = NULL`, [userId, phone, verificationSid]);
-}
-
-export async function incrementPasswordResetOtpAttempt(phone) {
-  await ensurePasswordResetOtpTable();
-  const result = await query(`UPDATE password_reset_otps SET attempts = attempts + 1
-    WHERE phone_e164 = ? AND expires_at > NOW() AND verified_at IS NULL AND attempts < 5`, [phone]);
-  if (!result.affectedRows) return null;
-  const rows = await query('SELECT attempts FROM password_reset_otps WHERE phone_e164 = ? LIMIT 1', [phone]);
-  return rows[0]?.attempts ?? null;
-}
-
-export async function markPasswordResetOtpVerified(phone) {
-  await ensurePasswordResetOtpTable();
-  const result = await query(`UPDATE password_reset_otps SET verified_at = NOW()
-    WHERE phone_e164 = ? AND expires_at > NOW() AND verified_at IS NULL AND attempts <= 5`, [phone]);
-  return result.affectedRows === 1;
 }
 
 export async function createPasswordResetToken(userId) {
@@ -149,6 +143,12 @@ export async function consumePasswordResetToken(token) {
   if (result.affectedRows !== 1) return null;
   const rows = await query('SELECT user_id FROM password_reset_tokens WHERE token_hash = ? LIMIT 1', [tokenHash]);
   return rows[0]?.user_id ?? null;
+}
+
+export async function revokePasswordResetToken(token) {
+  await ensurePasswordResetTable();
+  const tokenHash = crypto.createHash('sha256').update(String(token)).digest('hex');
+  await query('DELETE FROM password_reset_tokens WHERE token_hash = ? AND used_at IS NULL', [tokenHash]);
 }
 
 export async function remove(id) {

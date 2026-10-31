@@ -7,6 +7,7 @@ import morgan from 'morgan';
 import os from 'node:os';
 import pool from './core/config/database.js';
 import apiRoutes from './core/routes/index.js';
+import { publishDataChange } from './core/services/realtimeEvents.js';
 import { errorHandler, notFound } from './core/middleware/errorHandler.js';
 
 const app = express();
@@ -52,6 +53,15 @@ app.use('/api', rateLimit({
 }));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false }));
+app.use('/api/v1', (request, response, next) => {
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) return next();
+  response.once('finish', () => {
+    if (response.statusCode < 200 || response.statusCode >= 300) return;
+    const resource = request.path.split('/').filter(Boolean)[0] || 'data';
+    publishDataChange({ resource, sourceId: request.get('x-dormhive-client') ?? '' });
+  });
+  return next();
+});
 morgan.token('safe-url', (request) => request.originalUrl.split('?')[0]);
 app.use(morgan(':method :safe-url :status :response-time ms'));
 

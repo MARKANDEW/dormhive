@@ -6,6 +6,7 @@ import messageRoutes from './messageRoutes.js';
 import mediaRoutes from './mediaRoutes.js';
 import notificationRoutes from './notificationRoutes.js';
 import propertyRoutes from './propertyRoutes.js';
+import realtimeRoutes from './realtimeRoutes.js';
 import supportTicketRoutes from './supportTicketRoutes.js';
 import userRoutes from './userRoutes.js';
 
@@ -17,6 +18,7 @@ router.use('/messages', messageRoutes);
 router.use('/media', mediaRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/properties', propertyRoutes);
+router.use('/events', realtimeRoutes);
 router.use('/support-tickets', supportTicketRoutes);
 router.use('/users', userRoutes);
 export default router;

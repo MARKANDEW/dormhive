@@ -69,6 +69,15 @@ body {
   background: transparent;
   font: inherit;
 }
+.local-search:focus-within {
+  border-color: #9aa9a3;
+}
+.local-search input:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
 .top-icon {
   position: relative;
   border: 0;
@@ -184,6 +193,35 @@ body {
   border: 1px solid #dce7e2;
   border-radius: 1rem;
   background: #fff;
+}
+.tenant-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-top: 1px solid #e7efea;
+  color: #687a74;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.tenant-pagination > div {
+  display: flex;
+  gap: 8px;
+}
+.tenant-pagination button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #d6e4dd;
+  border-radius: 8px;
+  background: #fff;
+  color: #18735a;
+  font: inherit;
+  cursor: pointer;
+}
+.tenant-pagination button:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 .tenants-page .table-wrap {
   overflow: auto;
@@ -423,6 +461,12 @@ body {
     border: 0;
     border-radius: 0;
     background: transparent;
+  }
+
+  .tenant-pagination {
+    margin-top: 12px;
+    padding: 12px 4px;
+    border-top: 0;
   }
 
   .tenants-page .table-wrap {

@@ -4,7 +4,9 @@ import { withMediaAccessToken } from '../services/mediaAccess.js';
     if (document.querySelector('[data-component-style="mapPanel"]')) return;
     const l = document.createElement('link');
     l.rel = 'stylesheet';
-    l.href = new URL('./style/mapPanel.css', import.meta.url);
+    const stylesheet = new URL('./style/mapPanel.css', import.meta.url);
+    stylesheet.searchParams.set('v', 'popup-tip-soft-1');
+    l.href = stylesheet;
     l.dataset.componentStyle = 'mapPanel';
     document.head.append(l);
 
@@ -118,7 +120,9 @@ import { withMediaAccessToken } from '../services/mediaAccess.js';
     if (!document.querySelector('[data-component-style="mapPanel"]')) {
       const l = document.createElement('link');
       l.rel = 'stylesheet';
-      l.href = new URL('./style/mapPanel.css', import.meta.url);
+      const stylesheet = new URL('./style/mapPanel.css', import.meta.url);
+      stylesheet.searchParams.set('v', 'tenant-search-popup-card-1');
+      l.href = stylesheet;
       l.dataset.componentStyle = 'mapPanel';
       document.head.append(l);
     }
@@ -238,6 +242,7 @@ import { withMediaAccessToken } from '../services/mediaAccess.js';
     const markers = L.layerGroup().addTo(map);
     const searchMarkerLayer = L.layerGroup().addTo(map);
     let searchLocation = null;
+    let searchRadiusLayer = null;
     let currentItems = [];
     let itemsUpdated = false;
     const distanceInKm = (first, second) => {
@@ -254,31 +259,45 @@ import { withMediaAccessToken } from '../services/mediaAccess.js';
     const mgr = {
       map,
       markers,
-      setSearchLocation({ latitude, longitude, label = 'Searched location', zoom, showMarker = true } = {}) {
-        searchLocation = { latitude, longitude };
+      setSearchLocation({ latitude, longitude, label = 'Searched location', zoom, showMarker = true, radiusInKm = 1 } = {}) {
+        searchLocation = { latitude, longitude, radiusInKm };
         map.closePopup();
         searchMarkerLayer.clearLayers();
+        searchRadiusLayer = L.circle([latitude, longitude], {
+          radius: radiusInKm * 1000,
+          color: '#2d7dc0',
+          weight: 2,
+          fillColor: '#58a9e8',
+          fillOpacity: 0.12
+        }).addTo(searchMarkerLayer);
         if (showMarker) {
           const marker = L.marker([latitude, longitude], {
             icon: L.divIcon({
               className: 'search-location-marker',
               html: '<span></span>',
-              iconSize: [24, 24],
-              iconAnchor: [12, 12]
+              iconSize: [28, 28],
+              iconAnchor: [14, 14]
             })
           }).addTo(searchMarkerLayer);
-          marker.bindPopup(`<strong>${escapeHtml(label)}</strong>`).openPopup();
+          const popupContent = `<div class="tenant-search-popup"><span class="tenant-search-popup__label">Searched area</span><strong class="tenant-search-popup__place">${escapeHtml(label)}</strong></div>`;
+          marker.bindPopup(popupContent, {
+            minWidth: 240,
+            maxWidth: 280,
+            className: 'tenant-search-location-popup'
+          }).openPopup();
         }
         this.setItems(currentItems);
-        map.setView([latitude, longitude], Number.isFinite(zoom) ? zoom : Math.max(map.getZoom(), 14));
+        if (Number.isFinite(zoom)) map.setView([latitude, longitude], zoom);
+        else map.fitBounds(searchRadiusLayer.getBounds(), { padding: [40, 40], maxZoom: 14 });
       },
       clearSearchLocation() {
         searchLocation = null;
+        searchRadiusLayer = null;
         map.closePopup();
         searchMarkerLayer.clearLayers();
         this.setItems(currentItems);
       },
-      countNearbyItems(radiusInKm = 8) {
+      countNearbyItems(radiusInKm = 1) {
         if (!searchLocation) return 0;
         return currentItems.filter((item) => {
           const latitude = Number(item.latitude ?? item.lat ?? NaN);
@@ -297,16 +316,7 @@ import { withMediaAccessToken } from '../services/mediaAccess.js';
           const lat = Number(item.latitude ?? item.lat ?? NaN);
           const lng = Number(item.longitude ?? item.lng ?? NaN);
           if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-          const isNearSearch = searchLocation && distanceInKm(searchLocation, { latitude: lat, longitude: lng }) <= 8;
-          const markerOptions = isNearSearch ? {
-            icon: L.divIcon({
-              className: 'nearby-search-marker',
-              html: '<span></span>',
-              iconSize: [24, 24],
-              iconAnchor: [12, 12]
-            })
-          } : {};
-          const marker = L.marker([lat, lng], markerOptions).addTo(markers);
+          const marker = L.marker([lat, lng]).addTo(markers);
           const title = escapeHtml(item.title || item.property_title || item.name || 'Listing');
           const nameText = item.title || item.property_title || item.name || 'Listing';
           const locationText = [item.barangay, item.city, item.municipality, item.province].filter(Boolean).join(', ') || 'Metro Manila';

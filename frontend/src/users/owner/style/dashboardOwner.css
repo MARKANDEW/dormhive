@@ -851,8 +851,9 @@ a {
 }
 
 .map-location-search-input:focus-visible {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgb(13 95 74 / 12%);
+  border-color: #9aa9a3 !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .owner-shell--dashboard .panel-title-row a,
@@ -925,6 +926,65 @@ a {
   margin: 0;
   min-width: 0;
   width: auto !important;
+}
+
+.owner-shell--dashboard .leaflet-popup.owner-search-location-popup .leaflet-popup-content {
+  width: 240px !important;
+  min-width: 0;
+  max-width: calc(100vw - 3rem);
+  padding: 0.25rem 0.15rem;
+  box-sizing: border-box;
+}
+
+.owner-search-popup {
+  display: grid;
+  gap: 0.35rem;
+  width: 100%;
+  min-width: 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid #dce6ed;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgb(23 52 79 / 16%);
+  color: #17344f;
+  font-family: Inter, system-ui, sans-serif;
+  text-align: left;
+}
+
+.owner-search-popup__label {
+  color: #71869b;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.owner-search-popup__place {
+  color: #17344f;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+  .owner-shell--dashboard .leaflet-popup.owner-search-location-popup .leaflet-popup-content {
+    width: min(240px, calc(100vw - 3rem)) !important;
+  }
+}
+
+.owner-shell--dashboard .owner-search-location-marker {
+  border: 0;
+  background: transparent;
+}
+
+.owner-shell--dashboard .owner-search-location-marker span {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: #2d7dc0;
+  box-shadow: 0 0 0 5px rgb(45 125 192 / 24%), 0 2px 7px rgb(0 0 0 / 35%);
 }
 
 .owner-shell--dashboard .leaflet-container a.leaflet-popup-close-button {
@@ -2114,6 +2174,48 @@ a {
 
 .ui-modal:has(.full-map-container) .ui-modal__footer {
   flex-shrink: 0;
+}
+
+.ui-modal.owner-full-map-modal {
+  width: min(96vw, 1400px);
+  height: 94vh;
+  height: 94dvh;
+  max-height: 94vh;
+  max-height: 94dvh;
+}
+
+.ui-modal.owner-full-map-modal .ui-modal__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  overflow: hidden;
+  padding: 0.8rem;
+}
+
+.owner-full-map-modal .full-map-container {
+  flex: 1;
+  min-height: 0;
+}
+
+.owner-full-map-modal .full-map-container .leaflet-map {
+  flex: 1;
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+.ui-modal.owner-full-map-modal .ui-modal__footer {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .ui-modal.owner-full-map-modal {
+    width: calc(100vw - 0.75rem);
+    height: calc(100vh - 0.75rem);
+    height: calc(100dvh - 0.75rem);
+    max-height: calc(100vh - 0.75rem);
+    max-height: calc(100dvh - 0.75rem);
+  }
 }
 
 /* =========================

@@ -26,16 +26,14 @@ const isPhotoOnlyMessage = (message = {}) => {
   const body = String(message.body ?? '').trim();
   return Boolean(messagePhotoUrl(message)) && (!body || isImageDataUrl(body));
 };
-const renderPhotoMessageGroup = (photoMessages, isMine, otherName) => {
+const renderPhotoMessageGroup = (photoMessages) => {
   const photoUrls = photoMessages.map(messagePhotoUrl).filter(Boolean);
-  const senderName = isMine ? 'You' : otherName || 'Tenant';
   const visiblePhotos = photoUrls.slice(0, 4);
   const additionalCount = photoUrls.length - visiblePhotos.length;
   const stacked = photoUrls.length >= 2;
   const moreBadgeIndex = stacked ? 0 : 3;
   return `
     <div class="message-photo-group${stacked ? ' message-photo-group--stack' : ''}">
-      <div class="message-photo-group__label">${esc(`${senderName} sent ${photoUrls.length} photos`)}</div>
       <div class="message-photo-group__grid">
         ${visiblePhotos.map((photo, index) => `
           <button type="button" class="message-photo-group__tile${additionalCount && index === moreBadgeIndex ? ' has-more' : ''}" data-photo-index="${index}" aria-label="View photo ${index + 1} of ${photoUrls.length}">
@@ -70,7 +68,9 @@ const renderAvatar = (name = 'User', image = '') => {
 const participantAvatar = (item = {}) => renderAvatar(item.participant_name ?? 'Conversation', item.participant_avatar_url);
 
 function css() {
-  return loadOwnerStylesheet('message', new URL('./style/message.css', import.meta.url));
+  const stylesheet = new URL('./style/message.css', import.meta.url);
+  stylesheet.searchParams.set('v', 'owner-message-focus-neutral-1');
+  return loadOwnerStylesheet('message', stylesheet);
 }
 
 export async function renderMessage(root = document.querySelector('#app')) {
@@ -251,24 +251,37 @@ export async function renderMessage(root = document.querySelector('#app')) {
   };
 
   const renderConversationMessages = (groupedMessages) => {
-        return groupedMessages.map((entry) => {
+        return groupedMessages.map((entry, index) => {
+          const firstMessage = entry.photoMessages?.[0] ?? entry.message;
+          const isMine = String(firstMessage.sender_id) === String(user().id);
+          const nextEntry = groupedMessages[index + 1];
+          const nextMessage = nextEntry?.photoMessages?.[0] ?? nextEntry?.message;
+          const showAvatar = !isMine && (!nextMessage || String(nextMessage.sender_id) !== String(firstMessage.sender_id));
+          const avatar = isMine
+            ? ''
+            : showAvatar
+              ? `<span class="message-sender-avatar">${participantAvatar(state.selected)}</span>`
+              : '<span class="message-sender-avatar is-placeholder" aria-hidden="true"></span>';
+          const rowClass = isMine ? 'mine' : 'their';
           if (entry.photoMessages) {
             const photoMessages = entry.photoMessages;
-            const isMine = String(photoMessages[0].sender_id) === String(user().id);
             const lastMessage = photoMessages[photoMessages.length - 1];
             return `
-              <article class="message-bubble message-photo-group-bubble ${isMine ? 'mine' : 'their'}">
-                <div class="bubble-body">${renderPhotoMessageGroup(photoMessages, isMine, state.selected.participant_name)}</div>
-                <small>${esc(shortDate(lastMessage.created_at))} • ${esc(dayTime(lastMessage.created_at))}</small>
-              </article>`;
+              <div class="message-row ${rowClass}">${avatar}
+                <article class="message-bubble message-photo-group-bubble ${isMine ? 'mine' : 'their'}">
+                  <div class="bubble-body">${renderPhotoMessageGroup(photoMessages)}</div>
+                  <small>${esc(shortDate(lastMessage.created_at))} • ${esc(dayTime(lastMessage.created_at))}</small>
+                </article>
+              </div>`;
           }
           const message = entry.message;
-          const isMine = String(message.sender_id) === String(user().id);
           return `
-            <article class="message-bubble ${isMine ? 'mine' : 'their'}">
-              <div class="bubble-body">${isBookingMessage(message.body) ? renderBookingCard(message.body, state.selected) : renderMessageBody(message.body, message.attachment_url)}</div>
-              <small>${esc(shortDate(message.created_at))} • ${esc(dayTime(message.created_at))}</small>
-            </article>`;
+            <div class="message-row ${rowClass}">${avatar}
+              <article class="message-bubble ${isMine ? 'mine' : 'their'}">
+                <div class="bubble-body">${isBookingMessage(message.body) ? renderBookingCard(message.body, state.selected) : renderMessageBody(message.body, message.attachment_url)}</div>
+                <small>${esc(shortDate(message.created_at))} • ${esc(dayTime(message.created_at))}</small>
+              </article>
+            </div>`;
         }).join('');
       };
 
@@ -284,10 +297,25 @@ export async function renderMessage(root = document.querySelector('#app')) {
       <div class="owner-property-copy"><span class="property-context-icon">🏠</span><div><strong>${esc(property.title || 'Property')}</strong><small>Property inquiry</small><small>Tenant: ${esc(state.selected.participant_name || 'Tenant')}</small></div></div>
       <button type="button" class="property-context-link" data-owner-property>View Property</button>`;
     propertyContext.querySelector('[data-owner-property]')?.addEventListener('click', () => {
-      const modal = createModal({ title: property.title || 'Property Details', content: '', closeLabel: 'Close' });
+      const modal = createModal({ title: esc(property.title || 'Property Details'), content: '', closeLabel: 'Close' });
       modal.classList.add('owner-message-modal');
       const location = [property.address, property.barangay, property.municipality, property.city].filter(Boolean).join(', ') || 'Not specified';
-      modal.querySelector('.ui-modal__body').innerHTML = `<div class="owner-property-details"><h3>${esc(property.title || 'Property')}</h3><p><strong>Location:</strong> ${esc(location)}</p><p><strong>Room type:</strong> ${esc(property.room_type || 'Not specified')}</p><p><strong>Monthly rent:</strong> ${property.monthly_rent ? `PHP ${Number(property.monthly_rent).toLocaleString('en-PH')}` : 'Not specified'}</p><p><strong>Description:</strong> ${esc(property.description || 'No description provided.')}</p></div>`;
+      const availableSlots = Number(property.available_slots ?? property.total_slots ?? 0);
+      modal.querySelector('.ui-modal__footer')?.remove();
+      modal.querySelector('.ui-modal__body').innerHTML = `
+        <div class="owner-property-details">
+          <dl class="owner-property-details__facts">
+            <div class="owner-property-details__full"><dt>Location</dt><dd>${esc(location)}</dd></div>
+            <div><dt>Room type</dt><dd>${esc(property.room_type || 'Not specified')}</dd></div>
+            <div><dt>Monthly rent</dt><dd>${property.monthly_rent ? `PHP ${Number(property.monthly_rent).toLocaleString('en-PH')}` : 'Not specified'}</dd></div>
+            <div><dt>Availability</dt><dd>${availableSlots > 0 ? `${availableSlots} slot${availableSlots === 1 ? '' : 's'} available` : 'No slots available'}</dd></div>
+            <div><dt>Gender preference</dt><dd>${esc(property.gender_preference || 'Not specified')}</dd></div>
+          </dl>
+          <section class="owner-property-details__description">
+            <h3>About this property</h3>
+            <p>${esc(property.description || 'No description provided.')}</p>
+          </section>
+        </div>`;
       openModal(modal);
     });
   };
@@ -539,19 +567,20 @@ export async function renderMessage(root = document.querySelector('#app')) {
   });
   profileButton?.addEventListener('click', () => {
     if (!state.selected) return;
-    const modal = createModal({ title: state.selected.participant_name || 'Tenant profile', content: '', closeLabel: 'Close' });
+    const modal = createModal({ title: 'Tenant Profile', content: '', closeLabel: 'Close' });
     modal.classList.add('owner-message-modal');
+    modal.querySelector('.ui-modal__footer')?.remove();
     modal.querySelector('.ui-modal__body').innerHTML = `
       <div class="owner-tenant-profile">
-        <div class="tenant-avatar-section">
+        <div class="tenant-profile-identity">
           <div class="tenant-avatar-circle">${participantAvatar(state.selected)}</div>
+          <div class="tenant-profile-name-group">
+            <span class="tenant-profile-label">Tenant</span>
+            <strong class="tenant-profile-name">${esc(state.selected.participant_name || 'Tenant')}</strong>
+          </div>
         </div>
         <div class="tenant-info-row">
-          <span class="tenant-label">Tenant:</span>
-          <span class="tenant-value">${esc(state.selected.participant_name || 'Tenant')}</span>
-        </div>
-        <div class="tenant-info-row">
-          <span class="tenant-label">Property:</span>
+          <span class="tenant-label">Property</span>
           <span class="tenant-value">${esc(getPropertyTitle(state.selected.property_id))}</span>
         </div>
       </div>

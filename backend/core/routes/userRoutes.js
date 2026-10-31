@@ -7,6 +7,8 @@ import { uploadUser } from '../config/upload.js';
 const router = Router();
 router.use(authenticate);
 router.get('/', authorize('admin'), controller.list);
+router.get('/:id/verification-document', authorize('admin'), controller.verificationDocument);
+router.patch('/:id/verification', authorize('admin'), controller.reviewVerification);
 router.route('/:id/avatar').patch(uploadUser.single('avatar'), controller.updateAvatar);
 router.patch('/:id/restore', authorize('admin'), controller.restore);
 router.get('/:id', controller.get);

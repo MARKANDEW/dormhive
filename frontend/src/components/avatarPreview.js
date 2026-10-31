@@ -1,4 +1,5 @@
 const avatarImageSelector = [
+  'img.message-attachment-preview',
   'img.avatar-image',
   'img.user-row-avatar',
   '.avatar-wrap img',

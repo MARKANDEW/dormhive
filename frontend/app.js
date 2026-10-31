@@ -1,5 +1,6 @@
 import { installRouter, renderRoute, navigate, redirectForRole } from './router.js';
 import { installAvatarPreview } from './src/components/avatarPreview.js';
+import { connectRealtime, installRealtimeFetchHeader } from './src/services/realtime.js';
 
 export { navigate, redirectForRole };
 function clearSession() {
@@ -22,6 +23,8 @@ export function startApp() {
   installAvatarPreview();
   installGlobalAuthHandlers();
   installRouter();
+  installRealtimeFetchHeader();
+  connectRealtime(() => window.dispatchEvent(new Event('dormhive:data-changed')));
   return renderRoute();
 }
 

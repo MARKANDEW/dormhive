@@ -80,6 +80,23 @@ body {
   color: #7b8b85;
   font-size: 0.75rem;
 }
+.listing-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.listing-view-all {
+  flex: 0 0 auto;
+  color: #16785f;
+  font-size: 0.76rem;
+  font-weight: 750;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.listing-view-all:hover {
+  text-decoration: underline;
+}
 .donut-layout {
   display: flex;
   align-items: center;
@@ -231,8 +248,11 @@ body {
   color: #208b3f;
 }
 .activity-icon.published {
-  background: #e7efff;
-  color: #2865be;
+  background: #e2f5e7;
+  color: #208b3f;
+}
+.activity-icon .bi {
+  font-size: 0.8rem;
 }
 .activity-icon.inquiry {
   background: #fff1d7;

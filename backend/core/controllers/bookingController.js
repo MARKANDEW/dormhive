@@ -19,6 +19,23 @@ export function resolveMoveOutSchedule(moveInDate, moveOutDate, indefiniteValue 
   return { valid: true, moveOutDate, isIndefiniteMoveOut: false };
 }
 
+export function isValidOccupantCount(requestedOccupants) {
+  const requested = Number(requestedOccupants);
+  return Number.isInteger(requested) && requested > 0;
+}
+
+export function hasRentalSlotCapacity(totalSlots, approvedSlots, requestedSlots = 1) {
+  const total = Number(totalSlots);
+  const occupied = Number(approvedSlots);
+  const requested = Number(requestedSlots);
+  return Number.isInteger(total) && Number.isInteger(occupied) && Number.isInteger(requested)
+    && total > 0 && occupied >= 0 && requested > 0 && occupied + requested <= total;
+}
+
+function remainingRentalSlots(totalSlots, approvedSlots) {
+  return Math.max(0, Number(totalSlots) - Number(approvedSlots));
+}
+
 export async function create(request, response, next) {
   try {
     const moveOutSchedule = resolveMoveOutSchedule(
@@ -30,12 +47,18 @@ export async function create(request, response, next) {
 
     const viewingSchedule = resolveViewingSchedule(request.body.viewingDate, request.body.viewingTime);
     if (!viewingSchedule.valid) return response.status(422).json({ message: viewingSchedule.message });
+    if (!isValidOccupantCount(request.body.occupants)) {
+      return response.status(422).json({ message: 'Occupants must be a whole number greater than zero.' });
+    }
 
     const property = await findPropertyById(request.body.propertyId);
     if (!property || property.status !== 'approved') return response.status(404).json({ message: 'Property not found.' });
     if (property.owner_id === request.user.id) return response.status(422).json({ message: 'You cannot book your own property.' });
-    if (Number(request.body.occupants) > property.max_occupants) return response.status(422).json({ message: 'Occupants exceed the property capacity.' });
-    const booking = await bookings.create(request.user.id, { ...request.body, ...moveOutSchedule, ...viewingSchedule });
+    const approvedSlots = await bookings.countApprovedSlots(property.id);
+    if (!hasRentalSlotCapacity(property.total_slots, approvedSlots)) {
+      return response.status(409).json({ message: `This listing has no rental slots available. Only ${remainingRentalSlots(property.total_slots, approvedSlots)} slot(s) remain.` });
+    }
+    const booking = await bookings.create(request.user.id, { ...request.body, ownerId: property.owner_id, ...moveOutSchedule, ...viewingSchedule });
     await createConversation({ tenantId: request.user.id, ownerId: property.owner_id, propertyId: property.id });
     response.status(201).json({ data: booking });
   } catch (error) { next(error); }
@@ -79,6 +102,17 @@ export async function updateStatus(request, response, next) {
     const nextStatus = String(request.body.status || '').toLowerCase();
     if (!['approved', 'rejected', 'cancelled'].includes(nextStatus)) return response.status(422).json({ message: 'Invalid booking status.' });
     const previousStatus = String(booking.status || '').toLowerCase();
+    if (nextStatus === 'approved' && previousStatus !== 'approved') {
+      const property = await findPropertyById(booking.property_id);
+      const approvedSlots = await bookings.countApprovedSlots(booking.property_id);
+      if (!property || !hasRentalSlotCapacity(property.total_slots, approvedSlots)) {
+        const remaining = property ? remainingRentalSlots(property.total_slots, approvedSlots) : 0;
+        return response.status(409).json({ message: `This booking exceeds the available rental slots. Only ${remaining} slot(s) remain.` });
+      }
+      if (!property || !isValidOccupantCount(booking.occupants ?? 1)) {
+        return response.status(409).json({ message: 'This booking has an invalid occupant count.' });
+      }
+    }
     const updated = await bookings.updateStatus(booking.id, nextStatus);
     if (previousStatus === 'approved' || nextStatus === 'approved') {
       await properties.syncAvailability(booking.property_id);

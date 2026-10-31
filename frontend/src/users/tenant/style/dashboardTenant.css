@@ -66,6 +66,15 @@ input {
   color: #1f3530;
   font-size: 13px;
 }
+.dh-dashboard .search:focus-within {
+  border-color: #71817c;
+}
+.dh-dashboard .search input:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
 .top-actions {
   display: flex;
   gap: 8px;

@@ -1,4 +1,4 @@
-import { ensureAdminSidebarStyles, loadAdminStylesheet, renderAdminSidebar } from './sidebarAdmin.js';
+import { ensureAdminSidebarStyles, loadAdminStylesheet, renderAdminDateMeta, renderAdminSidebar } from './sidebarAdmin.js';
 import { buildActivityFeed, buildDashboardMetrics } from './analytics.js';
 import { confirmDialog, createModal, openModal, successDialog } from '../../components/modal.js';
 import { showToast } from '../../components/toast.js';
@@ -318,6 +318,7 @@ export async function renderDashboardAdmin(root = document.querySelector('#app')
               <h1>Platform Overview</h1>
               <p>Quick insights into your platform activity and recent user actions.</p>
             </div>
+            ${renderAdminDateMeta()}
           </header>
 
           <section class="stats-grid" aria-label="Platform statistics">

@@ -14,15 +14,25 @@ export function buildBookingListSql(role = 'owner') {
   return `SELECT ${fields} FROM bookings b JOIN properties p ON p.id = b.property_id JOIN users u ON u.id = b.tenant_id WHERE p.owner_id = ? ORDER BY b.created_at DESC`;
 }
 
-export async function create(tenantId, { propertyId, moveInDate, moveOutDate, isIndefiniteMoveOut = false, viewingDate, viewingTime, occupants, message }) {
+export async function create(tenantId, { propertyId, ownerId, moveInDate, moveOutDate, isIndefiniteMoveOut = false, viewingDate, viewingTime, occupants, message }) {
   const viewingScheduleSubmitted = Boolean(viewingDate && viewingTime);
-  const result = await query("INSERT INTO bookings (property_id, tenant_id, move_in_date, move_out_date, is_indefinite_move_out, viewing_date, viewing_time, viewing_schedule_tenant_submitted, occupants, message, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')", [propertyId, tenantId, moveInDate, moveOutDate ?? null, isIndefiniteMoveOut ? 1 : 0, viewingDate ?? null, viewingTime ?? null, viewingScheduleSubmitted ? 1 : 0, occupants, message ?? null]);
+  const result = await query("INSERT INTO bookings (property_id, tenant_id, owner_id, move_in_date, move_out_date, is_indefinite_move_out, viewing_date, viewing_time, viewing_schedule_tenant_submitted, occupants, message, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')", [propertyId, tenantId, ownerId, moveInDate, moveOutDate ?? null, isIndefiniteMoveOut ? 1 : 0, viewingDate ?? null, viewingTime ?? null, viewingScheduleSubmitted ? 1 : 0, occupants, message ?? null]);
   return findById(result.insertId);
 }
 
 export async function findById(id) {
   const rows = await query('SELECT b.*, p.title AS property_title, p.monthly_rent, p.owner_id, p.image_url, p.images FROM bookings b JOIN properties p ON p.id = b.property_id WHERE b.id = ? LIMIT 1', [id]);
   return rows[0] ?? null;
+}
+
+export async function countApprovedOccupants(propertyId) {
+  const rows = await query("SELECT COALESCE(SUM(COALESCE(occupants, 1)), 0) AS count FROM bookings WHERE property_id = ? AND status = 'approved'", [propertyId]);
+  return Number(rows[0]?.count ?? 0);
+}
+
+export async function countApprovedSlots(propertyId) {
+  const rows = await query("SELECT COUNT(*) AS count FROM bookings WHERE property_id = ? AND status = 'approved'", [propertyId]);
+  return Number(rows[0]?.count ?? 0);
 }
 
 export async function listForUser(user) {

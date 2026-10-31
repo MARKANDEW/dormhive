@@ -1,6 +1,22 @@
 # DormHive backend media migration
 
+## Custom property types
+
+The `properties.room_type` column is stored as `VARCHAR(100)` so owners can use the custom type entered through the `Other` property type option. For an existing database, run `npm run setup-db` from the backend directory to widen the current enum column while preserving existing property types.
+
 Uploaded profile pictures, property photos, message photos, and support-ticket attachments are stored as `LONGBLOB` data in `media_files`. The API returns metadata and `/api/v1/media/:id` references; the bytes are streamed by an authenticated endpoint after checking the associated user, property, conversation, or ticket permissions. The existing `properties.image_url` and `properties.images` columns remain the listing-photo references; no duplicate `property_images` table is used.
+
+## Registration ID verification
+
+New tenant and owner registrations must include a JPEG, PNG, WEBP, or PDF ID file (up to 5 MB). The file is stored in the private `media_files` table and is only available to the applicant and administrators while the account is pending; the file is deleted after an admin makes a decision. New accounts cannot sign in until an administrator approves or rejects them in User management. The decision triggers an email to the applicant.
+
+For an existing database, run `npm run setup-db` from this directory to add the verification columns. To send decision emails through Gmail, configure `SMTP_USER` with the Gmail address and `SMTP_PASSWORD` with a Google App Password; `SMTP_FROM` is optional and defaults to `SMTP_USER`. Without SMTP credentials, admin decisions still apply, but the UI explicitly reports that the email was not sent so the applicant can be contacted manually.
+
+Password recovery uses a one-time email link that expires after 10 minutes. Configure `SMTP_USER` and `SMTP_PASSWORD` with a Gmail address and its Google App Password. If email is not configured or delivery fails, the recovery page directs users to contact support instead of presenting a non-working form.
+
+## Property ownership review
+
+Owner listings must include proof of ownership or authorization (JPEG, PNG, WEBP, or PDF, up to 5 MB). The proof is stored as private media, is not returned in tenant/public property responses, and can only be opened by administrators in Listing Moderation. Owners may have up to three listings pending review, and an owner cannot submit another pending or approved listing at the same normalized address. Editing an owner listing sends it back to pending review; a missing legacy proof or changed address requires a new proof document. Admin approval is blocked unless a valid private proof is linked to the listing. For an existing database, run `npm run setup-db` from this directory before using these checks.
 
 ## Existing database rollout
 

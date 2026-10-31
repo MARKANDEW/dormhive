@@ -196,6 +196,20 @@
   background: #a9433e;
 }
 
+.ui-confirm-dialog--success .ui-confirm-dialog__icon {
+  background: #e4f6ef;
+  color: #168263;
+}
+
+.ui-confirm-dialog--success .ui-modal__footer .ui-confirm-dialog__confirm {
+  border-color: #168263;
+  background: #168263;
+}
+
+.ui-confirm-dialog--success .ui-modal__footer .ui-confirm-dialog__confirm:hover {
+  background: #116c52;
+}
+
 .ui-confirm-dialog .ui-modal__footer button:focus-visible,
 .ui-confirm-dialog .ui-modal__header button:focus-visible {
   outline: 3px solid rgb(47 126 199 / 35%);
@@ -279,6 +293,82 @@
 
 .ui-success-dialog .ui-modal__footer button:focus-visible {
   outline: 3px solid rgb(21 147 130 / 35%);
+  outline-offset: 2px;
+}
+
+.ui-modal.ui-warning-dialog {
+  width: min(92vw, 24rem);
+  border-radius: 1rem;
+  color: #45330d;
+}
+
+.ui-warning-dialog .ui-modal__header {
+  justify-content: center;
+  padding: 1.35rem 1.5rem 0.25rem;
+  border: 0;
+}
+
+.ui-warning-dialog .ui-modal__header h2 {
+  color: #45330d;
+  font-size: 1.35rem;
+  text-align: center;
+}
+
+.ui-warning-dialog .ui-modal__header [data-modal-close] {
+  display: none;
+}
+
+.ui-warning-dialog .ui-modal__body {
+  padding: 0.75rem 1.5rem 1rem;
+}
+
+.ui-warning-dialog__content {
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+  text-align: center;
+}
+
+.ui-warning-dialog__icon {
+  display: grid;
+  width: 3.75rem;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff2cc;
+  color: #9a6700;
+  font-size: 1.7rem;
+}
+
+.ui-warning-dialog__content p {
+  max-width: 24rem;
+  margin: 0;
+  color: #5c5140;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.ui-warning-dialog .ui-modal__footer {
+  padding: 0 1.5rem 1.4rem;
+  border: 0;
+}
+
+.ui-warning-dialog .ui-modal__footer button {
+  width: 100%;
+  min-height: 2.85rem;
+  border-radius: 0.65rem;
+  background: #9a6700;
+  font: inherit;
+  font-weight: 800;
+}
+
+.ui-warning-dialog .ui-modal__footer button:hover {
+  background: #805600;
+}
+
+.ui-warning-dialog .ui-modal__footer button:focus-visible {
+  outline: 3px solid rgb(154 103 0 / 35%);
   outline-offset: 2px;
 }
 
