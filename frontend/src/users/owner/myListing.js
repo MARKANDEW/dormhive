@@ -149,9 +149,9 @@ function showPropertyPhotoViewer(property) {
     thumbnails.append(button);
     return button;
   });
+
   const createActionButton = (className, label, iconName) => {
     const button = document.createElement('button');
-    button.type = 'button';
     button.className = `portfolio-photo-viewer__action ${className}`;
     button.setAttribute('aria-label', label);
     button.title = label;
@@ -1251,15 +1251,12 @@ export async function renderMyListing(root = document.querySelector('#app')) {
 
   const openPropertyActionConfirm = (property, action) => {
     pendingPropertyAction = { property, action };
-    const isDelete = action === 'delete';
     const isRestore = action === 'restore';
-    propertyActionConfirmTitle.textContent = isDelete ? 'Delete Property' : isRestore ? 'Restore Property' : 'Archive Property';
-    propertyActionConfirmText.textContent = isDelete
-      ? `Are you sure you want to delete ${property.title || 'this property'}?`
-      : isRestore
-        ? `Restore ${property.title || 'this property'} to your active listings?`
-        : `Are you sure you want to archive ${property.title || 'this property'}?`;
-    propertyActionConfirmActionBtn.textContent = isDelete ? 'Confirm Delete' : isRestore ? 'Confirm Restore' : 'Confirm Archive';
+    propertyActionConfirmTitle.textContent = isRestore ? 'Restore Property' : 'Archive Property';
+    propertyActionConfirmText.textContent = isRestore
+      ? `Restore ${property.title || 'this property'} to your active listings?`
+      : `Are you sure you want to archive ${property.title || 'this property'}?`;
+    propertyActionConfirmActionBtn.textContent = isRestore ? 'Confirm Restore' : 'Confirm Archive';
     propertyActionConfirmActionBtn.dataset.action = action;
     propertyActionConfirm.hidden = false;
   };
@@ -1305,8 +1302,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
                   <button type="button" class="property-menu-action view-property" data-property-id="${escape(String(item.id ?? ''))}">View</button>
                   ${item.status === 'archived'
                     ? `<button type="button" class="property-menu-action" data-property-id="${escape(String(item.id ?? ''))}" data-action="restore">Restore</button>`
-                    : `<button type="button" class="property-menu-action" data-property-id="${escape(String(item.id ?? ''))}" data-action="archive">Archive</button>
-                  <button type="button" class="property-menu-action danger" data-property-id="${escape(String(item.id ?? ''))}" data-action="delete">Delete</button>`}
+                    : `<button type="button" class="property-menu-action" data-property-id="${escape(String(item.id ?? ''))}" data-action="archive">Archive</button>`}
                 </div>
               </div>
             </div>
@@ -1363,9 +1359,19 @@ export async function renderMyListing(root = document.querySelector('#app')) {
       return;
     }
 
+    const menuAction = event.target.closest('.property-menu-action');
+    if (menuAction) {
+      const menu = menuAction.closest('.property-menu');
+      if (menu) {
+        menu.hidden = true;
+        menu.classList.remove('is-upward');
+        menu.style.removeProperty('top');
+        menu.style.removeProperty('left');
+      }
+    }
+
     const editBtn = event.target.closest('.edit-property');
     const viewBtn = event.target.closest('.view-property');
-    const menuAction = event.target.closest('.property-menu-action');
 
     if (menuAction && menuAction.dataset.action) {
       const propertyId = String(menuAction.dataset.propertyId);
@@ -1420,17 +1426,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
     const propertyId = String(property.id);
 
     try {
-      if (action === 'delete') {
-        const response = await fetch(`${API}/properties/${propertyId}`, {
-          method: 'DELETE',
-          headers: authHeaders()
-        });
-        if (!response.ok) {
-          const body = await response.json().catch(() => ({}));
-          throw new Error(body.message || 'Unable to delete property.');
-        }
-        showToast({ message: 'Property deleted successfully.', type: 'success' });
-      } else if (action === 'archive') {
+      if (action === 'archive') {
         const response = await fetch(`${API}/properties/${propertyId}`, {
           method: 'PATCH',
           headers: { ...authHeaders(), 'Content-Type': 'application/json' },
