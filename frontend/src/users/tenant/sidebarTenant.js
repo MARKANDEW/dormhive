@@ -50,7 +50,9 @@ export function ensureTenantSidebarStyles() {
   const link = existing ?? document.createElement('link');
   if (!existing) {
     link.rel = 'stylesheet';
-    link.href = new URL('./style/sidebarTenant.css', import.meta.url);
+    const stylesheet = new URL('./style/sidebarTenant.css', import.meta.url);
+    stylesheet.searchParams.set('v', 'sidebar-box-sizing-1');
+    link.href = stylesheet;
     link.dataset.tenantSidebarStyle = 'shared';
   }
   tenantSidebarStylesPromise = new Promise((resolve, reject) => {

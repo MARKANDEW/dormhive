@@ -385,7 +385,7 @@ textarea:focus-visible {
 .mini-pill.pending { background: rgba(244, 161, 75, 0.1); color: #c97d1d; }
 .mini-pill.suspended { background: rgba(215, 86, 86, 0.08); color: #be4c46; }
 
-.user-actions {
+.admin-dashboard .user-actions {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -393,7 +393,7 @@ textarea:focus-visible {
   min-width: 86px;
 }
 
-.user-actions button {
+.admin-dashboard .user-actions button {
   appearance: none;
   border: 0;
   background: transparent;
@@ -406,7 +406,7 @@ textarea:focus-visible {
   text-align: right;
 }
 
-.user-actions button:hover {
+.admin-dashboard .user-actions button:hover {
   text-decoration: underline;
 }
 
@@ -804,12 +804,12 @@ textarea:focus-visible {
     font-size: 9px;
   }
 
-  .user-actions {
+  .admin-dashboard .user-actions {
     align-items: flex-end;
     min-width: 68px;
   }
 
-  .user-actions button {
+  .admin-dashboard .user-actions button {
     font-size: 10px;
   }
 }

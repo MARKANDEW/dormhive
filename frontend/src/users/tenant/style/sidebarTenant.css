@@ -1,3 +1,10 @@
+.dh-sidebar,
+.dh-sidebar *,
+.dh-sidebar *::before,
+.dh-sidebar *::after {
+  box-sizing: border-box;
+}
+
 .dh-app {
   position: relative;
   isolation: isolate;

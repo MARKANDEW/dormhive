@@ -27,7 +27,7 @@ function formatDate(value) {
 
 function css() {
   const stylesheet = new URL('./style/dashboardAdmin.css', import.meta.url);
-  stylesheet.searchParams.set('v', 'mobile-stat-cards-two-columns-12');
+  stylesheet.searchParams.set('v', 'dashboard-action-scope-13');
   return loadAdminStylesheet('dashboard', stylesheet);
 }
 
