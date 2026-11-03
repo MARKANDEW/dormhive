@@ -10,7 +10,7 @@ globalThis.localStorage = {
 };
 
 const { withMediaAccessToken } = await import('../../../frontend/src/services/mediaAccess.js');
-const { canAccessPrivateMedia, canAccessVerificationDocument } = await import('../models/Media.js');
+const { canAccessPrivateMedia, canAccessPropertyMedia, canAccessVerificationDocument } = await import('../models/Media.js');
 
 test('verification documents are accessible only to admins', () => {
   const document = { id: 42, verification_document_id: 42 };
@@ -26,6 +26,15 @@ test('private property documents are accessible only to admins', () => {
   assert.equal(canAccessPrivateMedia(proof, { id: 84, role: 'tenant' }), false);
   assert.equal(canAccessPrivateMedia(proof, { id: 7, role: 'admin' }), true);
   assert.equal(canAccessPrivateMedia({ id: 74, is_private: 0 }, { id: 42, role: 'owner' }), true);
+});
+
+test('pending property photos remain available to tenants with a booking', () => {
+  const photo = { property_status: 'pending', property_owner_id: 20 };
+  assert.equal(canAccessPropertyMedia(photo, { id: 11, role: 'tenant' }, true), true);
+  assert.equal(canAccessPropertyMedia(photo, { id: 12, role: 'tenant' }, false), false);
+  assert.equal(canAccessPropertyMedia(photo, { id: 20, role: 'owner' }), true);
+  assert.equal(canAccessPropertyMedia(photo, { id: 99, role: 'admin' }), true);
+  assert.equal(canAccessPropertyMedia({ ...photo, property_status: 'approved' }, { id: 12, role: 'tenant' }), true);
 });
 
 test('adds access tokens only to same-origin database media URLs', () => {

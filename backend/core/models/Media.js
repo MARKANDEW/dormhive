@@ -18,6 +18,13 @@ export function canAccessPrivateMedia(media, user) {
   return !Number(media?.is_private) || user?.role === 'admin';
 }
 
+export function canAccessPropertyMedia(media, user, hasBooking = false) {
+  return media?.property_status === 'approved'
+    || Number(media?.property_owner_id) === Number(user?.id)
+    || user?.role === 'admin'
+    || (user?.role === 'tenant' && hasBooking);
+}
+
 export async function create({ uploadedBy, userId = null, propertyId = null, messageId = null, ticketMessageId = null, isPrivate = false, filename, mimeType, buffer }) {
   const result = await query(
     `INSERT INTO media_files (uploaded_by, user_id, property_id, message_id, ticket_message_id, is_private, original_filename, mime_type, file_size, file_data)
@@ -66,7 +73,13 @@ export async function findAuthorized(id, user) {
   if (!canAccessVerificationDocument(media, user)) return null;
   if (media.user_id !== null) return media;
   if (media.property_id !== null) {
-    return media.property_status === 'approved' || Number(media.property_owner_id) === Number(user.id) || user.role === 'admin' ? media : null;
+    if (canAccessPropertyMedia(media, user)) return media;
+    if (user.role !== 'tenant') return null;
+    const bookings = await query(
+      'SELECT 1 FROM bookings WHERE property_id = ? AND tenant_id = ? LIMIT 1',
+      [media.property_id, user.id]
+    );
+    return canAccessPropertyMedia(media, user, bookings.length > 0) ? media : null;
   }
   if (media.message_id !== null) {
     return Number(media.conversation_tenant_id) === Number(user.id) || Number(media.conversation_owner_id) === Number(user.id) ? media : null;
