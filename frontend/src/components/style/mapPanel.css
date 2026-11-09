@@ -328,3 +328,108 @@
 #map-status {
   display: none;
 }
+
+.map-place-legend.leaflet-control {
+  display: grid;
+  gap: 0.25rem;
+  width: 30px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.map-place-legend__button {
+  position: relative;
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background: #fff;
+  color: #334155;
+  box-shadow: 0 1px 5px rgb(0 0 0 / 25%);
+  cursor: pointer;
+}
+.map-place-legend__button:hover,
+.map-place-legend__button:focus-visible {
+  background: #f1f5f9;
+  outline: 2px solid #64748b;
+  outline-offset: 1px;
+}
+.map-place-legend__button.is-active {
+  background: #e8f3ed;
+  color: #17613d;
+}
+.map-place-legend__symbol {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+}
+.map-place-legend__symbol svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+.map-place-legend__button::after {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 0.5rem);
+  z-index: 1000;
+  padding: 0.35rem 0.55rem;
+  border-radius: 0.35rem;
+  background: #1f2937;
+  color: #fff;
+  content: attr(data-tooltip);
+  font: 600 0.72rem/1.2 Inter, system-ui, sans-serif;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%);
+  visibility: hidden;
+}
+.map-place-legend__button.tooltip-visible::after {
+  opacity: 1;
+  visibility: visible;
+}
+.map-place-legend__status {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  z-index: 1000;
+  width: max-content;
+  max-width: 10rem;
+  margin: 0;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.4rem;
+  background: rgb(255 255 255 / 96%);
+  color: #526273;
+  font: 500 0.68rem/1.35 Inter, system-ui, sans-serif;
+  box-shadow: 0 2px 8px rgb(15 23 42 / 16%);
+}
+.map-place-marker {
+  display: grid;
+  width: 30px !important;
+  height: 30px !important;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #fff;
+  color: #334155;
+  box-shadow: 0 2px 8px rgb(15 23 42 / 35%);
+}
+.map-place-marker svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  margin: auto;
+}
+@media (max-width: 600px) {
+  .map-place-legend__button {
+    width: 30px;
+    height: 30px;
+  }
+}

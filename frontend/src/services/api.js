@@ -37,7 +37,7 @@ function setSession({ accessToken, user }) {
 function clearSession() { localStorage.removeItem('dormhive.accessToken'); localStorage.removeItem('dormhive.user'); }
 
 export function createApiClient(baseUrl = API_BASE_URL) {
-  async function request(path, { method = 'GET', body, query, auth = true, headers = {}, signal } = {}) {
+  async function request(path, { method = 'GET', body, query, auth = true, headers = {}, signal, cache } = {}) {
     const url = new URL(`${baseUrl}${path}`);
     Object.entries(query ?? {}).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, String(value));
@@ -45,7 +45,7 @@ export function createApiClient(baseUrl = API_BASE_URL) {
     const token = readToken();
     const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
     const response = await fetch(url, {
-      method, signal,
+      method, signal, ...(cache ? { cache } : {}),
       headers: { Accept: 'application/json', ...(body !== undefined && !isFormData ? { 'Content-Type': 'application/json' } : {}), ...(auth && token ? { Authorization: `Bearer ${token}` } : {}), ...headers },
       body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body)
     });

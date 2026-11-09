@@ -9,7 +9,7 @@ import {
   recordLogin,
   revokePasswordResetToken,
   remove,
-  setVerificationDocument,
+  setVerificationDocuments,
   updatePassword
 } from '../models/User.js';
 import * as mediaFiles from '../models/Media.js';
@@ -103,9 +103,8 @@ export async function oauthCallback(request, response) {
     if (!user) {
       throw new Error('Create your account using the registration form and upload an ID for verification before signing in.');
     }
-    if (user.verification_status === 'pending') throw new Error('Your account is awaiting admin verification. We will email you when it has been reviewed.');
-    if (user.verification_status === 'rejected') throw new Error('Your account verification was rejected. Please check your email for details.');
-    if (user.status !== 'active') throw new Error('This account is not active.');
+    const rejection = loginRejection(user, true);
+    if (rejection) throw new Error(rejection.message);
     user = await recordLogin(user.id);
     return response.redirect(frontendCallback({ mode: state.mode, accessToken: tokenFor(user) }));
   } catch (error) {
@@ -132,10 +131,17 @@ function isValidPhone(value) {
 export async function register(request, response, next) {
   try {
     const { first_name, last_name, name, email, password, role = 'tenant', phone } = request.body;
-    if (!request.file) return response.status(422).json({ message: 'Upload a clear photo or PDF of a government-issued or other valid ID.' });
-    const document = validateUpload(request.file);
+    const identityDocumentFile = request.files?.identityDocument?.[0];
+    const selfieFile = request.files?.selfie?.[0];
+    if (!identityDocumentFile) return response.status(422).json({ message: 'Upload a clear photo or PDF of a government-issued or other valid ID.' });
+    if (!selfieFile) return response.status(422).json({ message: 'Take a live selfie using your camera to complete verification.' });
+    const document = validateUpload(identityDocumentFile);
     if (!['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(document.mimeType)) {
       return response.status(422).json({ message: 'ID documents must be a JPEG, PNG, WEBP, or PDF file.' });
+    }
+    const selfie = validateUpload(selfieFile, { imagesOnly: true });
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(selfie.mimeType)) {
+      return response.status(422).json({ message: 'The live selfie must be a JPEG, PNG, or WEBP image.' });
     }
     const normalizedPhone = typeof phone === 'string' ? phone.trim() : phone;
     if (!['tenant', 'owner'].includes(role)) return response.status(422).json({ message: 'Role must be tenant or owner.' });
@@ -159,16 +165,24 @@ export async function register(request, response, next) {
       verificationStatus: 'pending'
     });
     try {
-      const storedDocument = await mediaFiles.create({
+      const storedIdentity = await mediaFiles.create({
         uploadedBy: user.id,
+        isPrivate: true,
         filename: document.filename,
         mimeType: document.mimeType,
-        buffer: request.file.buffer
+        buffer: identityDocumentFile.buffer
       });
-      const pendingUser = await setVerificationDocument(user.id, storedDocument.id);
+      const storedSelfie = await mediaFiles.create({
+        uploadedBy: user.id,
+        isPrivate: true,
+        filename: selfie.filename,
+        mimeType: selfie.mimeType,
+        buffer: selfieFile.buffer
+      });
+      const pendingUser = await setVerificationDocuments(user.id, storedIdentity.id, storedSelfie.id);
       response.status(201).json({
         user: pendingUser,
-        message: 'Your account is submitted for verification. You can sign in after an admin reviews your ID. We will email you with the decision.'
+        message: 'Your account is submitted for verification. You can sign in while an admin reviews your ID and live selfie. Listing and inquiry requests will be available after approval.'
       });
     } catch (error) {
       await remove(user.id);
@@ -185,6 +199,7 @@ export function loginRejection(user, passwordMatches) {
       message: 'This account has been archived and can’t sign in. Contact DormHive support if you think this is a mistake.'
     };
   }
+  if (user.status === 'pending' && user.verification_status === 'pending') return null;
   if (user.verification_status === 'pending' || user.status === 'pending') {
     return { status: 403, message: 'Your account is awaiting admin verification. We will email you when it has been reviewed.' };
   }

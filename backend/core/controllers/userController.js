@@ -3,6 +3,7 @@ import * as users from '../models/User.js';
 import * as mediaFiles from '../models/Media.js';
 import { validateUpload } from '../utils/fileValidation.js';
 import { sendVerificationDecisionEmail } from '../services/email.js';
+import { publishDataChange } from '../services/realtimeEvents.js';
 
 export function validatePasswordChange({ currentPassword, newPassword, confirmPassword }) {
   if (!currentPassword || !newPassword || !confirmPassword) {
@@ -67,9 +68,20 @@ export async function list(request, response, next) {
 
 export async function verificationDocument(request, response, next) {
   try {
-    const document = await users.findVerificationDocument(request.params.id);
-    return document
-      ? response.json({ data: { id: document.id, filename: document.original_filename, mimeType: document.mime_type } })
+    const documents = await users.findVerificationDocuments(request.params.id);
+    return documents
+      ? response.json({ data: {
+        identityDocument: {
+          id: documents.identityDocument.id,
+          filename: documents.identityDocument.original_filename,
+          mimeType: documents.identityDocument.mime_type
+        },
+        selfieDocument: documents.selfieDocument ? {
+          id: documents.selfieDocument.id,
+          filename: documents.selfieDocument.original_filename,
+          mimeType: documents.selfieDocument.mime_type
+        } : null
+      } })
       : response.status(404).json({ message: 'No pending verification document was found.' });
   } catch (error) { next(error); }
 }
@@ -86,15 +98,17 @@ export async function reviewVerification(request, response, next) {
     if (target.verification_status !== 'pending') {
       return response.status(409).json({ message: 'This account has already been reviewed.' });
     }
-    const document = await users.findVerificationDocument(request.params.id);
-    if (!document) return response.status(409).json({ message: 'This account has no verification document to review.' });
+    const documents = await users.findVerificationDocuments(request.params.id);
+    if (!documents?.identityDocument) return response.status(409).json({ message: 'This account has no verification document to review.' });
     const updated = await users.reviewVerification(request.params.id, verificationStatus);
     if (!updated) return response.status(409).json({ message: 'This account has already been reviewed.' });
+    publishDataChange({ resource: 'users', sourceId: request.get('x-dormhive-client') ?? '' });
 
     let documentDeleted = false;
     try {
-      await mediaFiles.remove(document.id);
-      await users.clearVerificationDocument(request.params.id, document.id);
+      const verificationDocuments = [documents.identityDocument, documents.selfieDocument].filter(Boolean);
+      await Promise.all(verificationDocuments.map((document) => mediaFiles.remove(document.id)));
+      await users.clearVerificationDocuments(request.params.id, documents.identityDocument.id);
       documentDeleted = true;
     } catch (error) {
       console.error('Unable to delete reviewed identity document.', error.message);
@@ -113,7 +127,7 @@ export async function reviewVerification(request, response, next) {
     const user = await users.findById(request.params.id);
     const notices = [`Account ${verificationStatus}.`];
     if (!emailNotification.sent) notices.push('The email notification was not sent; contact the applicant manually.');
-    if (!documentDeleted) notices.push('The uploaded ID could not be deleted; contact support to remove it.');
+    if (!documentDeleted) notices.push('The uploaded verification documents could not be deleted; contact support to remove them.');
     return response.json({ data: user, emailNotification, documentDeleted, message: notices.join(' ') });
   } catch (error) { next(error); }
 }
@@ -122,6 +136,7 @@ export async function get(request, response, next) {
   try {
     if (request.user.id !== Number(request.params.id) && request.user.role !== 'admin') return response.status(403).json({ message: 'Permission denied.' });
     const user = await users.findById(request.params.id);
+    response.set('Cache-Control', 'no-store');
     return user ? response.json({ data: user }) : response.status(404).json({ message: 'User not found.' });
   } catch (error) { next(error); }
 }

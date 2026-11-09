@@ -14,9 +14,12 @@ const { canAccessPrivateMedia, canAccessPropertyMedia, canAccessVerificationDocu
 
 test('verification documents are accessible only to admins', () => {
   const document = { id: 42, verification_document_id: 42 };
+  const selfie = { id: 43, verification_selfie_document_id: 43 };
   assert.equal(canAccessVerificationDocument(document, { id: 7, role: 'tenant' }), false);
   assert.equal(canAccessVerificationDocument(document, { id: 42, role: 'owner' }), false);
   assert.equal(canAccessVerificationDocument(document, { id: 99, role: 'admin' }), true);
+  assert.equal(canAccessVerificationDocument(selfie, { id: 7, role: 'tenant' }), false);
+  assert.equal(canAccessVerificationDocument(selfie, { id: 99, role: 'admin' }), true);
   assert.equal(canAccessVerificationDocument({ id: 43, verification_document_id: null }, { id: 7, role: 'tenant' }), true);
 });
 

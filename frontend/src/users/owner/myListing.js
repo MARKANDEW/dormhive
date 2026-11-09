@@ -6,6 +6,22 @@ import { withMediaAccessToken } from '../../services/mediaAccess.js';
 const API = (window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1').replace(/\/$/, '');
 const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
 const user = () => JSON.parse(localStorage.getItem('dormhive.user') ?? '{}');
+async function refreshOwnerAccount() {
+  const cachedUser = user();
+  if (!cachedUser.id) return cachedUser;
+  try {
+    const response = await fetch(`${API}/users/${encodeURIComponent(cachedUser.id)}`, { headers: authHeaders(), cache: 'no-store' });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) return cachedUser;
+    const currentUser = result?.data ?? result;
+    if (!currentUser?.id) return cachedUser;
+    const updatedUser = { ...cachedUser, ...currentUser };
+    localStorage.setItem('dormhive.user', JSON.stringify(updatedUser));
+    return updatedUser;
+  } catch {
+    return cachedUser;
+  }
+}
 const apiBase = API.replace(/\/api\/v1\/?$/, '');
 const MAX_PROPERTY_PHOTO_SIZE = 2 * 1024 * 1024;
 const SUPPORTED_PROPERTY_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -236,6 +252,7 @@ export async function renderMyListing(root = document.querySelector('#app')) {
   const routeSearch = typeof window.DORMHIVE_ROUTE_SEARCH === 'string' ? window.DORMHIVE_ROUTE_SEARCH : window.location.search;
   const requestedPropertyId = new URLSearchParams(routeSearch).get('propertyId');
   const requestedAction = new URLSearchParams(routeSearch).get('action');
+  const account = await refreshOwnerAccount();
 
   root.innerHTML = `
     <div class="owner-shell">
@@ -263,8 +280,9 @@ export async function renderMyListing(root = document.querySelector('#app')) {
                   <option value="entire_unit">Studio Unit</option>
                 </select>
               </label>
-              <button type="button" class="add-property">Add a New Property</button>
+              <button type="button" class="add-property"${account.verification_status === 'pending' ? ' disabled title="Available after account approval"' : ''}>${account.verification_status === 'pending' ? 'Account Pending Approval' : 'Add a New Property'}</button>
             </div>
+            ${account.verification_status === 'pending' ? '<div class="account-verification-notice" role="status"><strong>Account verification pending</strong><p>You can review your dashboard, but you cannot create or edit property listings until an admin approves your account.</p></div>' : ''}
             <div class="property-status-tabs" role="group" aria-label="Filter listings by archive status">
               <button type="button" class="active" data-property-status="active" aria-pressed="true">Current listings</button>
               <button type="button" data-property-status="archived" aria-pressed="false">Archived</button>

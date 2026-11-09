@@ -3,6 +3,8 @@ import { showToast } from '../components/toast.js';
 import { openLegalModal } from './legal.js';
 import { navigate } from '../../router.js';
 import { getApiErrorMessage, readApiResponse } from '../services/api.js';
+import { installSelfiePreview } from './selfiePreview.js';
+import { installLiveSelfieCapture } from './liveSelfieCapture.js';
 
 function loadStylesheet() {
   const existing = document.querySelector('link[data-dormhive-auth="split"]');
@@ -75,6 +77,7 @@ export async function renderLogin(root = document.querySelector('#app')) {
             <h1 id="register-title">Registration</h1>
             <p>Create your account</p>
             <p class="auth-message" role="alert" hidden></p>
+            <div class="register-form-fields">
             <div class="register-name-row">
               <div class="input-box"><input id="first_name" name="first_name" type="text" placeholder="First name" required maxlength="120"></div>
               <div class="input-box"><input id="last_name" name="last_name" type="text" placeholder="Last name" required maxlength="120"></div>
@@ -89,7 +92,12 @@ export async function renderLogin(root = document.querySelector('#app')) {
                 <input id="phone_r" name="phone" type="tel" inputmode="numeric" placeholder="9XX XXX XXXX" required maxlength="12" autocomplete="tel">
               </div>
             </div>
-            <div class="input-box"><select id="role" name="role" required><option value="tenant">I want to</option><option value="tenant">Find a rental</option><option value="owner">List a property</option></select></div>
+            <input id="role" name="role" type="hidden" value="tenant">
+            <fieldset class="role-choice-group">
+              <legend>I want to</legend>
+              <label class="role-choice"><input type="checkbox" data-role-choice="tenant" checked><span>Find a rental</span></label>
+              <label class="role-choice"><input type="checkbox" data-role-choice="owner"><span>List a property</span></label>
+            </fieldset>
             <div class="input-box"><input id="password_r" name="password" type="password" placeholder="Password" required minlength="8"><button class="password-toggle" type="button" aria-label="Show password" aria-pressed="false"><i class='bx bx-show' aria-hidden="true"></i></button></div>
             <div class="input-box"><input id="confirm_password" name="confirmPassword" type="password" placeholder="Confirm password" required minlength="8"><button class="password-toggle" type="button" aria-label="Show password" aria-pressed="false"><i class='bx bx-show' aria-hidden="true"></i></button></div>
             <div class="identity-upload">
@@ -98,7 +106,24 @@ export async function renderLogin(root = document.querySelector('#app')) {
               <small>Government-issued or another valid ID, up to 5 MB. Only admins can view it for account verification.</small>
             </div>
             <label class="checkbox-label"><input name="terms" type="checkbox" required> I agree to the <a href="#/terms">Terms and conditions</a>.</label>
-            <button class="btn auth-submit" type="submit">Submit for review</button>
+            <button class="btn auth-submit register-continue" type="button">Continue to live selfie</button>
+            </div>
+            <section class="identity-capture-step" hidden aria-labelledby="login-identity-capture-title">
+              <h2 id="login-identity-capture-title">Take a live selfie</h2>
+              <p>Use your camera now. An admin will compare this image with your ID; this is not automated face recognition.</p>
+              <p class="identity-camera-message" role="status" aria-live="polite"></p>
+              <div class="identity-camera-frame">
+                <img class="identity-camera-preview" alt="Live selfie preview" hidden>
+              </div>
+              <div class="identity-camera-actions">
+                <button class="btn identity-camera-start" type="button">Open camera</button>
+                <button class="btn identity-camera-retake" type="button" hidden>Retake</button>
+              </div>
+              <div class="identity-capture-footer">
+                <button class="btn identity-camera-back" type="button">Back</button>
+                <button class="btn auth-submit identity-camera-submit" type="submit" hidden>Submit for review</button>
+              </div>
+            </section>
           </div>
         </form>
       </div>
@@ -135,9 +160,39 @@ export async function renderLogin(root = document.querySelector('#app')) {
   const loginMessage = root.querySelector('.form-box.login .auth-message');
   const registerMessage = root.querySelector('.form-box.register .auth-message');
   const loginSubmitButton = root.querySelector('.form-box.login .auth-submit');
-  const registerSubmitButton = root.querySelector('.form-box.register .auth-submit');
+  const registerContinueButton = root.querySelector('.register-continue');
+  const registerFields = root.querySelector('.register-form-fields');
+  const captureStep = root.querySelector('.identity-capture-step');
+  const registerSubmitButton = root.querySelector('.identity-camera-submit');
   const phoneInput = root.querySelector('#phone_r');
   const identityDocumentInput = root.querySelector('#identity-document');
+  const roleInput = root.querySelector('#role');
+  const cameraMessage = root.querySelector('.identity-camera-message');
+  const cameraPreview = root.querySelector('.identity-camera-preview');
+  installSelfiePreview(cameraPreview, root);
+  const cameraStartButton = root.querySelector('.identity-camera-start');
+  const cameraRetakeButton = root.querySelector('.identity-camera-retake');
+  const cameraBackButton = root.querySelector('.identity-camera-back');
+  const selfieCapture = installLiveSelfieCapture({
+    root,
+    previewImage: cameraPreview,
+    openButton: cameraStartButton,
+    retakeButton: cameraRetakeButton,
+    submitButton: registerSubmitButton,
+    statusMessage: cameraMessage
+  });
+  root.querySelectorAll('[data-role-choice]').forEach((choice) => {
+    choice.addEventListener('change', () => {
+      if (!choice.checked) {
+        choice.checked = true;
+        return;
+      }
+      root.querySelectorAll('[data-role-choice]').forEach((otherChoice) => {
+        if (otherChoice !== choice) otherChoice.checked = false;
+      });
+      roleInput.value = choice.dataset.roleChoice;
+    });
+  });
   const authBrand = root.querySelector('.auth-brand');
   const brandName = authBrand?.querySelector('.auth-brand-name');
   const cornerBrand = root.querySelector('.auth-corner-brand');
@@ -379,49 +434,81 @@ export async function renderLogin(root = document.querySelector('#app')) {
     }
   });
 
-  if (registerForm) {
-    registerForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
+  const showCameraStep = () => {
+    registerFields.querySelectorAll('input, button, select, textarea').forEach((field) => { field.disabled = true; });
+    registerFields.hidden = true;
+    captureStep.hidden = false;
+    cameraMessage.textContent = 'Only admins can view your ID and selfie. Both files are deleted after the review decision.';
+    cameraStartButton.focus();
+  };
 
-      const formData = Object.fromEntries(new FormData(registerForm));
-      const password = String(formData.password ?? '');
-      const confirmPassword = String(formData.confirmPassword ?? '');
+  const continueToCamera = () => {
+    const formValues = Object.fromEntries(new FormData(registerForm));
+    if (String(formValues.password ?? '') !== String(formValues.confirmPassword ?? '')) {
+      showMessage(registerMessage, 'Passwords do not match.');
+      return;
+    }
+    if (!registerForm.reportValidity()) return;
+    if (!validatePhoneField(true)) {
+      phoneInput.focus();
+      return;
+    }
+    const identityDocument = identityDocumentInput.files[0];
+    if (!identityDocument || identityDocument.size > 5 * 1024 * 1024) {
+      showMessage(registerMessage, 'Choose an ID file that is no larger than 5 MB.');
+      identityDocumentInput.focus();
+      return;
+    }
+    if (registerMessage) registerMessage.hidden = true;
+    showCameraStep();
+  };
 
-      if (password !== confirmPassword) {
-        showMessage(registerMessage, 'Passwords do not match.');
-        return;
-      }
+  registerContinueButton.addEventListener('click', continueToCamera);
 
-      if (!registerForm.reportValidity()) return;
-      if (!validatePhoneField(true)) {
-        phoneInput.focus();
-        return;
-      }
-      const identityDocument = identityDocumentInput.files[0];
-      if (!identityDocument || identityDocument.size > 5 * 1024 * 1024) {
-        showMessage(registerMessage, 'Choose an ID file that is no larger than 5 MB.');
-        identityDocumentInput.focus();
-        return;
-      }
+  cameraBackButton.addEventListener('click', () => {
+    selfieCapture.clear();
+    captureStep.hidden = true;
+    registerFields.hidden = false;
+    registerFields.querySelectorAll('input, button, select, textarea').forEach((field) => { field.disabled = false; });
+    registerContinueButton.focus();
+  });
 
-      const { terms, confirmPassword: _confirmPassword, ...payload } = formData;
-      payload.phone = toServerPhoneValue(payload.phone);
-      const requestData = new FormData();
-      Object.entries(payload).forEach(([key, value]) => requestData.append(key, value));
-      registerSubmitButton.disabled = true;
-      registerSubmitButton.textContent = 'Submitting…';
-      if (registerMessage) registerMessage.hidden = true;
-      try {
-        const response = await fetch(`${API_BASE_URL}/auth/register`, { method: 'POST', body: requestData });
-        const body = await readApiResponse(response);
-        if (!response.ok) throw new Error(getApiErrorMessage(body, 'Unable to create your account.'));
-        showToast({ message: 'Application submitted. Check your email after admin review.', type: 'success' });
-        navigate('/login', true);
-      } catch (error) {
-        showMessage(registerMessage, error.message);
-        registerSubmitButton.disabled = false;
-        registerSubmitButton.textContent = 'Submit for review';
-      }
-    });
-  }
+  registerForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (captureStep.hidden) {
+      continueToCamera();
+      return;
+    }
+    const selfieFile = selfieCapture.getFile();
+    if (!selfieFile) {
+      cameraMessage.textContent = 'Capture a live selfie before submitting your account.';
+      return;
+    }
+
+    registerFields.querySelectorAll('input, button, select, textarea').forEach((field) => { field.disabled = false; });
+    const requestData = new FormData(registerForm);
+    registerFields.querySelectorAll('input, button, select, textarea').forEach((field) => { field.disabled = true; });
+    requestData.delete('terms');
+    requestData.delete('confirmPassword');
+    requestData.set('phone', toServerPhoneValue(requestData.get('phone')));
+    requestData.append('selfie', selfieFile);
+
+    registerSubmitButton.disabled = true;
+    registerSubmitButton.textContent = 'Submitting…';
+    if (registerMessage) registerMessage.hidden = true;
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, { method: 'POST', body: requestData });
+      const body = await readApiResponse(response);
+      if (!response.ok) throw new Error(getApiErrorMessage(body, 'Unable to create your account.'));
+      showToast({ message: 'Account created. You can sign in while admin reviews your verification.', type: 'success' });
+      selfieCapture.clear();
+      navigate('/login', true);
+    } catch (error) {
+      showMessage(registerMessage, error.message);
+      registerSubmitButton.disabled = false;
+      registerSubmitButton.textContent = 'Submit for review';
+    }
+  });
+
+  window.addEventListener('hashchange', selfieCapture.clear, { once: true });
 }

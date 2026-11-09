@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import * as controller from '../controllers/bookingController.js';
 import { authenticate } from '../middleware/authenticate.js';
-import { authorize } from '../middleware/authorize.js';
+import { authorize, requireApprovedVerification } from '../middleware/authorize.js';
 import { validate } from '../middleware/validate.js';
 
 const router = Router();
@@ -9,7 +9,7 @@ router.use(authenticate);
 router.get('/', controller.list);
 router.get('/:id', controller.get);
 router.get('/:id/ticket', controller.ticket);
-router.post('/', authorize('tenant'), validate(['propertyId', 'moveInDate', 'occupants']), controller.create);
+router.post('/', authorize('tenant'), requireApprovedVerification, validate(['propertyId', 'moveInDate', 'occupants']), controller.create);
 router.patch('/:id/move-out', controller.updateMoveOut);
 router.patch('/:id/viewing-schedule', validate(['viewingDate', 'viewingTime']), controller.updateViewingSchedule);
 router.patch('/:id/status', validate(['status']), controller.updateStatus);

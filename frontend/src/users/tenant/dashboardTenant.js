@@ -7,16 +7,6 @@ import { markNotificationRead } from '../../services/notificationSystem.js';
 import { withMediaAccessToken } from '../../services/mediaAccess.js';
 import { buildInitialsAvatarSvg, getAvatarInitials } from '../../services/avatar.js';
 
-function parseViewingTime(value = '') {
-  const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(String(value).trim());
-  if (!match) return value ? null : '';
-  const totalMinutes = Number(match[1]) * 60 + Number(match[2]);
-  const isAvailable = (totalMinutes >= 480 && totalMinutes <= 660)
-    || (totalMinutes >= 720 && totalMinutes <= 960)
-    || (totalMinutes >= 1020 && totalMinutes <= 1140);
-  return isAvailable ? `${match[1]}:${match[2]}` : null;
-}
-
 const API_URL = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const apiBase = API_URL.replace(/\/api\/v1\/?$/, '');
 const MAX_LISTING_PRICE = 1000000;
@@ -182,7 +172,7 @@ function loadStyle() {
   const stylePromises = [];
 
   const dashboardStylesheet = new URL('./style/dashboardTenant.css', import.meta.url);
-  dashboardStylesheet.searchParams.set('v', 'tenant-search-focus-neutral-1');
+  dashboardStylesheet.searchParams.set('v', 'tenant-listings-lazy-scroll-1');
   stylePromises.push(loadTenantStylesheet('dashboard', dashboardStylesheet));
 
   if (!document.querySelector('[data-tenant-style="notifications"]')) {
@@ -522,16 +512,92 @@ function propertyDetailsMarkup(property) {
     </div>
     <form class="dashboard-request-form">
       <div class="dashboard-request-heading"><h3>Rental Request Details</h3></div>
-      <div class="dashboard-request-fields">
-        <label>Move-in Date<input type="date" name="moveInDate" required /></label>
-        <label>Move-out Date
-          <input type="date" name="moveOutDate" />
-          <span class="dashboard-indefinite-move-out"><input type="checkbox" name="isIndefiniteMoveOut" /><span>Indefinite / No planned move-out date</span></span>
-        </label>
-        <label>Occupants (people)<input type="number" name="occupants" min="1" step="1" value="1" required /></label>
-        <label>Viewing Date<input type="date" name="viewingDate" /></label>
-        <label>Viewing Time<input type="time" name="viewingTime" value="08:00" min="08:00" max="19:00" step="1800" lang="en-US" /></label>
+      <input type="hidden" name="moveInDate" />
+      <input type="hidden" name="moveOutDate" />
+      <div class="dashboard-request-layout">
+        <div class="dashboard-request-date-column">
+          <section class="dashboard-date-picker" aria-label="Choose move-in and move-out dates">
+            <div class="dashboard-date-picker__header">
+              <div>
+                <h4>Stay dates</h4>
+                <p class="dashboard-date-picker__hint" aria-live="polite">Choose a move-in date</p>
+              </div>
+              <div class="dashboard-date-picker__navigation">
+                <button type="button" class="dashboard-calendar-previous" aria-label="Previous month">&#8249;</button>
+                <strong class="dashboard-calendar-month" aria-live="polite"></strong>
+                <button type="button" class="dashboard-calendar-next" aria-label="Next month">&#8250;</button>
+              </div>
+            </div>
+            <div class="dashboard-calendar-weekdays" aria-hidden="true">
+              <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+            </div>
+            <div class="dashboard-calendar-days" role="group" aria-label="Calendar dates"></div>
+            <div class="dashboard-date-picker__summary" aria-live="polite">
+              <span>Move-in <strong data-move-in-label>Not selected</strong></span>
+              <span>Move-out <strong data-move-out-label>Not selected</strong></span>
+            </div>
+          </section>
+          <label class="dashboard-indefinite-move-out">
+            <input type="checkbox" name="isIndefiniteMoveOut" />
+            <span><strong>Indefinite / No planned move-out date</strong></span>
+          </label>
+        </div>
+        <section class="dashboard-guest-picker" aria-labelledby="dashboard-guest-heading">
+          <div class="dashboard-guest-picker__heading">
+            <h4 id="dashboard-guest-heading">Guests</h4>
+            <p>Choose everyone who will stay</p>
+          </div>
+          <input type="hidden" name="occupants" value="1" />
+          <div class="dashboard-guest-list">
+            <div class="dashboard-guest-row" data-guest-row="adults">
+              <span class="dashboard-guest-label"><strong>Adults</strong><small>Age 13+</small></span>
+              <div class="dashboard-guest-controls">
+                <button type="button" data-guest-action="decrease" aria-label="Remove an adult" disabled>−</button>
+                <output data-guest-count="adults" aria-live="polite">1</output>
+                <button type="button" data-guest-action="increase" aria-label="Add an adult">+</button>
+              </div>
+            </div>
+            <div class="dashboard-guest-row" data-guest-row="children">
+              <span class="dashboard-guest-label"><strong>Children</strong><small>Ages 2–12</small></span>
+              <div class="dashboard-guest-controls">
+                <button type="button" data-guest-action="decrease" aria-label="Remove a child" disabled>−</button>
+                <output data-guest-count="children" aria-live="polite">0</output>
+                <button type="button" data-guest-action="increase" aria-label="Add a child">+</button>
+              </div>
+            </div>
+            <div class="dashboard-guest-row" data-guest-row="infants">
+              <span class="dashboard-guest-label"><strong>Infants</strong><small>Under 2</small></span>
+              <div class="dashboard-guest-controls">
+                <button type="button" data-guest-action="decrease" aria-label="Remove an infant" disabled>−</button>
+                <output data-guest-count="infants" aria-live="polite">0</output>
+                <button type="button" data-guest-action="increase" aria-label="Add an infant">+</button>
+              </div>
+            </div>
+            <div class="dashboard-guest-row" data-guest-row="pets">
+              <span class="dashboard-guest-label"><strong>Pets</strong><small>Number of pets</small></span>
+              <div class="dashboard-guest-controls">
+                <button type="button" data-guest-action="decrease" aria-label="Remove a pet" disabled>−</button>
+                <output data-guest-count="pets" aria-live="polite">0</output>
+                <button type="button" data-guest-action="increase" aria-label="Add a pet">+</button>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
+      <section class="dashboard-request-review" aria-labelledby="dashboard-review-heading" aria-live="polite" hidden>
+        <h4 id="dashboard-review-heading">Review your request</h4>
+        <p>Check your dates and guest details before sending this request.</p>
+        <dl>
+          <div><dt>Property</dt><dd data-review-property></dd></div>
+          <div><dt>Move-in</dt><dd data-review-move-in></dd></div>
+          <div><dt>Move-out</dt><dd data-review-move-out></dd></div>
+          <div><dt>Adults</dt><dd data-review-adults></dd></div>
+          <div><dt>Children</dt><dd data-review-children></dd></div>
+          <div><dt>Infants</dt><dd data-review-infants></dd></div>
+          <div><dt>Pets</dt><dd data-review-pets></dd></div>
+        </dl>
+        <button type="button" class="dashboard-edit-request">Edit request</button>
+      </section>
       <div class="dashboard-request-actions">
         <button type="button" class="dashboard-chat-owner">Chat Owner</button>
         <button type="submit" class="dashboard-send-request">Send Request</button>
@@ -616,25 +682,72 @@ function loadPropertyDetailsStyle() {
     .dashboard-request-form { margin-top: 1.35rem; padding-top: 1.15rem; border-top: 1px solid #dce8e3; }
     .dashboard-request-heading { margin-bottom: .9rem; }
     .dashboard-request-heading h3 { margin: 0; color: #173b35; font-size: 1rem; font-weight: 750; }
-    .dashboard-request-fields { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .75rem; align-items: start; }
-    .dashboard-request-fields label { display: grid; gap: .35rem; min-width: 0; color: #526b63; font-size: .73rem; font-weight: 700; }
-    .dashboard-request-fields input:not([type="checkbox"]), .dashboard-request-fields select { width: 100%; min-width: 0; height: 42px; padding: 0 .65rem; border: 1px solid #d4e0db; border-radius: .45rem; background: #fff; color: #183a33; font: inherit; font-size: .82rem; }
-    .dashboard-request-fields input[name="viewingTime"]::-webkit-calendar-picker-indicator { display: none; }
-    .dashboard-request-fields input:focus-visible, .dashboard-request-fields select:focus-visible { outline: 2px solid #1aa87a; outline-offset: 2px; }
-    .dashboard-request-fields input[name="viewingTime"]:focus-visible { border-color: #9aa9a3; outline: none; }
-    .dashboard-request-fields .dashboard-indefinite-move-out { display: flex; align-items: flex-start; gap: .4rem; margin-top: .15rem; color: #61756e; font-size: .68rem; font-weight: 500; line-height: 1.3; }
-    .dashboard-request-fields .dashboard-indefinite-move-out input[type="checkbox"] { flex: 0 0 15px; width: 15px; height: 15px; margin: .05rem 0 0; padding: 0; accent-color: #13856a; }
+    .dashboard-date-picker { margin-bottom: 1rem; padding: 1rem; border: 1px solid #dce8e3; border-radius: .7rem; background: #fff; color: #173b35; }
+    .dashboard-date-picker__header { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: center; gap: .5rem; margin-bottom: .85rem; text-align: center; }
+    .dashboard-date-picker__header h4 { margin: 0; font-size: .95rem; font-weight: 750; }
+    .dashboard-date-picker__hint { margin: .2rem 0 0; color: #61756e; font-size: .76rem; }
+    .dashboard-date-picker__navigation { grid-column: 1; grid-row: 1; display: flex; align-items: center; justify-content: center; gap: .6rem; }
+    .dashboard-date-picker__navigation strong { min-width: 9.5rem; text-align: center; font-size: .83rem; }
+    .dashboard-date-picker__navigation button { display: grid; place-items: center; width: 2rem; height: 2rem; padding: 0; border: 1px solid #dce8e3; border-radius: 50%; background: #fff; color: #28654f; font: inherit; font-size: 1.2rem; cursor: pointer; }
+    .dashboard-date-picker__navigation button:hover:not(:disabled) { background: #edf6f1; }
+    .dashboard-date-picker__navigation button:disabled { opacity: .4; cursor: not-allowed; }
+    .dashboard-calendar-weekdays, .dashboard-calendar-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .3rem; }
+    .dashboard-calendar-weekdays { margin-bottom: .3rem; }
+    .dashboard-calendar-weekdays span { padding: .3rem 0; color: #71847b; font-size: .68rem; font-weight: 700; text-align: center; text-transform: uppercase; }
+    .dashboard-calendar-day, .dashboard-calendar-empty { min-width: 0; min-height: 2.65rem; }
+    .dashboard-calendar-day { border: 1px solid #e4ece8; border-radius: .4rem; background: #fff; color: #23483c; font: inherit; font-size: .8rem; cursor: pointer; }
+    .dashboard-calendar-day:hover:not(:disabled):not(.is-selected) { border-color: #3b8f5b; background: #e6f1e8; }
+    .dashboard-calendar-day:disabled { border-color: transparent; background: #fff; color: #bec9c3; cursor: not-allowed; }
+    .dashboard-calendar-day.is-in-range { border-color: #c1dfca; background: #d8eadc; color: #244e34; }
+    .dashboard-calendar-day.is-selected { border-color: #216b3a; background: #216b3a; color: #fff; font-weight: 750; }
+    .dashboard-calendar-day:focus-visible, .dashboard-date-picker__navigation button:focus-visible { outline: 2px solid #216b3a; outline-offset: 2px; }
+    .dashboard-date-picker__summary { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; margin-top: .8rem; padding: .65rem .75rem; border-radius: .45rem; background: #edf5ef; color: #496458; font-size: .75rem; }
+    .dashboard-date-picker__summary strong { margin-left: .25rem; color: #1f4d32; }
+    .dashboard-request-layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; align-items: start; }
+    .dashboard-request-date-column { min-width: 0; }
+    .dashboard-date-picker { margin-bottom: .75rem; }
+    .dashboard-indefinite-move-out { display: flex; align-items: center; gap: .7rem; min-height: 3.75rem; padding: .7rem .8rem; border: 1px solid #8bb99a; border-radius: .55rem; background: #eaf4ec; color: #214f31; cursor: pointer; }
+    .dashboard-indefinite-move-out:has(input:checked) { border-color: #216b3a; background: #d7eadb; box-shadow: 0 0 0 1px #216b3a; }
+    .dashboard-indefinite-move-out input[type="checkbox"] { flex: 0 0 1.2rem; width: 1.2rem; height: 1.2rem; margin: 0; accent-color: #216b3a; }
+    .dashboard-indefinite-move-out span { display: grid; gap: .15rem; }
+    .dashboard-indefinite-move-out strong { font-size: .8rem; }
+    .dashboard-indefinite-move-out small { color: #55705d; font-size: .72rem; font-weight: 500; }
+    .dashboard-guest-picker { min-width: 0; padding: .85rem 1rem; border: 1px solid #dce8e3; border-radius: .65rem; }
+    .dashboard-guest-picker__heading { margin-bottom: .35rem; }
+    .dashboard-guest-picker__heading h4 { margin: 0; color: #173b35; font-size: .95rem; font-weight: 750; }
+    .dashboard-guest-picker__heading p { margin: .2rem 0 0; color: #718078; font-size: .74rem; }
+    .dashboard-guest-row { display: flex; align-items: center; justify-content: space-between; gap: .5rem; min-height: 4.1rem; border-bottom: 1px solid #e6eeea; }
+    .dashboard-guest-row:last-child { border-bottom: 0; }
+    .dashboard-guest-label { display: grid; gap: .15rem; color: #263c32; }
+    .dashboard-guest-label strong { font-size: .82rem; font-weight: 650; }
+    .dashboard-guest-label small { color: #78877f; font-size: .7rem; }
+    .dashboard-guest-controls { display: flex; align-items: center; gap: .45rem; }
+    .dashboard-guest-controls button { display: grid; place-items: center; width: 2rem; height: 2rem; padding: 0; border: 1px solid #d6e2db; border-radius: .35rem; background: #fff; color: #285d3b; font: inherit; font-size: 1.1rem; line-height: 1; cursor: pointer; }
+    .dashboard-guest-controls button:hover:not(:disabled) { border-color: #6da57b; background: #edf5ef; }
+    .dashboard-guest-controls button:disabled { color: #adb9b1; background: #f5f7f5; cursor: not-allowed; }
+    .dashboard-guest-controls output { min-width: 1.4rem; color: #263c32; font-size: .85rem; text-align: center; }
+    .dashboard-guest-controls button:focus-visible { outline: 2px solid #216b3a; outline-offset: 2px; }
     .dashboard-request-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .9rem; }
     .dashboard-request-actions button { min-height: 42px; padding: .6rem 1rem; border: 1px solid #13856a; border-radius: .45rem; font: inherit; font-size: .82rem; font-weight: 700; cursor: pointer; }
     .dashboard-chat-owner { background: #fff; color: #11765f; }
     .dashboard-chat-owner:hover { background: #edf7f3; }
     .dashboard-send-request { background: #159879; color: #fff; }
     .dashboard-send-request:hover { background: #107e65; }
+    .dashboard-request-review { margin-top: .9rem; padding: 1rem; border: 1px solid #c9ded0; border-radius: .55rem; background: #f3f8f4; color: #24483a; }
+    .dashboard-request-review[hidden] { display: none; }
+    .dashboard-request-review h4 { margin: 0; color: #173b35; font-size: .95rem; }
+    .dashboard-request-review > p { margin: .25rem 0 .75rem; color: #687b70; font-size: .78rem; }
+    .dashboard-request-review dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem .9rem; margin: 0 0 .85rem; }
+    .dashboard-request-review dl div { display: flex; justify-content: space-between; gap: .5rem; padding-bottom: .35rem; border-bottom: 1px solid #e0ebe3; font-size: .78rem; }
+    .dashboard-request-review dt { color: #687b70; }
+    .dashboard-request-review dd { margin: 0; color: #214f31; font-weight: 700; text-align: right; }
+    .dashboard-edit-request { min-height: 36px; padding: .45rem .8rem; border: 1px solid #8bb99a; border-radius: .4rem; background: #fff; color: #285d3b; font: inherit; font-size: .78rem; font-weight: 700; cursor: pointer; }
+    .dashboard-edit-request:hover { background: #eaf4ec; }
     .dashboard-request-status { min-height: 1.2rem; margin: .55rem 0 0; color: #7b4b2d; font-size: .82rem; }
     @media (max-width: 860px) {
       .property-detail-modal-content { grid-template-columns: minmax(0, 1fr); gap: 1.1rem; }
       .property-detail-gallery-stage { height: 280px; }
-      .dashboard-request-fields { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .dashboard-request-layout { grid-template-columns: minmax(0, 1fr); }
     }
     @media (max-width: 560px) {
       .ui-modal:has(.property-detail-modal-content) { width: calc(100vw - 1rem); max-height: calc(100vh - 1rem); }
@@ -644,11 +757,14 @@ function loadPropertyDetailsStyle() {
       .property-detail-gallery-stage { height: 220px; }
       .property-detail-thumbnail { height: 54px; }
       .property-detail-facts { gap: .65rem; }
-      .dashboard-request-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .dashboard-date-picker { padding: .75rem; }
+      .dashboard-calendar-days, .dashboard-calendar-weekdays { gap: .2rem; }
+      .dashboard-calendar-day, .dashboard-calendar-empty { min-height: 2.35rem; }
+      .dashboard-date-picker__navigation { gap: .3rem; }
+      .dashboard-date-picker__navigation strong { min-width: 7rem; }
       .dashboard-request-actions button { flex: 1 1 9rem; }
     }
     @media (max-width: 360px) {
-      .dashboard-request-fields { grid-template-columns: minmax(0, 1fr); }
     }
   `;
   document.head.append(style);
@@ -1041,6 +1157,8 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
           </div>
         </header>
 
+        ${user.verification_status === 'pending' ? `<section class="account-verification-notice" role="status" aria-live="polite"><strong>Account verification pending</strong><p>You can browse properties, but you cannot send inquiries or rental requests until an admin approves your account.</p></section>` : ''}
+
         <div id="tenant-schedule-notice" class="tenant-schedule-notice" role="status" hidden>
           <span class="tenant-schedule-notice-icon" aria-hidden="true"><i class="bi bi-calendar-check-fill"></i></span>
           <p id="tenant-schedule-notice-message"></p>
@@ -1059,7 +1177,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
           <div class="map-column">
             <div class="map-stack">
               ${renderMapPanelShell({
-                title: 'Campus map overview',
+                title: 'Map Overview',
                 buttonLabel: 'View nearby listings',
                 statusText: 'Loading real listings from the database...',
                 query: 'DLSU, Manila, Philippines'
@@ -1251,6 +1369,12 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
   }, 15000);
 
   const state = { all: [], visible: [] };
+  const listingPageSize = 12;
+  let listingPage = 0;
+  let hasMoreListings = true;
+  let isLoadingListings = false;
+  let listingLoadError = '';
+  let cardsObserver;
   const routeSearch = typeof window.DORMHIVE_ROUTE_SEARCH === 'string' ? window.DORMHIVE_ROUTE_SEARCH : window.location.search;
   const routeParams = new URLSearchParams(routeSearch);
   const requestedPropertyId = routeParams.get('propertyId');
@@ -1261,6 +1385,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
   const range = root.querySelector('#range');
   const rangeNote = root.querySelector('#range-note');
   const cards = root.querySelector('#featured-cards');
+  const listingScrollContainer = root.querySelector('main');
   const clearButton = root.querySelector('#clear');
   const applyButton = root.querySelector('#apply-filters');
   const mapStatus = root.querySelector('#map-status');
@@ -1268,7 +1393,10 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
   const mapFrame = root.querySelector('#tenant-map');
   const scheduleNotice = root.querySelector('#tenant-schedule-notice');
   const scheduleNoticeMessage = root.querySelector('#tenant-schedule-notice-message');
-  const mapInitialization = initLeafletMap(root.querySelector('.map'), []).catch((error) => {
+  const mapInitialization = initLeafletMap(root.querySelector('.map'), [], {
+    viewStorageKey: 'dormhive.tenant.mapView',
+    nearbyPlaces: true
+  }).catch((error) => {
     console.warn('Unable to initialize tenant map:', error);
     return null;
   });
@@ -1294,6 +1422,42 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
     cards.appendChild(skeleton);
     if (mapStatus) mapStatus.textContent = 'Loading nearby listings...';
   };
+
+  const loadNextListingPage = async () => {
+    if (isLoadingListings || !hasMoreListings) return;
+    isLoadingListings = true;
+    listingLoadError = '';
+    const loadingButton = cards?.querySelector('.listing-load-more button');
+    if (loadingButton) {
+      loadingButton.disabled = true;
+      loadingButton.textContent = 'Loading more listings...';
+    }
+    try {
+      const nextPage = listingPage + 1;
+      const response = await api(`/properties?page=${nextPage}&limit=${listingPageSize}&status=approved`);
+      const pageItems = Array.isArray(response.data) ? response.data.filter((item) => isPropertyVisibleToTenant(item)) : [];
+      const knownIds = new Set(state.all.map((item) => String(item.id)));
+      state.all.push(...pageItems.filter((item) => !knownIds.has(String(item.id))));
+      listingPage = nextPage;
+      const total = Number(response.pagination?.total);
+      hasMoreListings = Number.isFinite(total)
+        ? listingPage * listingPageSize < total
+        : pageItems.length === listingPageSize;
+      state.visible = state.all;
+      syncMapLocation(state.all);
+    } catch (error) {
+      listingLoadError = error.message || 'Unable to load more listings.';
+    } finally {
+      isLoadingListings = false;
+      renderCards();
+    }
+  };
+
+  if ('IntersectionObserver' in window) {
+    cardsObserver = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) loadNextListingPage();
+    }, { root: listingScrollContainer, rootMargin: '320px 0px', threshold: 0 });
+  }
 
   const updateRangeNote = () => {
     maxPrice.value = String(range.value || MAX_LISTING_PRICE);
@@ -1527,28 +1691,108 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
     const moveIn = form.querySelector('[name="moveInDate"]');
     const moveOut = form.querySelector('[name="moveOutDate"]');
     const indefiniteMoveOut = form.querySelector('[name="isIndefiniteMoveOut"]');
-    const viewingDateInput = form.querySelector('[name="viewingDate"]');
-    const viewingTimeInput = form.querySelector('[name="viewingTime"]');
-    moveIn.min = new Date().toISOString().split('T')[0];
-    viewingDateInput.min = new Date().toISOString().split('T')[0];
-    const updateMoveOutMinimum = () => {
-      if (!moveIn.value) {
-        moveOut.removeAttribute('min');
-        return;
+    const calendarDays = form.querySelector('.dashboard-calendar-days');
+    const calendarMonth = form.querySelector('.dashboard-calendar-month');
+    const calendarHint = form.querySelector('.dashboard-date-picker__hint');
+    const moveInLabel = form.querySelector('[data-move-in-label]');
+    const moveOutLabel = form.querySelector('[data-move-out-label]');
+    const previousMonthButton = form.querySelector('.dashboard-calendar-previous');
+    const nextMonthButton = form.querySelector('.dashboard-calendar-next');
+    const occupantsInput = form.querySelector('[name="occupants"]');
+    const reviewPanel = form.querySelector('.dashboard-request-review');
+    const submitButton = form.querySelector('.dashboard-send-request');
+    const guestCounts = { adults: 1, children: 0, infants: 0, pets: 0 };
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const todayKey = dateKey(today);
+    let displayedMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const formatCalendarDate = (dateValue) => new Intl.DateTimeFormat(undefined, { month: 'long', day: 'numeric', year: 'numeric' }).format(new Date(`${dateValue}T00:00:00`));
+    const reviewDate = (dateValue) => dateValue ? formatCalendarDate(dateValue) : 'Not selected';
+    const updateReview = () => {
+      reviewPanel.querySelector('[data-review-property]').textContent = property.title || 'Property';
+      reviewPanel.querySelector('[data-review-move-in]').textContent = reviewDate(moveIn.value);
+      reviewPanel.querySelector('[data-review-move-out]').textContent = indefiniteMoveOut.checked ? 'Indefinite / No planned move-out date' : reviewDate(moveOut.value);
+      for (const [guestType, count] of Object.entries(guestCounts)) {
+        reviewPanel.querySelector(`[data-review-${guestType}]`).textContent = String(count);
       }
-      const firstValidMoveOut = new Date(`${moveIn.value}T00:00:00`);
-      firstValidMoveOut.setDate(firstValidMoveOut.getDate() + 1);
-      moveOut.min = `${firstValidMoveOut.getFullYear()}-${String(firstValidMoveOut.getMonth() + 1).padStart(2, '0')}-${String(firstValidMoveOut.getDate()).padStart(2, '0')}`;
     };
-    updateMoveOutMinimum();
-    moveIn.addEventListener('change', updateMoveOutMinimum);
-    viewingDateInput.addEventListener('change', () => {
+    let isReviewingRequest = false;
+    const renderCalendar = () => {
+      calendarMonth.textContent = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(displayedMonth);
+      previousMonthButton.disabled = displayedMonth.getFullYear() === today.getFullYear() && displayedMonth.getMonth() === today.getMonth();
+      const monthStart = new Date(displayedMonth.getFullYear(), displayedMonth.getMonth(), 1);
+      const daysInMonth = new Date(displayedMonth.getFullYear(), displayedMonth.getMonth() + 1, 0).getDate();
+      const cells = [];
+      for (let blank = 0; blank < monthStart.getDay(); blank += 1) cells.push('<span class="dashboard-calendar-empty" aria-hidden="true"></span>');
+      for (let day = 1; day <= daysInMonth; day += 1) {
+        const date = new Date(displayedMonth.getFullYear(), displayedMonth.getMonth(), day);
+        const value = dateKey(date);
+        const isSelected = value === moveIn.value || value === moveOut.value;
+        const isInRange = moveIn.value && moveOut.value && value > moveIn.value && value < moveOut.value;
+        const classes = ['dashboard-calendar-day', isSelected ? 'is-selected' : '', isInRange ? 'is-in-range' : ''].filter(Boolean).join(' ');
+        const disabled = value < todayKey;
+        const dateLabel = formatCalendarDate(value);
+        cells.push(`<button type="button" class="${classes}" data-calendar-date="${value}" aria-label="${dateLabel}" aria-pressed="${isSelected}"${disabled ? ' disabled' : ''}>${day}</button>`);
+      }
+      calendarDays.innerHTML = cells.join('');
+      moveInLabel.textContent = moveIn.value ? formatCalendarDate(moveIn.value) : 'Not selected';
+      moveOutLabel.textContent = indefiniteMoveOut.checked ? 'Indefinite' : (moveOut.value ? formatCalendarDate(moveOut.value) : 'Not selected');
+      calendarHint.textContent = indefiniteMoveOut.checked
+        ? 'Choose or update a move-in date'
+        : moveIn.value && moveOut.value
+          ? 'Select another date to start a new stay'
+          : moveIn.value
+            ? 'Now choose a move-out date, or select another date to change move-in'
+            : 'Choose a move-in date';
+    };
+    calendarDays.addEventListener('click', (event) => {
+      const dayButton = event.target.closest('[data-calendar-date]');
+      if (!dayButton || dayButton.disabled) return;
+      const selectedDate = dayButton.dataset.calendarDate;
+      indefiniteMoveOut.checked = false;
+      if (!moveIn.value || moveOut.value || selectedDate <= moveIn.value) {
+        moveIn.value = selectedDate;
+        moveOut.value = '';
+      } else {
+        moveOut.value = selectedDate;
+      }
       status.textContent = '';
+      renderCalendar();
+      if (isReviewingRequest) updateReview();
     });
-    viewingTimeInput.addEventListener('change', () => { status.textContent = ''; });
+    previousMonthButton.addEventListener('click', () => {
+      displayedMonth = new Date(displayedMonth.getFullYear(), displayedMonth.getMonth() - 1, 1);
+      renderCalendar();
+    });
+    nextMonthButton.addEventListener('click', () => {
+      displayedMonth = new Date(displayedMonth.getFullYear(), displayedMonth.getMonth() + 1, 1);
+      renderCalendar();
+    });
+    renderCalendar();
+    form.querySelector('.dashboard-guest-list').addEventListener('click', (event) => {
+      const actionButton = event.target.closest('[data-guest-action]');
+      if (!actionButton) return;
+      const guestRow = actionButton.closest('[data-guest-row]');
+      const guestType = guestRow.dataset.guestRow;
+      const minimum = guestType === 'adults' ? 1 : 0;
+      guestCounts[guestType] = Math.max(minimum, guestCounts[guestType] + (actionButton.dataset.guestAction === 'increase' ? 1 : -1));
+      guestRow.querySelector('[data-guest-count]').textContent = String(guestCounts[guestType]);
+      guestRow.querySelector('[data-guest-action="decrease"]').disabled = guestCounts[guestType] === minimum;
+      occupantsInput.value = String(guestCounts.adults + guestCounts.children + guestCounts.infants);
+      status.textContent = '';
+      if (isReviewingRequest) updateReview();
+    });
     indefiniteMoveOut.addEventListener('change', () => {
-      moveOut.disabled = indefiniteMoveOut.checked;
       if (indefiniteMoveOut.checked) moveOut.value = '';
+      renderCalendar();
+      if (isReviewingRequest) updateReview();
+    });
+    form.querySelector('.dashboard-edit-request').addEventListener('click', () => {
+      isReviewingRequest = false;
+      reviewPanel.hidden = true;
+      submitButton.textContent = 'Send Request';
+      status.textContent = '';
     });
     modal.querySelector('.dashboard-chat-owner').addEventListener('click', () => {
       const chatUrl = new URL(window.location.href);
@@ -1558,30 +1802,35 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
     });
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
+      if (user.verification_status === 'pending') {
+        status.textContent = 'Your account is pending review. Inquiries unlock after admin approval.';
+        return;
+      }
       if (!form.reportValidity()) return;
+      if (!moveIn.value) {
+        status.textContent = 'Choose a move-in date.';
+        return;
+      }
       if (!indefiniteMoveOut.checked && moveOut.value && moveIn.value && moveOut.value <= moveIn.value) {
         status.textContent = 'Move-out date must be after the move-in date.';
         return;
       }
+      if (!isReviewingRequest) {
+        updateReview();
+        reviewPanel.hidden = false;
+        reviewPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        isReviewingRequest = true;
+        submitButton.textContent = 'Confirm & Send Request';
+        status.textContent = 'Review your request details, then confirm to send.';
+        return;
+      }
       const formData = new FormData(form);
-      const viewingDate = String(formData.get('viewingDate') ?? '').trim();
-      const rawViewingTime = viewingTimeInput.value.trim();
-      const viewingTime = viewingDate && rawViewingTime ? parseViewingTime(rawViewingTime) : '';
-      if (viewingTime === null) {
-        status.textContent = 'Choose a time between 8 AM and 7 PM during available hours.';
-        return;
-      }
-      if (Boolean(viewingDate) !== Boolean(viewingTime)) {
-        status.textContent = 'Choose both a viewing date and time, or leave both blank.';
-        return;
-      }
-      const submitButton = form.querySelector('.dashboard-send-request');
       submitButton.disabled = true;
       try {
         const response = await fetch(`${API_URL}/bookings`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` },
-          body: JSON.stringify({ propertyId: Number(property.id), moveInDate: formData.get('moveInDate'), moveOutDate: indefiniteMoveOut.checked ? null : formData.get('moveOutDate') || null, isIndefiniteMoveOut: indefiniteMoveOut.checked, viewingDate: viewingDate || null, viewingTime: viewingTime || null, occupants: Number(formData.get('occupants') || 1), message: '' })
+          body: JSON.stringify({ propertyId: Number(property.id), moveInDate: formData.get('moveInDate'), moveOutDate: indefiniteMoveOut.checked ? null : formData.get('moveOutDate') || null, isIndefiniteMoveOut: indefiniteMoveOut.checked, occupants: Number(formData.get('occupants') || 1), message: `Adults: ${guestCounts.adults}; Children: ${guestCounts.children}; Infants: ${guestCounts.infants}; Pets: ${guestCounts.pets}.` })
         });
         const body = await readApiResponse(response);
         if (!response.ok) throw new Error(getApiErrorMessage(body, 'Unable to submit booking request.'));
@@ -1592,13 +1841,30 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
         submitButton.disabled = false;
       }
     });
+    if (user.verification_status === 'pending') {
+      form.querySelectorAll('input, button, select, textarea').forEach((control) => { control.disabled = true; });
+      status.textContent = 'Your account is pending review. Inquiries unlock after admin approval.';
+    }
     openModal(modal);
   };
 
   const renderFeaturedCards = (items = []) => {
     if (!cards) return;
     if (!items.length) {
-      cards.innerHTML = '<div class="empty">No properties found</div>';
+      cards.innerHTML = `<div class="empty">${hasMoreListings ? 'No listings match yet. Scroll to load more.' : 'No properties found'}</div>`;
+      if (hasMoreListings || listingLoadError) {
+        const loadMore = document.createElement('div');
+        loadMore.className = 'listing-load-more';
+        loadMore.setAttribute('aria-live', 'polite');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = listingLoadError ? 'Could not load more listings. Try again' : 'Load more listings';
+        button.disabled = isLoadingListings;
+        button.addEventListener('click', loadNextListingPage);
+        loadMore.append(button);
+        cards.append(loadMore);
+        if (cardsObserver && !isLoadingListings && !listingLoadError) cardsObserver.observe(loadMore);
+      }
       return;
     }
 
@@ -1620,7 +1886,7 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
       return `
         <article class="listing" data-id="${item.id}">
           <div class="photo p${index % 4}">
-            <img src="${esc(galleryImages[0])}" alt="${esc(item.title || 'Listing photo')}" class="listing-photo" />
+            <img src="${esc(galleryImages[0])}" alt="${esc(item.title || 'Listing photo')}" class="listing-photo" loading="lazy" decoding="async" />
             <em>${esc(item.status === 'approved' ? 'Verified' : (item.status || 'Approved'))}</em>
             <button type="button" class="favorite-toggle${isFavorite ? ' is-favorited' : ''}" data-property-id="${item.id}" aria-label="${isFavorite ? 'Remove from favorites' : 'Save listing'}" aria-pressed="${isFavorite}">${heartIcon(isFavorite)}</button>
             <button type="button" class="favorite-toggle${isFavorite ? ' is-favorited' : ''}" data-property-id="${item.id}" aria-label="${isFavorite ? 'Remove from favorites' : 'Save listing'}" aria-pressed="${isFavorite}">${heartIcon(isFavorite)}</button>
@@ -1701,6 +1967,22 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
         if (property) openPropertyDetails(property);
       });
     });
+
+    if (hasMoreListings || isLoadingListings || listingLoadError) {
+      const loadMore = document.createElement('div');
+      loadMore.className = 'listing-load-more';
+      loadMore.setAttribute('aria-live', 'polite');
+      const loadMoreButton = document.createElement('button');
+      loadMoreButton.type = 'button';
+      loadMoreButton.textContent = listingLoadError
+        ? 'Could not load more listings. Try again'
+        : isLoadingListings ? 'Loading more listings...' : 'Load more listings';
+      loadMoreButton.disabled = isLoadingListings;
+      loadMoreButton.addEventListener('click', loadNextListingPage);
+      loadMore.append(loadMoreButton);
+      cards.append(loadMore);
+      if (cardsObserver && !isLoadingListings && !listingLoadError) cardsObserver.observe(loadMore);
+    }
   };
 
   const renderCards = () => {
@@ -1878,15 +2160,17 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
   const load = async () => {
     renderSkeletonState();
     try {
-      // Only load approved properties for tenants (Featured Listings and map markers)
       const [response, bookingsResponse] = await Promise.all([
-        api('/properties?limit=100&status=approved'),
+        api(`/properties?page=1&limit=${listingPageSize}&status=approved`),
         api('/bookings').catch((error) => {
           console.warn('Unable to load approved booking schedules:', error);
           return { data: [] };
         })
       ]);
       state.all = Array.isArray(response.data) ? response.data.filter((item) => isPropertyVisibleToTenant(item)) : [];
+      listingPage = 1;
+      const total = Number(response.pagination?.total);
+      hasMoreListings = Number.isFinite(total) ? listingPage * listingPageSize < total : state.all.length === listingPageSize;
       state.visible = state.all;
       renderScheduleNotice(Array.isArray(bookingsResponse.data) ? bookingsResponse.data : []);
       await mapInitialization;
@@ -1905,6 +2189,24 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
     }
   };
 
+  const refreshLoadedListingPages = async () => {
+    if (!root.isConnected || isLoadingListings || listingPage < 1) return;
+    try {
+      const pages = Array.from({ length: listingPage }, (_, index) => index + 1);
+      const responses = await Promise.all(pages.map((page) => api(`/properties?page=${page}&limit=${listingPageSize}&status=approved`)));
+      state.all = responses.flatMap((response) => Array.isArray(response.data)
+        ? response.data.filter((item) => isPropertyVisibleToTenant(item))
+        : []);
+      const total = Number(responses[0]?.pagination?.total);
+      hasMoreListings = Number.isFinite(total) ? listingPage * listingPageSize < total : state.all.length >= listingPage * listingPageSize;
+      state.visible = state.all;
+      syncMapLocation(state.all);
+      renderCards();
+    } catch (error) {
+      console.warn('Unable to refresh approved listings:', error);
+    }
+  };
+
   syncTenantProfileUi(root, user);
   updateRangeNote();
   load();
@@ -1912,5 +2214,11 @@ export async function renderDashboardTenant(root = document.querySelector('#app'
   // Periodically refresh approved listings so admin status changes propagate to tenants.
   // This keeps Featured Listings and map markers in sync when an admin approves/rejects properties.
   const POLL_INTERVAL = 15000; // 15 seconds
-  setInterval(load, POLL_INTERVAL);
+  const listingPoll = setInterval(() => {
+    if (!tenantApp.isConnected) {
+      clearInterval(listingPoll);
+      return;
+    }
+    refreshLoadedListingPages();
+  }, POLL_INTERVAL);
 }

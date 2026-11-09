@@ -9,6 +9,20 @@ import { withMediaAccessToken } from '../../services/mediaAccess.js';
 const API = window.DORMHIVE_API_URL ?? 'http://localhost:5000/api/v1';
 const apiBase = API.replace(/\/api\/v1\/?$/, '');
 const session = () => { try { return JSON.parse(localStorage.getItem('dormhive.user')) ?? {}; } catch { return {}; } };
+async function refreshOwnerSession() {
+  const cachedUser = session();
+  if (!cachedUser.id) return cachedUser;
+  try {
+    const result = await api.profile.get(cachedUser.id, { cache: 'no-store' });
+    const currentUser = result?.data ?? result;
+    if (!currentUser?.id) return cachedUser;
+    const updatedUser = { ...cachedUser, ...currentUser };
+    localStorage.setItem('dormhive.user', JSON.stringify(updatedUser));
+    return updatedUser;
+  } catch {
+    return cachedUser;
+  }
+}
 const auth = () => ({ Authorization: `Bearer ${localStorage.getItem('dormhive.accessToken') ?? ''}` });
 const escape = (value = '') => { const el = document.createElement('span'); el.textContent = value; return el.innerHTML; };
 const propertyCoordinates = (property = {}) => {
@@ -577,7 +591,7 @@ export async function renderDashboardOwner(root = document.querySelector('#app')
   if (!root) throw new Error('Owner dashboard requires #app.');
   clearTenantRouteStyles();
   await Promise.all([css(), ensureOwnerSidebarStyles()]);
-  const user = session();
+  const user = await refreshOwnerSession();
   const profileName = user.name || 'Owner';
   const profileInitials = profileName
     .split(' ')
@@ -630,6 +644,7 @@ export async function renderDashboardOwner(root = document.querySelector('#app')
               </div>
             </div>
           </section>
+          ${user.verification_status === 'pending' ? `<section class="account-verification-notice" role="status" aria-live="polite"><strong>Account verification pending</strong><p>You can use your dashboard, but you cannot publish or edit property listings until an admin approves your account.</p></section>` : ''}
           <section class="metrics-grid">
             <article class="metric-card metric-card--highlight">
               <div><p>Listings</p><strong data-metric="listings">0 Active</strong><span data-metric-note="listings">0 / 0 properties active</span></div>
@@ -660,7 +675,9 @@ export async function renderDashboardOwner(root = document.querySelector('#app')
             <aside class="panel action-panel">
               <div class="panel-title-row"><h2>Action Center</h2></div>
               <div class="action-stack">
-                <button class="action-button" type="button" data-route="#/owner/myListing">+ List a New Property</button>
+                ${user.verification_status === 'pending'
+    ? '<button class="action-button" type="button" disabled title="Available after account approval">Account pending approval</button>'
+    : '<button class="action-button" type="button" data-route="#/owner/myListing">+ List a New Property</button>'}
                 <div class="pending-actions" data-pending-actions><p class="action-section-label">Pending Actions</p></div>
                 <button class="action-button secondary">Generate Performance Report</button>
               </div>
@@ -715,7 +732,7 @@ export async function renderDashboardOwner(root = document.querySelector('#app')
     ownerWelcome.hidden = true;
   });
   root.querySelector('.menu').addEventListener('click', () => shell.classList.toggle('nav-open'));
-  root.querySelector('[data-route="#/owner/myListing"]').addEventListener('click', () => location.hash = '#/owner/myListing');
+  root.querySelector('[data-route="#/owner/myListing"]')?.addEventListener('click', () => location.hash = '#/owner/myListing');
   const notificationMenu = root.querySelector('.notification-menu');
   const notificationTrigger = root.querySelector('.notification-trigger');
   const notificationBadge = root.querySelector('.notification-badge');

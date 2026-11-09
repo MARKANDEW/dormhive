@@ -1,5 +1,20 @@
 # DormHive backend media migration
 
+## Local demo accounts and listings
+
+The demo data seeder creates 50 tenants (`001@tenants.com`–`050@tenants.com`), 50 owners (`001@owner.com`–`050@owner.com`), and one approved listing per owner across 50 Philippine locations. All demo accounts use `12345678`. The script is restricted to the local `dormhive_restore` database, refuses to run unless `DEMO_SEED_APPLY=true`, and stops if any matching account already exists.
+
+Run it from this directory with the database configured in `.env`:
+
+```powershell
+$env:DEMO_SEED_APPLY = 'true'
+npm run seed-demo-data
+npm run seed-demo-data -- -- --update-locations
+Remove-Item Env:DEMO_SEED_APPLY
+```
+
+The `--update-locations` mode updates only the matching demo listings' approximate barangay/city-center coordinates and is safe to rerun. These are local demo fixtures only; they are marked active/approved and their listings intentionally have no ownership-proof documents.
+
 ## Custom property types
 
 The `properties.room_type` column is stored as `VARCHAR(100)` so owners can use the custom type entered through the `Other` property type option. For an existing database, run `npm run setup-db` from the backend directory to widen the current enum column while preserving existing property types.

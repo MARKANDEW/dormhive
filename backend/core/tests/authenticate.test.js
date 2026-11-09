@@ -1,8 +1,30 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { authenticate, authenticateMedia, optionalAuthenticate } from '../middleware/authenticate.js';
+import { authenticate, authenticateMedia, canAuthenticateUser, optionalAuthenticate } from '../middleware/authenticate.js';
+import { requireApprovedVerification } from '../middleware/authorize.js';
 
 process.env.JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET ?? 'test-secret';
+
+test('pending applicants may authenticate but cannot perform approved-only actions', () => {
+  const pendingUser = { status: 'pending', verification_status: 'pending' };
+  assert.equal(canAuthenticateUser(pendingUser), true);
+  assert.equal(canAuthenticateUser({ status: 'suspended', verification_status: 'approved' }), false);
+
+  let nextCalled = false;
+  const response = makeResponse();
+  requireApprovedVerification({ user: pendingUser }, response, () => { nextCalled = true; });
+  assert.equal(nextCalled, false);
+  assert.equal(response.statusCode, 403);
+  assert.equal(response.payload.message, 'Your account must be approved before you can perform this action.');
+});
+
+test('approved active users pass the approved-account guard', () => {
+  let nextCalled = false;
+  const response = makeResponse();
+  requireApprovedVerification({ user: { status: 'active', verification_status: 'approved' } }, response, () => { nextCalled = true; });
+  assert.equal(nextCalled, true);
+  assert.equal(response.statusCode, null);
+});
 
 function makeResponse() {
   return {

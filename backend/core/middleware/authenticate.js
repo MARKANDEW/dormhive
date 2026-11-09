@@ -1,13 +1,18 @@
 import jwt from 'jsonwebtoken';
 import { findById } from '../models/User.js';
 
+export function canAuthenticateUser(user) {
+  return (user?.status === 'active' && user?.verification_status === 'approved')
+    || (user?.status === 'pending' && user?.verification_status === 'pending');
+}
+
 export async function authenticate(request, response, next) {
   const [scheme, token] = (request.headers.authorization ?? '').split(' ');
   if (scheme !== 'Bearer' || !token) return response.status(401).json({ message: 'Authentication is required.' });
   try {
     const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     const user = await findById(payload.sub);
-    if (!user || user.status !== 'active' || user.verification_status !== 'approved') return response.status(401).json({ message: 'Your session is no longer valid.' });
+    if (!canAuthenticateUser(user)) return response.status(401).json({ message: 'Your session is no longer valid.' });
     request.user = user;
     return next();
   } catch {
@@ -30,7 +35,7 @@ export async function authenticateMedia(request, response, next) {
   }
   try {
     const user = await findById(payload.sub);
-    if (!user || user.status !== 'active' || user.verification_status !== 'approved') return response.status(401).end();
+    if (!canAuthenticateUser(user)) return response.status(401).end();
     request.user = user;
     return next();
   } catch (error) {
@@ -46,7 +51,7 @@ export async function optionalAuthenticate(request, response, next) {
   try {
     const payload = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     const user = await findById(payload.sub);
-    if (!user || user.status !== 'active' || user.verification_status !== 'approved') return next();
+    if (!canAuthenticateUser(user)) return next();
     request.user = user;
     return next();
   } catch {

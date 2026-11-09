@@ -686,6 +686,28 @@ a {
   margin-bottom: 1rem;
 }
 
+.account-verification-notice {
+  display: grid;
+  gap: 4px;
+  margin: 16px 0;
+  padding: 14px 16px;
+  border: 1px solid #e8c879;
+  border-left: 4px solid #b7791f;
+  border-radius: 6px;
+  background: #fff9e9;
+  color: #694d1d;
+}
+
+.account-verification-notice strong {
+  font-size: 0.9rem;
+}
+
+.account-verification-notice p {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
 .dashboard-greeting--with-tools {
   display: flex;
   align-items: flex-start;

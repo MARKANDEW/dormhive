@@ -5,7 +5,7 @@ import { withMediaAccessToken } from '../services/mediaAccess.js';
     const l = document.createElement('link');
     l.rel = 'stylesheet';
     const stylesheet = new URL('./style/mapPanel.css', import.meta.url);
-    stylesheet.searchParams.set('v', 'popup-tip-soft-1');
+    stylesheet.searchParams.set('v', 'map-place-icons-2');
     l.href = stylesheet;
     l.dataset.componentStyle = 'mapPanel';
     document.head.append(l);
@@ -112,7 +112,7 @@ import { withMediaAccessToken } from '../services/mediaAccess.js';
     });
   }
 
-  export async function initLeafletMap(root, items = []) {
+  export async function initLeafletMap(root, items = [], { viewStorageKey = '', nearbyPlaces = false } = {}) {
     if (!root) return null;
     const statusEl = root.querySelector('#map-status');
     
@@ -121,7 +121,7 @@ import { withMediaAccessToken } from '../services/mediaAccess.js';
       const l = document.createElement('link');
       l.rel = 'stylesheet';
       const stylesheet = new URL('./style/mapPanel.css', import.meta.url);
-      stylesheet.searchParams.set('v', 'tenant-search-popup-card-1');
+      stylesheet.searchParams.set('v', 'map-place-icons-2');
       l.href = stylesheet;
       l.dataset.componentStyle = 'mapPanel';
       document.head.append(l);
@@ -196,9 +196,32 @@ import { withMediaAccessToken } from '../services/mediaAccess.js';
       return null;
     }
     
+    let savedView = null;
+    if (viewStorageKey) {
+      try {
+        const storedView = JSON.parse(localStorage.getItem(viewStorageKey) || 'null');
+        if (
+          Number.isFinite(storedView?.latitude)
+          && storedView.latitude >= -90
+          && storedView.latitude <= 90
+          && Number.isFinite(storedView?.longitude)
+          && storedView.longitude >= -180
+          && storedView.longitude <= 180
+          && Number.isFinite(storedView?.zoom)
+        ) {
+          savedView = storedView;
+        }
+      } catch (error) {
+        console.warn('Unable to restore map view:', error);
+      }
+    }
+
     let map;
     try {
-      map = L.map(container, { attributionControl: true }).setView([14.5995, 120.9842], 13);
+      map = L.map(container, { attributionControl: true }).setView(
+        savedView ? [savedView.latitude, savedView.longitude] : [14.5995, 120.9842],
+        savedView ? savedView.zoom : 13
+      );
       map.attributionControl.setPrefix(false);
       // eslint-disable-next-line no-console
       console.log('Leaflet map created successfully');
@@ -207,6 +230,20 @@ import { withMediaAccessToken } from '../services/mediaAccess.js';
       console.error('Leaflet map init failed:', err);
       if (statusEl) statusEl.textContent = 'Failed to initialize map. See console.';
       return null;
+    }
+    if (viewStorageKey) {
+      map.on('moveend', () => {
+        const center = map.getCenter();
+        try {
+          localStorage.setItem(viewStorageKey, JSON.stringify({
+            latitude: center.lat,
+            longitude: center.lng,
+            zoom: map.getZoom()
+          }));
+        } catch (error) {
+          console.warn('Unable to save map view:', error);
+        }
+      });
     }
     const tile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -241,10 +278,213 @@ import { withMediaAccessToken } from '../services/mediaAccess.js';
 
     const markers = L.layerGroup().addTo(map);
     const searchMarkerLayer = L.layerGroup().addTo(map);
+    const nearbyPlaceLayers = new Map();
+    const nearbyPlaceRequests = new Map();
+    const nearbyPlaceConfig = {
+      transport: {
+        label: 'Transport',
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 16V6.8A2.8 2.8 0 0 1 7.8 4h8.4A2.8 2.8 0 0 1 19 6.8V16"/><path d="M5 11h14M8 20l2-4m6 4-2-4M7.5 8h.01M16.5 8h.01M7 16h10"/></svg>',
+        filters: [
+          'node["amenity"="bus_station"]',
+          'way["amenity"="bus_station"]',
+          'relation["amenity"="bus_station"]',
+          'node["highway"="bus_stop"]',
+          'way["highway"="bus_stop"]',
+          'node["railway"~"^(station|halt|tram_stop)$"]',
+          'way["railway"~"^(station|halt|tram_stop)$"]',
+          'relation["railway"~"^(station|halt|tram_stop)$"]',
+          'node["public_transport"="station"]',
+          'way["public_transport"="station"]',
+          'relation["public_transport"="station"]',
+          'node["public_transport"="platform"]',
+          'way["public_transport"="platform"]'
+        ]
+      },
+      supermarket: {
+        label: 'Supermarket',
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2l2.2 11.1a2 2 0 0 0 2 1.6h8.5a2 2 0 0 0 1.9-1.4L21 9H6"/><path d="M9 12h8m-7-3 1 6m5-6-1 6"/><circle cx="10" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>',
+        filters: ['node["shop"="supermarket"]', 'way["shop"="supermarket"]', 'relation["shop"="supermarket"]']
+      },
+      restaurant: {
+        label: 'Restaurant',
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v6m-3-6v4a3 3 0 0 0 6 0V3M7 13v8M17 3v18m0-18c2 2 3 4.5 3 7h-3"/></svg>',
+        filters: ['node["amenity"="restaurant"]', 'way["amenity"="restaurant"]', 'relation["amenity"="restaurant"]']
+      },
+      pharmacy: {
+        label: 'Pharmacies',
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/></svg>',
+        filters: [
+          'node["amenity"="pharmacy"]',
+          'way["amenity"="pharmacy"]',
+          'relation["amenity"="pharmacy"]',
+          'node["shop"="chemist"]',
+          'way["shop"="chemist"]',
+          'relation["shop"="chemist"]'
+        ]
+      },
+      hospital: {
+        label: 'Hospitals',
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V5h16v16M2 21h20M9 21v-5h6v5"/><path d="M12 8v5m-2.5-2.5h5"/></svg>',
+        filters: ['node["amenity"="hospital"]', 'way["amenity"="hospital"]', 'relation["amenity"="hospital"]']
+      }
+    };
+    const nearbyPlaceControl = nearbyPlaces ? L.control({ position: 'topleft' }) : null;
+    if (nearbyPlaceControl) {
+      nearbyPlaceControl.onAdd = () => {
+        const control = L.DomUtil.create('div', 'map-place-legend leaflet-control');
+        control.setAttribute('aria-label', 'Nearby places');
+        Object.entries(nearbyPlaceConfig).forEach(([category, config]) => {
+          const button = L.DomUtil.create('button', 'map-place-legend__button', control);
+          button.type = 'button';
+          button.dataset.placeCategory = category;
+          button.setAttribute('aria-pressed', 'false');
+          button.setAttribute('aria-label', config.label);
+          button.dataset.tooltip = config.label;
+          button.innerHTML = `<span class="map-place-legend__symbol" aria-hidden="true">${config.icon}</span>`;
+          let tooltipTimer = null;
+          const showTooltip = () => {
+            window.clearTimeout(tooltipTimer);
+            tooltipTimer = window.setTimeout(() => button.classList.add('tooltip-visible'), 1000);
+          };
+          const hideTooltip = () => {
+            window.clearTimeout(tooltipTimer);
+            button.classList.remove('tooltip-visible');
+          };
+          button.addEventListener('pointerenter', showTooltip);
+          button.addEventListener('pointerleave', hideTooltip);
+          button.addEventListener('focus', showTooltip);
+          button.addEventListener('blur', hideTooltip);
+          L.DomEvent.disableClickPropagation(button);
+          L.DomEvent.on(button, 'click', (event) => {
+            L.DomEvent.stop(event);
+            const isEnabled = button.getAttribute('aria-pressed') === 'true';
+            button.setAttribute('aria-pressed', String(!isEnabled));
+            button.classList.toggle('is-active', !isEnabled);
+            if (isEnabled) {
+              nearbyPlaceRequests.get(category)?.abort();
+              nearbyPlaceRequests.delete(category);
+              nearbyPlaceLayers.get(category)?.clearLayers();
+              const status = control.querySelector('.map-place-legend__status');
+              if (status && !control.querySelector('.map-place-legend__button[aria-pressed="true"]')) {
+                status.hidden = true;
+              }
+              return;
+            }
+            loadNearbyPlaces(category);
+          });
+        });
+        const status = L.DomUtil.create('p', 'map-place-legend__status', control);
+        status.setAttribute('aria-live', 'polite');
+        status.hidden = true;
+        return control;
+      };
+      nearbyPlaceControl.addTo(map);
+    }
+
+    function loadNearbyPlaces(category) {
+      const config = nearbyPlaceConfig[category];
+      if (!config) return;
+      const legend = root.querySelector('.map-place-legend');
+      const status = legend?.querySelector('.map-place-legend__status');
+      const button = legend?.querySelector(`[data-place-category="${category}"]`);
+      if (map.getZoom() < 11) {
+        nearbyPlaceLayers.get(category)?.clearLayers();
+        if (status) {
+          status.hidden = false;
+          status.textContent = `Zoom in to find nearby ${config.label.toLowerCase()}.`;
+        }
+        return;
+      }
+
+      const bounds = map.getBounds();
+      const bbox = [
+        bounds.getSouth().toFixed(5),
+        bounds.getWest().toFixed(5),
+        bounds.getNorth().toFixed(5),
+        bounds.getEast().toFixed(5)
+      ].join(',');
+      const query = `[out:json][timeout:25];(${config.filters.map((filter) => `${filter}(${bbox});`).join('')});out center tags;`;
+      nearbyPlaceRequests.get(category)?.abort();
+      const controller = new AbortController();
+      nearbyPlaceRequests.set(category, controller);
+      nearbyPlaceLayers.get(category)?.clearLayers();
+      const requestTimeout = window.setTimeout(() => controller.abort(), 30000);
+      if (status) {
+        status.hidden = false;
+        status.textContent = `Finding ${config.label.toLowerCase()}…`;
+      }
+
+      fetch('https://overpass-api.de/api/interpreter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+        body: `data=${encodeURIComponent(query)}`,
+        signal: controller.signal
+      }).then((response) => {
+        if (!response.ok) throw new Error(`Nearby places request failed (${response.status}).`);
+        return response.json();
+      }).then((data) => {
+        if (nearbyPlaceRequests.get(category) !== controller) return;
+        let layer = nearbyPlaceLayers.get(category);
+        if (!layer) {
+          layer = L.layerGroup().addTo(map);
+          nearbyPlaceLayers.set(category, layer);
+        }
+        layer.clearLayers();
+        const places = Array.isArray(data.elements) ? data.elements : [];
+        places.forEach((place) => {
+          const latitude = Number(place.lat ?? place.center?.lat);
+          const longitude = Number(place.lon ?? place.center?.lon);
+          if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+          const placeName = place.tags?.name || `Unnamed ${config.label.toLowerCase()}`;
+          const name = escapeHtml(placeName);
+          const marker = L.marker([latitude, longitude], {
+            icon: L.divIcon({
+              className: 'map-place-marker',
+              html: config.icon,
+              iconSize: [30, 30],
+              iconAnchor: [15, 15]
+            }),
+            title: placeName,
+            alt: `${config.label}: ${placeName}`
+          });
+          marker.bindPopup(`<strong>${name}</strong><br>${config.label}`);
+          marker.addTo(layer);
+        });
+        if (status && button?.getAttribute('aria-pressed') === 'true') {
+          status.hidden = false;
+          status.textContent = places.length
+            ? `Showing ${places.length} ${config.label.toLowerCase()}.`
+            : `No named ${config.label.toLowerCase()} found in this map area.`;
+        }
+      }).catch((error) => {
+        if (nearbyPlaceRequests.get(category) !== controller) return;
+        console.warn(`Unable to load nearby ${config.label.toLowerCase()}:`, error);
+        if (status && button?.getAttribute('aria-pressed') === 'true') {
+          status.hidden = false;
+          status.textContent = `Could not load ${config.label.toLowerCase()}. Please try again.`;
+        }
+      }).finally(() => {
+        window.clearTimeout(requestTimeout);
+        if (nearbyPlaceRequests.get(category) === controller) nearbyPlaceRequests.delete(category);
+      });
+    }
+
+    let nearbyPlacesRefreshTimer = null;
+    if (nearbyPlaces) {
+      map.on('moveend', () => {
+        window.clearTimeout(nearbyPlacesRefreshTimer);
+        nearbyPlacesRefreshTimer = window.setTimeout(() => {
+          root.querySelectorAll('.map-place-legend__button[aria-pressed="true"]').forEach((button) => {
+            loadNearbyPlaces(button.dataset.placeCategory);
+          });
+        }, 500);
+      });
+    }
     let searchLocation = null;
     let searchRadiusLayer = null;
     let currentItems = [];
     let itemsUpdated = false;
+    let hasFitInitialItems = Boolean(savedView);
     const distanceInKm = (first, second) => {
       const radians = (value) => value * Math.PI / 180;
       const latitudeDelta = radians(second.latitude - first.latitude);
@@ -350,9 +590,10 @@ import { withMediaAccessToken } from '../services/mediaAccess.js';
           });
           added.push(marker);
         });
-        if (added.length) {
+        if (added.length && !hasFitInitialItems) {
           const group = L.featureGroup(added);
           map.fitBounds(group.getBounds().pad(0.2));
+          hasFitInitialItems = true;
         }
       }
     };

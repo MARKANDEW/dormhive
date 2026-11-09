@@ -637,6 +637,36 @@ textarea:focus-visible {
   background: #eef4f7;
 }
 
+.verification-document-gallery {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.verification-document-item {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
+  min-width: 0;
+}
+
+.verification-document-item h3 {
+  margin: 0;
+  color: var(--users-ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.verification-selfie-missing {
+  grid-column: 1 / -1;
+  align-self: start;
+  margin: 0;
+  color: var(--users-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .verification-document-preview img {
   display: block;
   width: 100%;
@@ -702,6 +732,9 @@ textarea:focus-visible {
   }
   .verification-document-preview {
     min-height: 240px;
+  }
+  .verification-document-gallery {
+    grid-template-columns: minmax(0, 1fr);
   }
   .verification-document-preview iframe {
     height: 42vh;

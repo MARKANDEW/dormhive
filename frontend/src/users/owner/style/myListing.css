@@ -126,6 +126,28 @@ body {
   margin-bottom: 18px;
 }
 
+.account-verification-notice {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border: 1px solid #e8c879;
+  border-left: 4px solid #b7791f;
+  border-radius: 6px;
+  background: #fff9e9;
+  color: #694d1d;
+}
+
+.account-verification-notice strong {
+  font-size: 0.9rem;
+}
+
+.account-verification-notice p {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
 .property-status-tabs {
   display: flex;
   gap: 8px;

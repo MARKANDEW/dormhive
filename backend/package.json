@@ -8,6 +8,7 @@
     "start": "node server.js",
     "setup-db": "node setup-db.js",
     "backfill-media": "node scripts/backfill-media.js",
+    "seed-demo-data": "node scripts/seed-demo-data.js",
     "test": "node --test"
   },
   "dependencies": {

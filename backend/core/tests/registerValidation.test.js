@@ -73,9 +73,10 @@ test('archived login requires a valid password before returning the archive noti
   });
 });
 
-test('only approved active users continue through login', () => {
+test('approved active users and pending applicants may continue through login', () => {
   assert.equal(loginRejection({ status: 'active', verification_status: 'approved' }, true), null);
-  assert.deepEqual(loginRejection({ status: 'pending', verification_status: 'pending' }, true), {
+  assert.equal(loginRejection({ status: 'pending', verification_status: 'pending' }, true), null);
+  assert.deepEqual(loginRejection({ status: 'active', verification_status: 'pending' }, true), {
     status: 403,
     message: 'Your account is awaiting admin verification. We will email you when it has been reviewed.'
   });

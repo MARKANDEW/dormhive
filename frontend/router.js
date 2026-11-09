@@ -5,12 +5,12 @@ const home = { tenant: '/tenant/dashboardTenant', owner: '/owner/dashboardOwner'
 const routes = [
   ['/', 'public', './src/auth/home.js', 'renderHomePage'],
   ['/login', 'public', './src/auth/login.js', 'renderLogin'], ['/register', 'public', './src/auth/register.js', 'renderRegister'], ['/terms', 'public', './src/auth/legal.js', 'renderTermsPage'], ['/privacy', 'public', './src/auth/legal.js', 'renderPrivacyPage'], ['/forgot-password', 'public', './src/auth/passwordReset.js', 'renderForgotPassword'], ['/reset-password', 'public', './src/auth/passwordReset.js', 'renderResetPassword'],
-  ['/oauth/callback', 'public', './src/auth/oauthCallback.js', 'renderOAuthCallback'],
+  ['/oauth/callback', 'public', './src/auth/oauthCallback.js', 'renderOAuthCallback'], ['/verification-pending', 'pending', './src/auth/verificationPending.js', 'renderVerificationPending'],
   ['/tenant/dashboardTenant', 'tenant', './src/users/tenant/dashboardTenant.js', 'renderDashboardTenant'], ['/tenant/featuredListings', 'tenant', './src/users/tenant/featuredListings.js', 'renderFeaturedListings'], ['/tenant/booking', 'tenant', './src/users/tenant/booking.js', 'renderBooking'], ['/tenant/message', 'tenant', './src/users/tenant/message.js', 'renderMessage'], ['/tenant/support', 'tenant', './src/users/tenant/support.js', 'renderSupport'], ['/tenant/setting', 'tenant', './src/users/tenant/setting.js', 'renderSetting'],
   ['/owner/dashboardOwner', 'owner', './src/users/owner/dashboardOwner.js', 'renderDashboardOwner'], ['/owner/myListing', 'owner', './src/users/owner/myListing.js', 'renderMyListing'], ['/owner/inquiries', 'owner', './src/users/owner/inquiries.js', 'renderInquiries'], ['/owner/activeTenant', 'owner', './src/users/owner/activeTenant.js', 'renderActiveTenant'], ['/owner/analytics', 'owner', './src/users/owner/analytics.js', 'renderAnalytics'], ['/owner/message', 'owner', './src/users/owner/message.js', 'renderMessage'], ['/owner/support', 'owner', './src/users/owner/support.js', 'renderSupport'], ['/owner/setting', 'owner', './src/users/owner/setting.js', 'renderSetting'],
   ['/admin/dashboardAdmin', 'admin', './src/users/admin/dashboardAdmin.js', 'renderDashboardAdmin'], ['/admin/userManagement', 'admin', './src/users/admin/userManagement.js', 'renderUserManagement'], ['/admin/listingModeration', 'admin', './src/users/admin/listingModeration.js', 'renderListingModeration'], ['/admin/analytics', 'admin', './src/users/admin/analytics.js', 'renderAnalytics'], ['/admin/supportTickets', 'admin', './src/users/admin/supportTickets.js', 'renderSupportTickets'], ['/admin/archive', 'admin', './src/users/admin/archive.js', 'renderArchive'], ['/admin/setting', 'admin', './src/users/admin/setting.js', 'renderSetting'],
 ];
-const authStyledRoutes = new Set(['/login', '/register', '/terms', '/privacy', '/forgot-password', '/reset-password']);
+const authStyledRoutes = new Set(['/login', '/register', '/terms', '/privacy', '/forgot-password', '/reset-password', '/verification-pending']);
 const ownerStylesByPath = {
   '/owner/dashboardOwner': ['dashboard'],
   '/owner/myListing': ['listings'],
@@ -119,15 +119,15 @@ async function refreshRouteForDataChange() {
 export async function renderRoute({ showSkeleton = true } = {}) {
   if (location.hash && !location.hash.startsWith('#/')) return;
   clearRouteIntervals();
-  const renderId = ++routeRenderId; const { path, search } = routeLocation(); const user = currentUser(); const publicRoutes = ['/', '/login', '/register', '/terms', '/privacy', '/forgot-password', '/reset-password', '/oauth/callback']; if (path === '/login' && user) return navigate(redirectForRole(user.role), true);
+  const renderId = ++routeRenderId; const { path, search } = routeLocation(); const user = currentUser(); const publicRoutes = ['/', '/login', '/register', '/terms', '/privacy', '/forgot-password', '/reset-password', '/oauth/callback']; if (path === '/login' && user) return navigate(redirectForRole(user.role, user.verification_status), true);
   const route = routes.find(([url]) => url === path);
-  if (!route) return navigate(redirectForRole(user?.role), true);
+  if (!route) return navigate(redirectForRole(user?.role, user?.verification_status), true);
   if (!user && !publicRoutes.includes(path)) return navigate('/login', true);
-  if (user && publicRoutes.includes(path) && path !== '/' && !['/terms', '/privacy'].includes(path)) return navigate(redirectForRole(user.role), true);
+  if (user && publicRoutes.includes(path) && path !== '/' && !['/terms', '/privacy'].includes(path)) return navigate(redirectForRole(user.role, user.verification_status), true);
   syncOwnerStyles(path);
   if (path.startsWith('/admin/')) resetAdminScroll();
   window.DORMHIVE_ROUTE_SEARCH = search;
-  const authRouteSkeletonDisabled = ['/login', '/register', '/terms', '/privacy', '/forgot-password', '/reset-password', '/oauth/callback'].includes(path);
+  const authRouteSkeletonDisabled = ['/login', '/register', '/terms', '/privacy', '/forgot-password', '/reset-password', '/oauth/callback', '/verification-pending'].includes(path);
   if (showSkeleton && !authRouteSkeletonDisabled) {
     const { renderRouteSkeleton } = await import('./src/components/pageSkeleton.js');
     renderRouteSkeleton(ROOT(), path);

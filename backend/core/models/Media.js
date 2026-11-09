@@ -9,8 +9,8 @@ const unavailablePhoto = () => {
 };
 
 export function canAccessVerificationDocument(media, user) {
-  const isVerificationDocument = media?.verification_document_id != null
-    && Number(media.verification_document_id) === Number(media.id);
+  const isVerificationDocument = [media?.verification_document_id, media?.verification_selfie_document_id]
+    .some((documentId) => documentId != null && Number(documentId) === Number(media.id));
   return !isVerificationDocument || user?.role === 'admin';
 }
 
@@ -56,6 +56,7 @@ export async function findAuthorized(id, user) {
   const rows = await query(
     `SELECT m.*, p.owner_id AS property_owner_id, p.status AS property_status,
       verification_owner.verification_document_id AS verification_document_id,
+      verification_owner.verification_selfie_document_id AS verification_selfie_document_id,
       c.tenant_id AS conversation_tenant_id, c.owner_id AS conversation_owner_id,
       tm.is_internal AS ticket_is_internal, tm.ticket_id AS support_ticket_id
      FROM media_files m

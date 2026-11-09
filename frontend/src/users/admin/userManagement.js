@@ -104,32 +104,55 @@ export async function renderUserManagement(root = document.querySelector('#app')
     const detailsResponse = await fetch(`${API}/users/${encodeURIComponent(user.id)}/verification-document`, { headers: headers() });
     const details = await detailsResponse.json().catch(() => ({}));
     if (!detailsResponse.ok) throw new Error(details.message || 'Unable to load the verification document.');
-    const fileResponse = await fetch(`${API}/media/${encodeURIComponent(details.data.id)}`, {
-      headers: { Authorization: headers().Authorization }
-    });
-    if (!fileResponse.ok) throw new Error('Unable to open the verification document.');
+    const fileUrls = [];
+    const documentGallery = document.createElement('div');
+    documentGallery.className = 'verification-document-gallery';
+    const verificationDocuments = [
+      { title: 'Government ID', document: details.data.identityDocument, alt: 'Uploaded identity document' },
+      { title: 'Live selfie', document: details.data.selfieDocument, alt: 'Selfie captured during registration' }
+    ];
+    for (const item of verificationDocuments) {
+      if (!item.document) continue;
+      const fileResponse = await fetch(`${API}/media/${encodeURIComponent(item.document.id)}`, {
+        headers: { Authorization: headers().Authorization }
+      });
+      if (!fileResponse.ok) throw new Error(`Unable to open the ${item.title.toLowerCase()}.`);
 
-    const fileUrl = URL.createObjectURL(await fileResponse.blob());
-    const documentPreview = document.createElement('div');
-    documentPreview.className = 'verification-document-preview';
-    if (details.data.mimeType.startsWith('image/')) {
-      const image = document.createElement('img');
-      image.src = fileUrl;
-      image.alt = 'Uploaded identity document';
-      documentPreview.append(image);
-    } else {
-      const frame = document.createElement('iframe');
-      frame.src = fileUrl;
-      frame.title = 'Uploaded identity document';
-      frame.setAttribute('sandbox', '');
-      documentPreview.append(frame);
+      const fileUrl = URL.createObjectURL(await fileResponse.blob());
+      fileUrls.push(fileUrl);
+      const documentSection = document.createElement('section');
+      documentSection.className = 'verification-document-item';
+      const documentTitle = document.createElement('h3');
+      documentTitle.textContent = item.title;
+      const documentPreview = document.createElement('div');
+      documentPreview.className = 'verification-document-preview';
+      if (item.document.mimeType.startsWith('image/')) {
+        const image = document.createElement('img');
+        image.src = fileUrl;
+        image.alt = item.alt;
+        documentPreview.append(image);
+      } else {
+        const frame = document.createElement('iframe');
+        frame.src = fileUrl;
+        frame.title = item.title;
+        frame.setAttribute('sandbox', '');
+        documentPreview.append(frame);
+      }
+      documentSection.append(documentTitle, documentPreview);
+      documentGallery.append(documentSection);
+    }
+    if (!details.data.selfieDocument) {
+      const legacyNote = document.createElement('p');
+      legacyNote.className = 'verification-selfie-missing';
+      legacyNote.textContent = 'No live selfie was submitted. This account was registered before selfie verification was added.';
+      documentGallery.append(legacyNote);
     }
     const applicantFacts = document.createElement('dl');
     applicantFacts.className = 'verification-review-facts';
     applicantFacts.innerHTML = `<div><dt>Applicant</dt><dd>${esc(user.name || 'Unknown user')}</dd></div><div><dt>Email</dt><dd>${esc(user.email || 'Not provided')}</dd></div><div><dt>Account type</dt><dd>${esc(user.role || 'User')}</dd></div>`;
     const content = document.createElement('div');
     content.className = 'verification-review-content';
-    content.append(applicantFacts, documentPreview);
+    content.append(applicantFacts, documentGallery);
     const modal = createModal({
       title: 'Review applicant verification',
       content,
@@ -137,7 +160,7 @@ export async function renderUserManagement(root = document.querySelector('#app')
       footerMarkup: '<button type="button" class="verification-review-reject">Reject applicant</button><button type="button" class="verification-review-approve">Approve applicant</button>'
     });
     modal.classList.add('verification-review-modal');
-    modal.addEventListener('close', () => URL.revokeObjectURL(fileUrl), { once: true });
+    modal.addEventListener('close', () => fileUrls.forEach((fileUrl) => URL.revokeObjectURL(fileUrl)), { once: true });
     modal.querySelector('.verification-review-approve').addEventListener('click', (event) => updateVerificationStatus(user, 'approved', modal, event.currentTarget));
     modal.querySelector('.verification-review-reject').addEventListener('click', (event) => updateVerificationStatus(user, 'rejected', modal, event.currentTarget));
     await openModal(modal);

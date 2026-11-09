@@ -35,20 +35,27 @@ export async function create({ name, first_name, last_name, email, passwordHash,
   return findById(result.insertId);
 }
 
-export async function setVerificationDocument(id, documentId) {
-  await query('UPDATE users SET verification_document_id = ? WHERE id = ?', [documentId, id]);
+export async function setVerificationDocuments(id, identityDocumentId, selfieDocumentId) {
+  await query('UPDATE users SET verification_document_id = ?, verification_selfie_document_id = ? WHERE id = ?', [identityDocumentId, selfieDocumentId, id]);
   return findById(id);
 }
 
-export async function findVerificationDocument(id) {
+export async function findVerificationDocuments(id) {
   const rows = await query(
-    `SELECT m.id, m.original_filename, m.mime_type
+    `SELECT identity.id AS identity_id, identity.original_filename AS identity_filename, identity.mime_type AS identity_mime_type,
+      selfie.id AS selfie_id, selfie.original_filename AS selfie_filename, selfie.mime_type AS selfie_mime_type
      FROM users u
-     JOIN media_files m ON m.id = u.verification_document_id AND m.uploaded_by = u.id
+     JOIN media_files identity ON identity.id = u.verification_document_id AND identity.uploaded_by = u.id
+     LEFT JOIN media_files selfie ON selfie.id = u.verification_selfie_document_id AND selfie.uploaded_by = u.id
      WHERE u.id = ? AND u.verification_status = 'pending' LIMIT 1`,
     [id]
   );
-  return rows[0] ?? null;
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    identityDocument: { id: row.identity_id, original_filename: row.identity_filename, mime_type: row.identity_mime_type },
+    selfieDocument: row.selfie_id ? { id: row.selfie_id, original_filename: row.selfie_filename, mime_type: row.selfie_mime_type } : null
+  };
 }
 
 export async function reviewVerification(id, verificationStatus) {
@@ -56,14 +63,14 @@ export async function reviewVerification(id, verificationStatus) {
   const result = await query(
     `UPDATE users
      SET verification_status = ?, status = ?
-     WHERE id = ? AND verification_status = 'pending' AND verification_document_id IS NOT NULL`,
+    WHERE id = ? AND verification_status = 'pending' AND verification_document_id IS NOT NULL`,
     [verificationStatus, nextStatus, id]
   );
   return result.affectedRows === 1;
 }
 
-export async function clearVerificationDocument(id, documentId) {
-  await query('UPDATE users SET verification_document_id = NULL WHERE id = ? AND verification_document_id = ?', [id, documentId]);
+export async function clearVerificationDocuments(id, identityDocumentId) {
+  await query('UPDATE users SET verification_document_id = NULL, verification_selfie_document_id = NULL WHERE id = ? AND verification_document_id = ?', [id, identityDocumentId]);
 }
 
 export async function list({ page, limit, search, archivedOnly = false, verificationStatus = null }) {

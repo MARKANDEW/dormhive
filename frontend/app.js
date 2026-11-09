@@ -30,7 +30,7 @@ export function startApp() {
 
 export function redirectAfterLogin(user) {
   localStorage.setItem('dormhive.user', JSON.stringify(user));
-  return navigate(redirectForRole(user.role), true);
+  return navigate(redirectForRole(user.role, user.verification_status), true);
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startApp);

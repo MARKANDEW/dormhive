@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
   status ENUM('active','suspended','pending','archived') DEFAULT 'active',
   verification_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved',
   verification_document_id INT NULL,
+  verification_selfie_document_id INT NULL,
   archived_status ENUM('active','suspended','pending') NULL,
   archived_at DATETIME NULL,
   last_login_at DATETIME NULL,
@@ -186,6 +187,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name VARCHAR(100) AFTER first_na
 ALTER TABLE users MODIFY COLUMN status ENUM('active','suspended','pending','archived') DEFAULT 'active';
 ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved';
 ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_document_id INT NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_selfie_document_id INT NULL;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS archived_status ENUM('active','suspended','pending') NULL;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS archived_at DATETIME NULL;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at DATETIME NULL;
